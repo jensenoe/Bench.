@@ -7,7 +7,7 @@ import stylistic from '@stylistic/eslint-plugin'
 /** House style: no semicolons, single quotes, two spaces, module-scope components. */
 const style = {
   '@stylistic/semi': ['error', 'never'],
-  '@stylistic/quotes': ['error', 'single', { avoidEscape: true, allowTemplateLiterals: true }],
+  '@stylistic/quotes': ['error', 'single', { avoidEscape: true, allowTemplateLiterals: 'always' }],
   '@stylistic/indent': ['error', 2, { SwitchCase: 1, flatTernaryExpressions: true, ignoredNodes: ['JSXElement *', 'JSXElement', 'ConditionalExpression'] }],
   '@stylistic/jsx-quotes': ['error', 'prefer-double'],
   '@stylistic/no-trailing-spaces': 'error',
