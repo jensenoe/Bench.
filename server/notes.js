@@ -32,7 +32,13 @@ function file(name) {
 
 // ── Logbook ───────────────────────────────────────────────────────────
 const logbook = file('logbook.json')
-const ENTRY_FIELDS = ['title', 'date', 'attendees', 'project', 'notes', 'decisions', 'actions', 'tags']
+const ENTRY_FIELDS = ['title', 'date', 'attendees', 'project', 'notes', 'decisions', 'actions', 'tags', 'links']
+/** Files and pages that belong to a meeting: a path on the share, a SharePoint link, a drawing. */
+const cleanLinks = (v) => Array.isArray(v) ? v.map(l => typeof l === 'string' ? { href: l } : l).map(l => {
+  const href = String(l.href || '').trim()
+  const label = String(l.label || '').trim() || href.split(/[\\/]/).filter(Boolean).pop() || href
+  return { id: l.id || crypto.randomUUID(), href, label: label.slice(0, 120) }
+}).filter(l => l.href).slice(0, 40) : []
 const strs = (v) => Array.isArray(v) ? v.map(x => String(x).trim()).filter(Boolean) : typeof v === 'string' ? v.split(/[,;\n]/).map(x => x.trim()).filter(Boolean) : []
 const lines = (v) => Array.isArray(v) ? v.map(x => String(x).trim()).filter(Boolean) : typeof v === 'string' ? v.split(/\n/).map(x => x.trim()).filter(Boolean) : []
 const cleanActions = (v) => Array.isArray(v) ? v.map(a => ({
@@ -46,7 +52,7 @@ export function createEntry(input = {}) {
   const e = {
     id: crypto.randomUUID(), title: String(input.title || '').trim() || 'Untitled', date: input.date || now().slice(0, 10),
     attendees: strs(input.attendees), project: String(input.project || '').trim() || null, notes: String(input.notes || ''),
-    decisions: lines(input.decisions), actions: cleanActions(input.actions), tags: strs(input.tags),
+    decisions: lines(input.decisions), actions: cleanActions(input.actions), tags: strs(input.tags), links: cleanLinks(input.links),
     createdAt: now(), updatedAt: now()
   }
   db.items.push(e); logbook.save(); return e
@@ -57,6 +63,7 @@ export function updateEntry(id, patch = {}) {
     if (k === 'attendees' || k === 'tags') e[k] = strs(patch[k])
     else if (k === 'decisions') e[k] = lines(patch[k])
     else if (k === 'actions') e[k] = cleanActions(patch[k])
+    else if (k === 'links') e[k] = cleanLinks(patch[k])
     else if (k === 'title') e[k] = String(patch[k] || '').trim() || 'Untitled'
     else e[k] = typeof patch[k] === 'string' ? patch[k] : (patch[k] ?? null)
   }

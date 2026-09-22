@@ -13,7 +13,7 @@ Effort: S is an hour or two, M a day, L several days. Ticked when it lands on `m
 - [x] 6 [S] Open day handling: prompt at next start to close yesterday at a chosen time, written to the sheet.
 - [x] 7 [S] Sync feedback: a quiet toast when the background sync adds or closes items.
 - [x] 8 [M] Monthly hours view matching the Zeiterfassung layout, pending and failed writes marked.
-- [ ] 9 [L] Procurement fed by the BOM. Done so far: supplier, PO number and ordered-on on every task and on the Procurement rows. Open: reading parts and lead times from the structured BOM. Needs the BOM data shape from Noël.
+- [ ] 9 [L] Procurement fed by the BOM. Done: supplier, PO number and ordered-on on every task and on the Procurement rows; a "From the BOM" section fed by the adapter (see 34). Open: confirm the BOM field names for supplier, lead time, order and delivery dates against the real tool, then the section fills itself.
 - [x] 10 [M] Checklists on a task, ticked from the card.
 - [x] 11 [S] Keyboard: `n` new task, `/` search, `1` to `6` pages.
 - [x] 12 [M] Napkin: export PNG and SVG; turn a node into a board task.
@@ -43,3 +43,11 @@ Effort: S is an hour or two, M a day, L several days. Ticked when it lands on `m
 - [x] 30 Text floor at 13 px; tertiary ink contrast checked on dark.
 - [x] 31 Lunch status line in words ("written to Monat, row 29"), not the workbook path.
 - [x] 32 Light theme hero: shorter fade so the photo keeps its bottom.
+
+## Second batch, 22 Sep 2026 evening
+
+- [x] 33 [S] Nav panels invisible: the mask on the nav clipped the time clock panel and the reminder. Backdrop moved to its own layer.
+- [x] 34 [M] Procurement from the BOM, first step (part of 9): the BOM adapter reads supplier, lead time, order number, ordered-on, delivery and need-by under their likely German and English field names, and Procurement shows a "From the BOM" section grouped by machine. Field names still to be confirmed against the real tool.
+- [x] 35 [S] Settings export and import (a JSON file; the GitHub token stays out).
+- [x] 36 [S] Logbook: files and links on an entry (share paths open in Windows, addresses in the browser).
+- [x] 37 [M] UI smoke test with Playwright (`npm run test:ui`), run in CI after the build: pages load without console errors, quick add, the Today cap, drag and drop, the time clock panel is actually visible.

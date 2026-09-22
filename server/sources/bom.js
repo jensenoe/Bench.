@@ -5,6 +5,9 @@ import { isMe } from '../settings.js'
 const DONE = new Set(['released'])
 const FIELDS = ['assigned_to', 'assigned_to_mecha', 'assigned_to_elec', 'assigned_to_mech', 'assigned_to_sw']
 const LABEL = { assigned_to: 'lead', assigned_to_mecha: 'mecha', assigned_to_elec: 'elec', assigned_to_mech: 'mech', assigned_to_sw: 'sw' }
+const pick = (node, ...keys) => { for (const k of keys) { const v = node?.[k]; if (v !== undefined && v !== null && v !== '') return v } return null }
+const num = v => { const n = Number(String(v ?? '').replace(/[^\d.,-]/g, '').replace(',', '.')); return Number.isFinite(n) && n > 0 ? n : null }
+const date = v => { if (!v) return null; const d = new Date(v); return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10) }
 
 /**
  * Structured BOM: session app, one JSON tree per machine. Assemblies carry
@@ -29,7 +32,17 @@ export async function fetchBom() {
         status: node.status, done: DONE.has(String(node.status).toLowerCase()),
         dueDate: null, url: `${ORIGIN}/machine/${machineId}`,
         group: machine, subgroup: roles.join(', '),
-        meta: { machine, prio, roles, critical: !!node.critical, procurement: node.beschaffungsstatus || null, openTickets: (node.tickets || []).length }
+        meta: {
+          machine, prio, roles, critical: !!node.critical, procurement: node.beschaffungsstatus || null, openTickets: (node.tickets || []).length,
+          // Procurement side of the part. The field names are the German and English spellings the BOM tool is
+          // likely to use; whichever exists wins, the rest stay null until the real shape is confirmed (roadmap 9).
+          supplier: pick(node, 'lieferant', 'supplier', 'hersteller', 'manufacturer'),
+          leadTimeDays: num(pick(node, 'lieferzeit_tage', 'lead_time_days', 'lieferzeit', 'lead_time')),
+          orderNumber: pick(node, 'bestellnummer', 'order_number', 'po_number', 'po'),
+          orderedOn: date(pick(node, 'bestellt_am', 'ordered_on', 'order_date')),
+          deliveryDate: date(pick(node, 'liefertermin', 'delivery_date', 'eta')),
+          needBy: date(pick(node, 'benoetigt_bis', 'need_by', 'needed_by', 'required_date'))
+        }
       })
     }
     ;(node.children || []).forEach(c => walk(c, machine, machineId))

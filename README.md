@@ -14,7 +14,7 @@ same page is the no-install version: keep it in any folder and run it from there
 
 ---
 
-**Beta 2 (0.9.0-beta.2).** Everything here works on my machine and on the mocks; the
+**Beta 3 (0.9.0-beta.3).** Everything here works on my machine and on the mocks; the
 Microsoft paths (Planner, the hours workbook, the issue list, the calendar) still want a
 first real run in the tom.fit tenant, and the issue list and calendar need a one-time admin
 approval, see below.

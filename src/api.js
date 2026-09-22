@@ -14,6 +14,9 @@ export const signIn = (tier = 'core') => fetch('/api/auth/signin', { method: 'PO
 export const signOut = () => fetch('/api/auth/signout', { method: 'POST' }).then(j)
 /** Opens in the system browser under Electron, a new tab otherwise. */
 export const openExternal = (url) => window.bench?.openExternal ? window.bench.openExternal(url) : window.open(url, '_blank', 'noopener')
+/** A logbook link: web addresses go to the browser, everything else (a share path, a drawing) to Windows. */
+export const openLink = (href) => /^https?:/i.test(href) ? openExternal(href) : (window.bench?.openPath ? window.bench.openPath(href) : Promise.resolve('Paths open only in the desktop app.'))
+export const importSettings = (body) => fetch('/api/settings/import', { method: 'POST', headers: H, body: JSON.stringify(body) }).then(j)
 export const getTimeclock = () => fetch('/api/timeclock').then(j)
 export const punch = (kind) => fetch('/api/timeclock/punch', { method: 'POST', headers: H, body: JSON.stringify({ kind }) }).then(j)
 export const resetTimeclock = () => fetch('/api/timeclock/reset', { method: 'POST' }).then(j)

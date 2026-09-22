@@ -30,8 +30,9 @@ export default [
     languageOptions: { sourceType: 'commonjs' }
   },
   {
-    files: ['tests/**/*.js'],
-    languageOptions: { ecmaVersion: 2024, sourceType: 'module', globals: { ...globals.node } },
+    // the UI smoke test runs in Node but its page.evaluate callbacks run in the browser
+    files: ['tests/**/*.js', 'tests/**/*.mjs'],
+    languageOptions: { ecmaVersion: 2024, sourceType: 'module', globals: { ...globals.node, ...globals.browser } },
     plugins: { '@stylistic': stylistic },
     rules: style
   },

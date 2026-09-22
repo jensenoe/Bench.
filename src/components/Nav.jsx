@@ -6,7 +6,12 @@ import Clock from './Clock.jsx'
 import TimeClock from './TimeClock.jsx'
 import Reminder from './Reminder.jsx'
 
-/** One line. Text links, the clock, the time clock as one control, search and the gear. Sized to read from a normal sitting distance on a 1080p screen. */
+/**
+ * One line. Text links, the clock, the time clock as one control, search and the gear. Sized to read
+ * from a normal sitting distance on a 1080p screen.
+ * The fading backdrop is its own layer behind the row: a mask on the nav itself would clip anything
+ * that opens below it (the time clock panel, the reminder), which is exactly what happened once.
+ */
 export default function Nav({ route, auth, meta, onRefresh, now, scene, timeclock, onSettings, settingsOpen, onSearch }) {
   const [busy, setBusy] = useState(false)
   const link = (id, label, i) => (
@@ -15,11 +20,12 @@ export default function Nav({ route, auth, meta, onRefresh, now, scene, timecloc
   )
 
   return (
-    <nav className="fixed inset-x-0 top-0 z-50" style={{
-      background: 'linear-gradient(to bottom, rgba(var(--veil),.82) 0%, rgba(var(--veil),.45) 60%, transparent 100%)',
-      backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
-      maskImage: 'linear-gradient(to bottom, #000 55%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, #000 55%, transparent 100%)' }}>
-      <div className="mx-auto flex h-[88px] max-w-[1800px] items-start justify-between px-8 pt-6 2xl:h-[104px] 2xl:pt-7">
+    <nav className="fixed inset-x-0 top-0 z-50">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[150px] 2xl:h-[170px]" style={{
+        background: 'linear-gradient(to bottom, rgba(var(--veil),.82) 0%, rgba(var(--veil),.45) 50%, transparent 100%)',
+        backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+        maskImage: 'linear-gradient(to bottom, #000 45%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, #000 45%, transparent 100%)' }} />
+      <div className="relative mx-auto flex h-[88px] max-w-[1800px] items-start justify-between px-8 pt-6 2xl:h-[104px] 2xl:pt-7">
         <div className="flex shrink-0 items-baseline gap-7 whitespace-nowrap xl:gap-10 2xl:gap-14">
           <a href="#/" className="display text-[23px] font-semibold tracking-tight 2xl:text-[27px]">Bench<span style={{ color: 'var(--accent)' }}>.</span></a>
           <div className="hidden items-baseline gap-5 lg:flex xl:gap-7 2xl:gap-9">

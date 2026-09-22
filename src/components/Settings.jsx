@@ -51,6 +51,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
   const [linkCopied, setLinkCopied] = useState(false)
   const [probe, setProbe] = useState(null)      // result of the workbook check
   const [upd, setUpd] = useState(null)          // result of the update check
+  const [imported, setImported] = useState(null)
   const panel = useRef(null)
   const checkWorkbook = async () => { setProbe({ busy: true }); try { setProbe(await api.probeWorkbook()) } catch (e) { setProbe({ ok: false, message: e.message }) } }
   const checkUpdates = async () => { setUpd({ busy: true }); try { setUpd(await api.checkUpdates(true)) } catch (e) { setUpd({ reason: e.message }) } }
@@ -155,6 +156,18 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
               </div>
               {startup !== null && <Toggle on={startup} onChange={async () => setStartup(await window.bench.startup(!startup))} label="Starts with Windows" />}
               <Toggle on={draft.nudges !== false} onChange={() => saveNow({ nudges: draft.nudges === false })} label="Water and coffee reminders after a task" />
+              <div className="flex flex-wrap items-center gap-4 text-[13px]">
+                <a href="/api/settings/export" download="bench-settings.json" className="underline underline-offset-2">Export settings</a>
+                <label className="cursor-pointer underline underline-offset-2">Import settings
+                  <input type="file" accept="application/json,.json" className="hidden" onChange={async e => {
+                    const f = e.target.files?.[0]; if (!f) return
+                    try { const j = JSON.parse(await f.text()); await api.importSettings(j); onRefresh(); setImported('Imported. Look, hours and pictures follow the file; the sign-in does not.') }
+                    catch (err) { setImported(`Not imported: ${err.message}`) }
+                    e.target.value = ''
+                  }} />
+                </label>
+                {imported && <span style={{ color: 'var(--ink-3)' }}>{imported}</span>}
+              </div>
             </Sec>
           )}
 

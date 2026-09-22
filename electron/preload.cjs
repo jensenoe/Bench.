@@ -3,6 +3,8 @@ contextBridge.exposeInMainWorld('bench', {
   desktop: true,
   info: () => ipcRenderer.invoke('bench:info'),
   openExternal: url => ipcRenderer.invoke('bench:open-external', url),
+  /** open a file or folder path with whatever Windows uses for it; resolves to '' or an error text */
+  openPath: p => ipcRenderer.invoke('bench:open-path', p),
   openDataFolder: () => ipcRenderer.invoke('bench:open-data-folder'),
   /** read (no arg) or set run-at-sign-in; false when not packaged */
   startup: (on) => ipcRenderer.invoke('bench:startup', on),

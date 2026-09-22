@@ -285,6 +285,8 @@ app.on('before-quit', () => { quitting = true })
 
 ipcMain.handle('bench:info', () => ({ dataDir: DATA_DIR, secretsDir: SECRETS_DIR, logFile: LOG_FILE, version: app.getVersion(), portable: PORTABLE, machineCfg: MACHINE_CFG }))
 ipcMain.handle('bench:open-external', (_e, url) => { if (/^https?:/.test(url)) shell.openExternal(url) })
+/** A file or folder from a logbook link: the share, a drawing, a PDF. Returns '' on success or the OS's reason. */
+ipcMain.handle('bench:open-path', (_e, p) => (typeof p === 'string' && p.trim() && !/^https?:/i.test(p)) ? shell.openPath(p.trim()) : 'not a path')
 ipcMain.handle('bench:open-data-folder', () => shell.openPath(DATA_DIR))
 /** A tool in its own window, on the shared tom.fit session, so SSO carries over. */
 function openTool(url) {

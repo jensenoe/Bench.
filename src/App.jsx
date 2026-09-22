@@ -10,6 +10,7 @@ import Landing from './components/Landing.jsx'
 import TerrainHeader from './components/TerrainHeader.jsx'
 import Lane from './components/Lane.jsx'
 import LeadTime from './components/LeadTime.jsx'
+import BomParts from './components/BomParts.jsx'
 import Tools from './components/Tools.jsx'
 import useClock from './hooks/useClock.js'
 import useTimeclock from './hooks/useTimeclock.js'
@@ -233,6 +234,7 @@ export default function App() {
               <section className="panel p-7"><h2 className="display text-[30px] font-semibold leading-none">Order dates.</h2>
                 <p className="mt-3 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>Nothing inside 14 days. Add an order-by date to any task with a lead time worth tracking; the supplier and the PO number go on the same card once it is ordered.</p></section>}
             {later.length > 0 && <LeadTime items={later} compact title="Later, and ordered." span={`${later.length} more`} />}
+            <BomParts tasks={state.tasks} />
           </main>
           </div>
         </>)}

@@ -201,8 +201,45 @@ function Entry({ entry, save, remove, template, onRefresh, setEntries }) {
           </div>
         </div>
       </div>
+      <Links entry={entry} save={save} />
       <p className="mt-6 text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Saves as you go. Last change {new Date(entry.updatedAt).toLocaleString('de-CH', { dateStyle: 'medium', timeStyle: 'short' })}.</p>
     </>
+  )
+}
+
+/**
+ * Files and pages that belong to the meeting: a folder on the share, a drawing, a SharePoint page.
+ * Paste a path or an address; the label is the file name unless you type one. Opening hands a path to
+ * Windows and an address to the browser.
+ */
+function Links({ entry, save }) {
+  const links = entry.links || []
+  const [href, setHref] = useState('')
+  const [label, setLabel] = useState('')
+  const [note, setNote] = useState(null)
+  const add = () => { if (!href.trim()) return; save({ links: [...links, { href: href.trim(), label: label.trim() }] }); setHref(''); setLabel('') }
+  const open = async (l) => { const r = await api.openLink(l.href); if (r) { setNote(String(r)); setTimeout(() => setNote(null), 4000) } }
+  return (
+    <div className="mt-6">
+      <h3 className="display text-[18px] font-semibold leading-none">Files and links.</h3>
+      <ul className="mt-3 flex flex-col gap-1.5 empty:hidden">
+        {links.map(l => (
+          <li key={l.id} className="row flex items-center gap-3 px-3 py-2">
+            <button onClick={() => open(l)} className="min-w-0 flex-1 text-left" title={l.href}>
+              <span className="block truncate text-[13.5px]">{l.label}</span>
+              <span className="tnum block truncate text-[12px]" style={{ color: 'var(--ink-3)' }}>{l.href}</span>
+            </button>
+            <button onClick={() => save({ links: links.filter(x => x.id !== l.id) })} aria-label={`Remove ${l.label}`} className="grid h-5 w-5 shrink-0 place-items-center rounded" style={{ color: 'var(--ink-3)' }}><X size={11} /></button>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_200px_auto]">
+        <input value={href} onChange={e => setHref(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()} placeholder="\\\\share\\Projekte\\M3\\… or https://…" className={INP + ' tnum'} />
+        <input value={label} onChange={e => setLabel(e.target.value)} onKeyDown={e => e.key === 'Enter' && add()} placeholder="Label, optional" className={INP} />
+        <button onClick={add} className="pill px-3.5 text-[13px] font-medium" style={{ background: 'var(--ink)', color: 'var(--bg)' }}>Add</button>
+      </div>
+      {note && <p className="mt-2 text-[12.5px]" style={{ color: '#E8B85A' }}>{note}</p>}
+    </div>
   )
 }
 
