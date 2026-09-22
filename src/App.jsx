@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import * as api from './api.js'
-import { sceneFor, sceneAt, lunchScene, cockpitCover, setCollections, setCadence, STATUS } from './scenes.js'
+import { sceneFor, sceneAt, lunchScene, cockpitCover, setCollections, setCadence, nextChange, STATUS } from './scenes.js'
 import { SHEETS, cheer } from './copy.js'
 import { daysUntil, daysSince } from './lanes.js'
 import Nav from './components/Nav.jsx'
@@ -11,18 +11,18 @@ import TerrainHeader from './components/TerrainHeader.jsx'
 import Lane from './components/Lane.jsx'
 import LeadTime from './components/LeadTime.jsx'
 import BomParts from './components/BomParts.jsx'
-import Tools from './components/Tools.jsx'
+const Tools = lazy(() => import('./components/Tools.jsx'))
 import useClock from './hooks/useClock.js'
 import useTimeclock from './hooks/useTimeclock.js'
-import Lunch from './components/Lunch.jsx'
-import Hours from './components/Hours.jsx'
+const Lunch = lazy(() => import('./components/Lunch.jsx'))
+const Hours = lazy(() => import('./components/Hours.jsx'))
 import Settings from './components/Settings.jsx'
 import FirstRun from './components/FirstRun.jsx'
 import Toast from './components/Toast.jsx'
 import SourceFilter from './components/SourceFilter.jsx'
 import PeopleFilter, { isMine } from './components/PeopleFilter.jsx'
-import Logbook from './components/Logbook.jsx'
-import Napkin from './components/Napkin.jsx'
+const Logbook = lazy(() => import('./components/Logbook.jsx'))
+const Napkin = lazy(() => import('./components/Napkin.jsx'))
 import Coach, { COACH } from './components/Coach.jsx'
 import Search from './components/Search.jsx'
 import QuickAdd from './components/QuickAdd.jsx'
@@ -82,6 +82,14 @@ export default function App() {
     }
     addEventListener('keydown', onKey); return () => removeEventListener('keydown', onKey)
   }, [searchOpen, quickOpen, settingsOpen])
+  // The next slot's pictures are fetched a little early, so the change at the boundary does not flash.
+  useEffect(() => {
+    const nx = nextChange(now)
+    if (nx.getTime() - now.getTime() > 75_000 || now.getSeconds() % 15 !== 0) return
+    const key = settings.sceneOverride || sceneFor(nx).key
+    const urls = new Set([sceneAt(key, nx).terrain, sceneAt('dawn', nx, 5).terrain, sceneAt('dusk', nx).terrain, sceneAt('night', nx).terrain, sceneAt('dusk', nx, 3).terrain, sceneAt('day', nx, 3).terrain])
+    for (const u of urls) { const img = new Image(); img.decoding = 'async'; img.src = u }
+  }, [now, settings.sceneOverride])
   // A clicked notification asks the window to jump somewhere (the lunch screen at noon).
   useEffect(() => window.bench?.onRoute?.(route => { location.hash = route }), [])
   const refresh = useCallback(async () => { try { setState(await api.getState()); setError(null) } catch (e) { setError(e.message) } }, [])
@@ -112,7 +120,7 @@ export default function App() {
   useEffect(() => {
     if (!state?.settings?.setupDone) return
     let on = true
-    api.checkUpdates().then(u => { if (on && u?.newer) showToast({ text: `Bench ${u.latest} is out.`, by: `You have ${u.current}. Settings > About has the download.`, plain: true, tool: { label: 'GitHub', url: u.download || u.url } }, 12000) }).catch(() => {})
+    api.checkUpdates().then(u => { if (on && u?.newer) showToast({ text: `Bench ${u.latest} is out.`, by: `You have ${u.current}. Settings > About has the download.`, plain: true, link: { label: 'Download the installer', url: u.download || u.url } }, 12000) }).catch(() => {})
     return () => { on = false }
   }, [state?.settings?.setupDone])   // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -203,6 +211,7 @@ export default function App() {
       {(error || timeclock.error) && <p className="pill fixed bottom-5 left-1/2 z-50 -translate-x-1/2 px-4 py-2 text-[13px]" style={{ background: STATUS.overdue, color: '#2A0A08' }}>{error || timeclock.error}</p>}
       {!onLunch && <OpenDay clock={timeclock.clock} onClose={closeDay} onDismiss={dismissDay} />}
 
+      <Suspense fallback={null}>
       <AnimatePresence mode="wait">
         {r === '' && page('home', <Landing scene={scene} stats={stats} pressing={pressing} sheetState={sheetState} doorImages={{ board: boardImage, procurement: { src: sceneAt('dusk', now).terrain, fallback: '/terrain/dusk.jpg' }, tools: { src: sceneAt('night', now).terrain, fallback: '/terrain/night.jpg' }, cockpit: cockpitCover(now), logbook: { src: sceneAt('dusk', now, 3).terrain, fallback: '/terrain/dusk.jpg' }, napkin: { src: sceneAt('day', now, 3).terrain, fallback: '/terrain/day.jpg' } }} name={settings.name} late={workingLate} hoursIn={hoursIn} />)}
 
@@ -267,6 +276,7 @@ export default function App() {
           <div className="relative"><Hours clock={timeclock.clock} /></div>
         </>)}
       </AnimatePresence>
+      </Suspense>
 
       <Footer compact={inner} name={settings.name} version={state.version} scene={scene} glow={light && scene.light ? scene.light.glow : scene.glow} now={now} onSettings={() => setSettingsOpen(true)} />
     </div>

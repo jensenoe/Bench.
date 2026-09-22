@@ -48,7 +48,7 @@ export const COACH = {
   board: [
     { title: 'Five lanes, one cap.', body: 'Today holds five. When it is full, something leaves before anything arrives. That is the whole rule, and it is what keeps the list honest. Drag a card from lane to lane; the lane lights up when it will take it.' },
     { title: 'Where things live.', body: 'Active is started and not finished. Waiting on is out of your hands, with a clock on how long. Innovation is the work that makes next year easier. Parked is shelved on purpose.' },
-    { title: 'Moving and finishing.', body: 'The circle ticks a task off, with an Undo for a few seconds. The sliders open every field: checklist, repeat, supplier, notes. Press n anywhere to add a task, / to search, 1 to 6 for the pages.' },
+    { title: 'Moving and finishing.', body: 'The circle ticks a task off, with an Undo for a few seconds. The sliders open every field: checklist, repeat, supplier, notes. Press n anywhere to add a task, / to search, 1 to 7 for the pages.' },
     { title: 'What the tools own.', body: 'Tasks from Issues, QMS, the BOM and Planner keep their title and status from the tool. Everything else on the card is yours: lane, priority, hours, tags, notes.' }
   ],
   logbook: [

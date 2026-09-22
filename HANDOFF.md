@@ -62,7 +62,7 @@ BOM data shape) and 23 (the noon log) landed. What to know when touching them:
 - The tray (`electron/main.cjs`) only exists when packaged; `npm run desktop` behaves as before. Nobody has
   run the packaged tray yet: check that close hides, the tray menu opens, the notification click shows the
   window, and Quit really quits.
-- Photographs are rendered at 2400 px now (`src/library.json`, bat regenerated): 139 MB of pictures instead of 196, installer and portable exe 220 MB instead of 290.
+- Photographs are rendered at 3200 by 1800 now (`src/library.json`, bat regenerated) for wide monitors; 2400 was too soft on Noël's screen. Size is in the roadmap third batch.
 - `npm run test:ui` (tests/ui/smoke.mjs) starts the server on a scratch folder and drives the built interface in
   headless Chromium: pages, the cap, quick add, drag and drop, the time clock panel, hours, logbook links, settings
   export. CI runs it after the build. Needs `npm run build` and Playwright's Chromium.

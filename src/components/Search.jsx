@@ -32,7 +32,7 @@ export default function Search({ open, onClose, tasks = [] }) {
     const hit = (s) => { const n = norm(s); return words.every(w => n.includes(w)) }
     const out = []
     for (const [id, label] of PAGES) if (hit(label)) out.push({ kind: 'page', title: label, hash: `#/${id}` })
-    for (const x of tasks) if (hit([x.title, x.project, x.assignedBy, x.lead, (x.tags || []).join(' '), x.notes].join(' ')))
+    for (const x of tasks) if (hit([x.title, x.project, x.assignedBy, x.lead, (x.tags || []).join(' '), x.notes, x.supplier, x.poNumber, x.waitingOn, (x.checklist || []).map(c => c.text).join(' ')].join(' ')))
       out.push({ kind: 'task', title: x.title, sub: [x.done ? 'done' : x.lane, x.project, x.source && x.source !== 'local' ? x.source : null].filter(Boolean).join(' · '), hash: `#/board?task=${x.id}`, id: x.id })
     for (const e of extra.entries) if (hit([e.title, e.project, e.notes, (e.attendees || []).join(' '), (e.decisions || []).join(' '), (e.actions || []).map(a => a.text).join(' ')].join(' ')))
       out.push({ kind: 'entry', title: e.title, sub: [e.date, e.project].filter(Boolean).join(' · '), hash: `#/logbook?entry=${e.id}` })

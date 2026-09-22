@@ -68,13 +68,20 @@ export default function Napkin() {
   const [note, setNote] = useState(null)        // one line of feedback under the toolbar (exported, sent to the board)
 
   const load = async () => { const m = await api.getMaps(); setMaps(m); return m }
+  const open = (m) => { setSel(m.id); setNodes(m.nodes); setRoot(m.root); setActive(m.root); setEditing(null); setView({ x: 0, y: 0, k: 1 }); setDirty(false) }
   useEffect(() => { load().then(m => {
     const wanted = new URLSearchParams(location.hash.split('?')[1] || '').get('map')
     const pick = m.find(x => x.id === wanted) || m[0]
     if (pick) open(pick)
   }) }, [])
-  const open = (m) => { setSel(m.id); setNodes(m.nodes); setRoot(m.root); setActive(m.root); setEditing(null); setView({ x: 0, y: 0, k: 1 }); setDirty(false) }
   const map = maps?.find(m => m.id === sel)
+  // the svg's size, kept in state so the render never reads the ref
+  const [size, setSize] = useState({ w: 900, h: 500 })
+  useEffect(() => {
+    const el = svgRef.current; if (!el) return
+    const ro = new ResizeObserver(([e]) => setSize({ w: e.contentRect.width || 900, h: e.contentRect.height || 500 }))
+    ro.observe(el); return () => ro.disconnect()
+  }, [sel, nodes === null])
 
   // debounced save
   useEffect(() => {
@@ -290,7 +297,7 @@ export default function Napkin() {
 
           <svg ref={svgRef} className={`h-full w-full select-none ${ghost ? 'cursor-grabbing' : 'cursor-grab active:cursor-grabbing'}`} onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp} onWheel={onWheel}>
             <rect data-bg="1" width="100%" height="100%" fill="transparent" />
-            <g transform={`translate(${view.x + (svgRef.current?.clientWidth || 900) / 2}, ${view.y + (svgRef.current?.clientHeight || 500) / 2}) scale(${view.k})`}>
+            <g transform={`translate(${view.x + size.w / 2}, ${view.y + size.h / 2}) scale(${view.k})`}>
               {Object.values(nodes).map(n => {
                 if (!n.parent || !pos[n.id] || !pos[n.parent]) return null
                 const a = pos[n.parent], b = pos[n.id]

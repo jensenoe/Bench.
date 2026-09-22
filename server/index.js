@@ -45,14 +45,14 @@ let background = null
 app.get('/api/settings', wrap((_req, res) => res.json(publicSettings())))
 /** Settings as a file to keep or to carry to another machine. The GitHub token stays out of it. */
 app.get('/api/settings/export', wrap((_req, res) => {
-  const { _pathSetByUser, updateToken, setupDone, ...rest } = settings.get()
+  const { _pathSetByUser, updateToken: _token, setupDone: _done, ...rest } = settings.get()
   res.setHeader('Content-Disposition', 'attachment; filename="bench-settings.json"')
   res.json({ bench: 'settings', version: 1, exportedAt: new Date().toISOString(), settings: rest })
 }))
 app.post('/api/settings/import', wrap((req, res) => {
   const body = req.body?.settings && typeof req.body.settings === 'object' ? req.body.settings : req.body
   if (!body || typeof body !== 'object') return res.status(400).json({ error: 'That is not a Bench settings file.' })
-  const { setupDone, updateToken, ...rest } = body
+  const { setupDone: _done, updateToken: _token, ...rest } = body
   settings.update(rest)
   timeclock.invalidate()
   res.json(publicSettings())

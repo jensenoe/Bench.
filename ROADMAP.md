@@ -51,3 +51,21 @@ Effort: S is an hour or two, M a day, L several days. Ticked when it lands on `m
 - [x] 35 [S] Settings export and import (a JSON file; the GitHub token stays out).
 - [x] 36 [S] Logbook: files and links on an entry (share paths open in Windows, addresses in the browser).
 - [x] 37 [M] UI smoke test with Playwright (`npm run test:ui`), run in CI after the build: pages load without console errors, quick add, the Today cap, drag and drop, the time clock panel is actually visible.
+
+## Third batch, 22 Sep 2026 night: the wide-screen audit
+
+Every page at 1024, 1280, 1440, 1920, 2560 and 3440 px in both themes, plus the code behind them.
+No horizontal scroll, no unlabelled control, no console error anywhere. What did need work:
+
+- [x] 38 [M] Photographs at 3200 by 1800 for wide monitors (were 2400). Pictures and installer grow accordingly.
+- [x] 39 [S] Ultrawide column: the reading column is 1560 px from 2200 px and 1760 px from 3000 px, so three lanes get real width instead of 800 px margins.
+- [x] 40 [S] Card titles wrapped one word per line in a narrow lane: the hidden hover actions still took their width. They are a small toolbar on the card's top edge now, shown on hover, focus and while editing; the title keeps the whole row.
+- [x] 41 [S] Light theme: the nav's fog and text were cream over the photograph. The nav is on-photo now, night fog and light ink in both themes, like the header glass.
+- [x] 42 [S] The update toast borrowed the completion toast's "close it in the tool" line. Toasts have a plain link now ("Download the installer").
+- [x] 43 [S] Coach copy said 1 to 6 pages; it is 1 to 7 with Hours.
+- [x] 44 [M] Bundle split: Logbook, Napkin, Hours, Tools and Lunch load when first opened (about 60 kB off the start).
+- [x] 45 [S] The next picture is fetched a minute before the slot changes, so the change does not flash on a slow disk or share.
+- [x] 46 [S] Search also matches supplier, PO number, waiting-on and checklist steps.
+- [x] 47 [S] Dead files removed (greetings.js, scenes.json); the last lint warnings that were real (refs read during render in the Napkin, a variable used before its declaration) fixed.
+
+Looked at and left alone, on purpose: the Home hero at 3440 (the photograph carries it), the nav at 1024 (date hidden, everything fits), the 12 px chips (raised earlier, readable at 2560), the footer ghost name at ultrawide (aligned to the column). Not testable here: how 3200 px pictures look on the real monitor at its scaling; if it is 4K at 150 percent, 3840 wide is the next step, at roughly 440 MB for the installer.

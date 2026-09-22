@@ -28,6 +28,12 @@ export default function Toast({ item, onDismiss }) {
               Done here only. Close it in {item.tool.label} too <ArrowSquareOut size={11} />
             </span>
           )}
+          {item.link && (
+            <span role="link" tabIndex={0} onClick={e => { e.stopPropagation(); openExternal(item.link.url) }} onKeyDown={e => e.key === 'Enter' && openExternal(item.link.url)}
+              className="mt-3 inline-flex items-center gap-1.5 text-[13px] underline-offset-2 hover:underline" style={{ color: 'var(--accent)' }}>
+              {item.link.label} <ArrowSquareOut size={11} />
+            </span>
+          )}
           {item.undo && (
             <span role="button" tabIndex={0} onClick={e => { e.stopPropagation(); item.undo(); onDismiss() }} onKeyDown={e => { if (e.key === 'Enter') { item.undo(); onDismiss() } }}
               className="pill absolute right-4 top-4 px-3 py-1.5 text-[13px] font-medium" style={{ border: '1px solid var(--line-2)', color: 'var(--ink)' }}>Undo</span>

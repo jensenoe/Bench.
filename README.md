@@ -14,7 +14,7 @@ same page is the no-install version: keep it in any folder and run it from there
 
 ---
 
-**Beta 3 (0.9.0-beta.3).** Everything here works on my machine and on the mocks; the
+**Beta 4 (0.9.0-beta.4).** Everything here works on my machine and on the mocks; the
 Microsoft paths (Planner, the hours workbook, the issue list, the calendar) still want a
 first real run in the tom.fit tenant, and the issue list and calendar need a one-time admin
 approval, see below.
@@ -57,7 +57,7 @@ Administrator; `build-exe.bat plain` skips the icon stamping instead, and `build
 Bump `version` in `package.json`, commit, then tag and push:
 
 ```bash
-git tag v0.9.0-beta.4 && git push --tags
+git tag v0.9.0-beta.5 && git push --tags
 ```
 
 The *Release* workflow in `.github/workflows/release.yml` builds both exes on a Windows
@@ -89,6 +89,7 @@ without publishing and leaves the exes as a workflow artifact.
 - **Updates.** Settings > About checks GitHub for a newer release. The repository is private, so a
   fine-grained token with read access makes the check real; without one the button opens the
   releases page. A newer version is also announced once at start.
+- **Wide screens.** Photographs are rendered at 3200 px; the reading column widens to 1560 px from 2200 px and 1760 px from 3000 px, so three lanes get real width on an ultrawide.
 - **Napkin and Logbook.** A node becomes a task with `T` or the button; the map exports as PNG or
   SVG. A recurring meeting starts from its last entry with *Again today*.
 

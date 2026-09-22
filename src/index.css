@@ -95,6 +95,8 @@ body {
 .tnum { font-variant-numeric: tabular-nums; }
 
 @media (min-width: 1536px) { :root { --col: 1320px; } }
+@media (min-width: 2200px) { :root { --col: 1560px; } }   /* 2560 wide: three lanes of 480 px */
+@media (min-width: 3000px) { :root { --col: 1760px; } }   /* ultrawide: still one column, wider lanes, no 800 px margins */
 .col { max-width: var(--col); }
 
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; }

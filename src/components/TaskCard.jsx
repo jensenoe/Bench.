@@ -13,7 +13,7 @@ export const DRAG_TYPE = 'text/bench-task'
 
 function Tag({ children, color, title }) {
   return (
-    <span title={title} className="rounded-md px-1.5 py-[2px] text-[13px] font-medium tracking-wide"
+    <span title={title} className="rounded-md px-1.5 py-[2px] text-[12px] font-medium tracking-wide"
       style={{ color, background: `color-mix(in srgb, ${color} 14%, transparent)` }}>
       {children}
     </span>
@@ -38,11 +38,16 @@ function Checklist({ task, onPatch }) {
           <span style={{ color: c.done ? 'var(--ink-3)' : 'var(--ink-2)', textDecoration: c.done ? 'line-through' : 'none' }}>{c.text}</span>
         </li>
       ))}
-      <li className="tnum text-[13px]" style={{ color: 'var(--ink-3)' }}>{done} of {list.length}</li>
+      <li className="tnum text-[12px]" style={{ color: 'var(--ink-3)' }}>{done} of {list.length}</li>
     </ul>
   )
 }
 
+/**
+ * One task. The title gets the whole width: the hover actions float over the top right corner on
+ * hover, focus and while editing, instead of reserving a strip that squeezed titles into one word
+ * per line in a narrow lane. Details and the drag grip stay inline because they are always there.
+ */
 export default function TaskCard({ task, onPatch, onDelete, draggable = true }) {
   const [editing, setEditing] = useState(false)
   const [dragging, setDragging] = useState(false)
@@ -65,7 +70,7 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true }) 
       initial={{ opacity: 0, y: 6 }} animate={{ opacity: task.done ? .4 : dragging ? .5 : 1, y: 0 }}
       exit={{ opacity: 0, scale: .97, transition: { duration: .15 } }}
       transition={{ type: 'spring', stiffness: 380, damping: 34 }}
-      id={`task-${task.id}`} className="group row px-4 py-3"
+      id={`task-${task.id}`} className="group row relative px-4 py-3"
       draggable={canDrag} onDragStart={canDrag ? onDragStart : undefined} onDragEnd={() => setDragging(false)}
       style={{ cursor: canDrag ? 'grab' : 'default' }}>
       <div className="flex items-start gap-3">
@@ -79,7 +84,7 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true }) 
         </motion.button>
 
         <div className="min-w-0 flex-1">
-          <p className="cursor-text text-[14px] leading-snug" onClick={() => setEditing(v => !v)}
+          <p className="cursor-text pr-14 text-[14px] leading-snug" onClick={() => setEditing(v => !v)}
             style={{ textDecoration: task.done ? 'line-through' : 'none' }}>{task.title}</p>
           <div className="mt-1.5 flex flex-wrap gap-1.5 empty:hidden">
             {task.priority && <Tag color={PRIO_COLOR[task.priority]}>P{task.priority}</Tag>}
@@ -109,31 +114,34 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true }) 
           </div>
           {task.checklist?.length > 0 && !task.done && <Checklist task={task} onPatch={onPatch} />}
         </div>
-
-        {/* Details is always there to find; the rest shows on hover, on focus, and while editing. */}
-        <div className="flex shrink-0 items-center gap-1">
-          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100" style={editing ? { opacity: 1 } : undefined}>
-            {!task.done && task.lane !== 'today' && (
-              <button onClick={() => onPatch(task.id, { lane: 'today' })} aria-label="Pull to Today" title="Pull to Today"
-                className="pill mr-1 px-2 py-0.5 text-[13px] font-medium" style={{ border: '1px solid var(--line-2)', color: 'var(--ink-2)' }}>Today</button>
-            )}
-            {task.url && <button onClick={() => openExternal(task.url)} aria-label="Open in the tool" title="Open in the tool"
-              className="grid h-6 w-6 place-items-center rounded-md" style={{ color: 'var(--ink-3)' }}><ArrowSquareOut size={12} weight="bold" /></button>}
-            <select aria-label="Move to lane" value={task.lane}
-              onChange={e => onPatch(task.id, { lane: e.target.value })}
-              className="field cursor-pointer px-1.5 py-1 text-[13px]">
-              {LANE_ORDER.map(k => <option key={k} value={k}>{LANES[k].label}</option>)}
-            </select>
-            <button onClick={() => onDelete(task.id)} aria-label="Delete"
-              className="grid h-6 w-6 place-items-center rounded-md" style={{ color: 'var(--ink-3)' }}>
-              <X size={12} weight="bold" />
-            </button>
-          </div>
-          <button onClick={() => setEditing(v => !v)} aria-label="Edit details" title="Details" aria-expanded={editing}
-            className="grid h-6 w-6 place-items-center rounded-md transition-opacity" style={{ color: editing ? 'var(--ink)' : 'var(--ink-3)', opacity: editing ? 1 : .7 }}><SlidersHorizontal size={13} weight="bold" /></button>
-          {canDrag && <span aria-hidden="true" className="hidden opacity-0 transition-opacity group-hover:opacity-60 sm:block" style={{ color: 'var(--ink-3)' }}><DotsSixVertical size={13} /></span>}
-        </div>
       </div>
+
+      {/* Always there: details, and the grip while draggable. Top right, over the title's reserved right padding. */}
+      <div className="absolute right-3 top-2.5 flex items-center gap-0.5">
+        <button onClick={() => setEditing(v => !v)} aria-label="Edit details" title="Details" aria-expanded={editing}
+          className="grid h-6 w-6 place-items-center rounded-md transition-opacity" style={{ color: editing ? 'var(--ink)' : 'var(--ink-3)', opacity: editing ? 1 : .7 }}><SlidersHorizontal size={13} weight="bold" /></button>
+        {canDrag && <span aria-hidden="true" className="hidden opacity-0 transition-opacity group-hover:opacity-60 sm:block" style={{ color: 'var(--ink-3)' }}><DotsSixVertical size={13} /></span>}
+      </div>
+      {/* On hover, on focus, while editing: the rest, as a small toolbar riding the card's top edge so it covers neither title nor chips. */}
+      <div className={`row absolute -top-4 right-10 z-10 items-center gap-1 px-1.5 py-1 ${editing ? 'flex' : 'hidden group-hover:flex group-focus-within:flex'}`}
+        style={{ borderColor: 'var(--line-2)', boxShadow: '0 8px 24px rgba(0,0,0,.22)' }}>
+        {!task.done && task.lane !== 'today' && (
+          <button onClick={() => onPatch(task.id, { lane: 'today' })} aria-label="Pull to Today" title="Pull to Today"
+            className="pill px-2 py-0.5 text-[12px] font-medium" style={{ border: '1px solid var(--line-2)', color: 'var(--ink-2)' }}>Today</button>
+        )}
+        {task.url && <button onClick={() => openExternal(task.url)} aria-label="Open in the tool" title="Open in the tool"
+          className="grid h-6 w-6 place-items-center rounded-md" style={{ color: 'var(--ink-3)' }}><ArrowSquareOut size={12} weight="bold" /></button>}
+        <select aria-label="Move to lane" value={task.lane}
+          onChange={e => onPatch(task.id, { lane: e.target.value })}
+          className="field cursor-pointer px-1.5 py-0.5 text-[12px]">
+          {LANE_ORDER.map(k => <option key={k} value={k}>{LANES[k].label}</option>)}
+        </select>
+        <button onClick={() => onDelete(task.id)} aria-label="Delete"
+          className="grid h-6 w-6 place-items-center rounded-md" style={{ color: 'var(--ink-3)' }}>
+          <X size={12} weight="bold" />
+        </button>
+      </div>
+
       <AnimatePresence initial={false}>
         {editing && <TaskEditor key="ed" task={task} onPatch={onPatch} onClose={() => setEditing(false)} />}
       </AnimatePresence>
