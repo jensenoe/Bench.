@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { animate, useInView } from 'framer-motion'
+import { animate, useInView } from 'motion/react'
 
 /** A counter that rolls up to its value once, when it scrolls into view. */
 export default function Stat({ value, label, accent, delay = 0 }) {

@@ -12,7 +12,7 @@ const TextBtn = ({ kind, children, busy, go }) => (
  * The time clock in the nav: one primary pill, one quiet text action.
  * Which is which follows the hour, so at noon the pill says Lunch and at five it says Clock out.
  */
-export default function Punch({ clock, punch, now, canWrite }) {
+export default function Punch({ clock, punch, now }) {
   const [busy, setBusy] = useState(false)
   if (!clock) return null
   const go = async (kind) => { setBusy(true); try { if (await punch(kind) && kind === 'lunchOut') location.hash = '#/lunch' } finally { setBusy(false) } }
@@ -20,8 +20,6 @@ export default function Punch({ clock, punch, now, canWrite }) {
   const solid = { background: 'var(--accent)', color: 'var(--accent-ink)' }
   const ghost = { border: '1px solid var(--line-2)' }
   const quiet = { color: 'var(--ink-3)' }
-  const Pill = (p) => <PillBtn {...p} busy={busy} go={go} />
-  const Text = (p) => <TextBtn {...p} busy={busy} go={go} />
   const noonish = now.getHours() >= 11 && now.getHours() < 14 && !last('lunchOut')
   const pending = clock.pending > 0
   const dot = (pending || clock.lastError) && (
@@ -30,14 +28,14 @@ export default function Punch({ clock, punch, now, canWrite }) {
   )
 
   if (clock.status === 'off') return (
-    <div className="flex items-center gap-3">{dot}<Pill kind="in" style={solid}>Clock in</Pill></div>
+    <div className="flex items-center gap-3">{dot}<PillBtn busy={busy} go={go} kind="in" style={solid}>Clock in</PillBtn></div>
   )
   if (clock.status === 'in') return (
     <div className="flex items-center gap-4">
       <span className="tnum hidden text-[13.5px] min-[1400px]:inline" style={quiet}>In {fmt(last('lunchIn')?.at || last('in')?.at)}</span>
       {dot}
-      {noonish ? <><Text kind="out">Clock out</Text><Pill kind="lunchOut" style={solid}>Lunch</Pill></>
-               : <>{!last('lunchOut') && <Text kind="lunchOut">Lunch</Text>}<Pill kind="out" style={ghost}>Clock out</Pill></>}
+      {noonish ? <><TextBtn busy={busy} go={go} kind="out">Clock out</TextBtn><PillBtn busy={busy} go={go} kind="lunchOut" style={solid}>Lunch</PillBtn></>
+               : <>{!last('lunchOut') && <TextBtn busy={busy} go={go} kind="lunchOut">Lunch</TextBtn>}<PillBtn busy={busy} go={go} kind="out" style={ghost}>Clock out</PillBtn></>}
     </div>
   )
   if (clock.status === 'lunch') {
@@ -46,7 +44,7 @@ export default function Punch({ clock, punch, now, canWrite }) {
       <div className="flex items-center gap-4">
         <a href="#/lunch" className="tnum text-[13.5px]" style={quiet}>Break {mmss(now.getTime() - since)}</a>
         {dot}
-        <Pill kind="lunchIn" style={solid}>Back</Pill>
+        <PillBtn busy={busy} go={go} kind="lunchIn" style={solid}>Back</PillBtn>
       </div>
     )
   }
@@ -54,7 +52,7 @@ export default function Punch({ clock, punch, now, canWrite }) {
     <div className="flex items-center gap-4">
       <span className="tnum text-[13.5px]" style={quiet}>Out {fmt(last('out')?.at)}</span>
       {dot}
-      <Text kind="in">Clock in again</Text>
+      <TextBtn busy={busy} go={go} kind="in">Clock in again</TextBtn>
     </div>
   )
 }
