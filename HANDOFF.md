@@ -8,9 +8,10 @@ previous session did not have, so the list below is ordered by what only you can
 
 Done, on `main` in small commits:
 
-- Section 0: `git init`, `.gitignore` verified (no photos, data, backups or token cache staged), first
-  commit made. Not pushed: `gh` is not installed and no GitHub remote is known. Ask Noël for the repo URL,
-  then `git remote add origin <url> && git push -u origin main`. A `.gitattributes` pins LF (CRLF for `.bat`).
+- Section 0: `git init`, `.gitignore` verified (no photos, data, backups or token cache staged), history
+  pushed to https://github.com/jensenoe/Bench. (the name really ends in a period; the git URL is
+  `https://github.com/jensenoe/Bench..git`) on top of the GitHub initial commit. `gh` is not installed;
+  Git Credential Manager holds the browser sign-in. A `.gitattributes` pins LF (CRLF for `.bat`).
 - Section 1: `npx electron-builder --win nsis portable` completes with the guarded `installer.nsh`.
   `release\Bench-Setup-0.9.0-beta.1.exe` and `Bench-portable-0.9.0-beta.1.exe`, 290 MB each, well under
   the 450 MB ceiling. Not yet done: installing it and looking at the installer pages (needs a human).
