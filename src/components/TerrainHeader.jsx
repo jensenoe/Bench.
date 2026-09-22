@@ -17,7 +17,9 @@ export default function TerrainHeader({ scene, title, line, aside, compact = fal
       {/* A light veil over most of the picture; the page colour only arrives at the very bottom, where the content already covers it. */}
       <div className="absolute inset-0" style={{
         background: compact
-          ? 'linear-gradient(to bottom, rgba(var(--veil),.28) 0%, rgba(var(--veil),.06) 30%, rgba(var(--veil),.1) 55%, rgba(var(--veil),.38) 78%, rgba(var(--veil),.72) 92%, var(--page-bg) 100%)'
+          // top stops use the night veil (the nav reads on it in both themes); the bottom ones use the page's own colour,
+          // so a light page gets a light fade instead of a dark band turning cream at the last moment
+          ? 'linear-gradient(to bottom, rgba(var(--veil),.28) 0%, rgba(var(--veil),.06) 30%, rgba(var(--page-veil),.1) 55%, rgba(var(--page-veil),.4) 78%, rgba(var(--page-veil),.8) 92%, var(--page-bg) 100%)'
           : 'linear-gradient(to bottom, rgba(var(--veil),.35) 0%, rgba(var(--veil),.1) 45%, var(--page-bg) 100%)' }} />
       <div className="relative z-10 mx-auto flex h-full col flex-col justify-end px-6" style={{ paddingBottom: compact ? OVERLAP + 28 : 40 }}>
         <div className="flex flex-wrap items-end justify-between gap-6">

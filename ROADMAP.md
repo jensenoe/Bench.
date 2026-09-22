@@ -57,7 +57,7 @@ Effort: S is an hour or two, M a day, L several days. Ticked when it lands on `m
 Every page at 1024, 1280, 1440, 1920, 2560 and 3440 px in both themes, plus the code behind them.
 No horizontal scroll, no unlabelled control, no console error anywhere. What did need work:
 
-- [x] 38 [M] Photographs at 3200 by 1800 for wide monitors (were 2400). Pictures and installer grow accordingly.
+- [x] 38 [M] Photographs at 3200 by 1800 for wide monitors (were 2400). 238 MB of pictures, installer and portable exe 320 MB each (were 220).
 - [x] 39 [S] Ultrawide column: the reading column is 1560 px from 2200 px and 1760 px from 3000 px, so three lanes get real width instead of 800 px margins.
 - [x] 40 [S] Card titles wrapped one word per line in a narrow lane: the hidden hover actions still took their width. They are a small toolbar on the card's top edge now, shown on hover, focus and while editing; the title keeps the whole row.
 - [x] 41 [S] Light theme: the nav's fog and text were cream over the photograph. The nav is on-photo now, night fog and light ink in both themes, like the header glass.
