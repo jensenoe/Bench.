@@ -207,8 +207,10 @@ function showMain() {
 }
 function makeTray() {
   try {
-    const icon = nativeImage.createFromPath(path.join(__dirname, '..', 'build', 'icon.ico'))
-    tray = new Tray(icon.isEmpty() ? nativeImage.createFromPath(path.join(__dirname, '..', 'dist', 'icon.png')).resize({ width: 16, height: 16 }) : icon)
+    // dist/icon.png ships inside the asar (build/ does not); the ico is only there in a dev checkout.
+    const png = nativeImage.createFromPath(path.join(__dirname, '..', 'dist', 'icon.png'))
+    const icon = png.isEmpty() ? nativeImage.createFromPath(path.join(__dirname, '..', 'build', 'icon.ico')) : png.resize({ width: 16, height: 16 })
+    tray = new Tray(icon)
     tray.setToolTip('Bench.')
     const menu = Menu.buildFromTemplate([
       { label: 'Open Bench.', click: showMain },
