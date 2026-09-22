@@ -59,6 +59,11 @@ function log(...parts) {
 }
 process.on('uncaughtException', err => log('[main] uncaught', err))
 process.on('unhandledRejection', err => log('[main] unhandled rejection', err))
+// The GPU process dying is the other way a window goes black, and render-process-gone does not see it.
+app.on('child-process-gone', (_e, details) => log('[child] gone', details))
+// Escape hatch while the black screen is investigated: { "hardwareAcceleration": false } in machine.json
+// (installed: %APPDATA%\bench\machine.json; portable: settings.json beside the exe). Must run before ready.
+if (readMachineCfg().hardwareAcceleration === false) { app.disableHardwareAcceleration(); log('[main] hardware acceleration off by machine config') }
 
 // .env beside the exe (or in the project) carries the Planner app registration
 for (const f of [path.join(EXE_DIR, '.env'), path.join(path.dirname(DATA_DIR), '.env'), path.join(app.getPath('userData'), '.env'), path.join(__dirname, '..', '.env')]) {
