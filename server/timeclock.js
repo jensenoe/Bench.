@@ -183,6 +183,35 @@ async function writeCell(token, date, col, value, numberFormat = 'h:mm') {
   return `${sheet}!${col}${row}`
 }
 
+/** Graph's error text, said the way the person at the bench would say it. */
+export function plainError(err) {
+  const m = String(err?.message || err || '')
+  if (/Graph 40[13]\b|InvalidAuthenticationToken|token/i.test(m)) return 'Not signed in to Microsoft 365, or the sign-in has expired. Reconnect in Settings.'
+  if (/Graph 404/.test(m) && /drive\/root|\/shares\//.test(m)) return `Workbook not found: ${workbookLabel()}. Check the path in Settings.`
+  if (/^No sheet for/.test(m)) return `${m}. The month sheet is missing or named differently.`
+  if (/Graph 404/.test(m)) return 'Excel could not find the sheet or the cell. Check the workbook layout.'
+  if (/Graph 423|locked/i.test(m)) return 'The workbook is locked, probably open in Excel somewhere. The punch will be written on the next try.'
+  if (/Graph 429|throttl/i.test(m)) return 'Microsoft asked us to slow down. The punch will be written on the next try.'
+  if (/fetch failed|ENOTFOUND|ECONN|ETIMEDOUT|network/i.test(m)) return 'Offline. The punch is kept and written when the connection is back.'
+  return m
+}
+
+/**
+ * Setup check: can we see the workbook, the month sheet and today's row? Reads only.
+ * Used by the first run and by Settings > Hours, so the first real punch is not the first test.
+ */
+export async function probe(date = new Date()) {
+  const token = await getTokenSilent()
+  if (!token) return { ok: false, reason: 'needs-signin', message: 'Connect Microsoft 365 first.' }
+  try {
+    sheetNames.delete(date.getFullYear())
+    const sheet = await sheetFor(token, date)
+    state.sheet = null
+    const row = await rowFor(token, date, sheet)
+    return { ok: true, workbook: workbookLabel(date.getFullYear()), sheet, row, sheets: sheetNames.get(date.getFullYear()) || [] }
+  } catch (err) { return { ok: false, reason: 'error', message: plainError(err) } }
+}
+
 /** Push every unwritten punch. Quiet when there is no token: the next tick tries again. */
 async function flush() {
   const queue = [...(state.pendingFromEarlier || []), ...state.events].filter(e => !e.written)
@@ -195,12 +224,68 @@ async function flush() {
       e.cell = await writeCell(token, d, e.col, e.value)
       e.written = true; e.error = null
     } catch (err) {
-      e.error = err.message
+      e.error = plainError(err)
       console.error('[timeclock]', err.message)
     }
   }
   if (state.pendingFromEarlier?.every(e => e.written)) delete state.pendingFromEarlier
   save()
+}
+
+/**
+ * A day left open (clocked in, never out) is closed after the fact: an out punch at the time you
+ * name, written to that day's row. A day left on lunch gets its lunch-in at the same minute, so the
+ * afternoon term is zero. The week strip and the month view update at once; the sheet on the next flush.
+ */
+export function closeUnclosed(time) {
+  rollover()
+  const u = state.unclosed
+  if (!u) return snapshot()
+  const [h, m] = /^\d{1,2}:\d{2}$/.test(time || '') ? time.split(':').map(Number) : [17, 0]
+  const at = new Date(u.date + 'T12:00:00'); at.setHours(h, m, 0, 0)
+  const mk = (kind, col, value, label) => ({ kind, at: at.toISOString(), col, value, label, auto: true, written: false, error: null })
+  const evs = []
+  if (u.status === 'lunch') { evs.push(mk('lunchIn', COL.lunchIn, fraction(at), hhmm(at))); evs.push(mk('pause', COL.pause, 0, '0:00')) }
+  evs.push(mk('out', COL.out, fraction(at), hhmm(at)))
+  state.pendingFromEarlier = [...(state.pendingFromEarlier || []), ...evs]
+  const hist = (state.history || []).find(x => x.date === u.date)
+  if (hist) {
+    hist.out = at.toISOString(); hist.open = false; hist.closedLater = true
+    if (hist.in) hist.worked = Math.max(0, at.getTime() - new Date(hist.in).getTime() - (hist.breakMs || 0))
+  }
+  state.unclosed = null
+  save()
+  flush().catch(err => console.error('[timeclock]', err.message))
+  return snapshot()
+}
+/** The warning goes away without a write: the sheet was corrected by hand. */
+export function dismissUnclosed() { state.unclosed = null; save(); return snapshot() }
+
+/**
+ * One month, one row per calendar day, for the Hours page. History for past days, the live
+ * summary for today, and for every day the punches that still wait to be written or failed.
+ */
+export function month(ym) {
+  rollover()
+  const m = /^(\d{4})-(\d{2})$/.exec(ym || '')
+  const nowD = new Date()
+  const y = m ? Number(m[1]) : nowD.getFullYear(), mo = m ? Number(m[2]) : nowD.getMonth() + 1
+  const count = new Date(y, mo, 0).getDate()
+  const hist = new Map((state.history || []).map(h => [h.date, h]))
+  const waiting = [...(state.pendingFromEarlier || []), ...state.events].filter(e => !e.written)
+  const days = []
+  for (let d = 1; d <= count; d++) {
+    const date = new Date(y, mo - 1, d, 12)
+    const key = today(date)
+    const base = key === state.date
+      ? { ...summarize(state.events, nowD), today: true }
+      : (hist.get(key) || { worked: 0, breakMs: 0, in: null, out: null, open: false })
+    const evs = waiting.filter(e => today(new Date(e.at)) === key)
+    const failed = evs.find(e => e.error)?.error || null
+    days.push({ date: key, weekday: date.getDay(), ...base, pending: evs.filter(e => !e.error).length, failed, future: date > nowD && key !== state.date, unclosed: state.unclosed?.date === key })
+  }
+  const worked = days.reduce((s, x) => s + (x.worked || 0), 0)
+  return { month: `${y}-${String(mo).padStart(2, '0')}`, sheet: MONTHS[mo - 1], workbook: workbookLabel(y), days, worked, daysWorked: days.filter(x => x.worked > 0).length }
 }
 
 // ── punches ───────────────────────────────────────────────────────────

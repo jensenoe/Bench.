@@ -70,7 +70,7 @@ const COLORS = ['accent', 'rose', 'amber', 'mint', 'sky', 'plum']
 function cleanNodes(nodes, root) {
   const out = {}
   for (const [id, n] of Object.entries(nodes || {})) {
-    out[id] = { id, text: String(n.text ?? '').slice(0, 400), parent: n.parent ?? null, color: COLORS.includes(n.color) ? n.color : null, collapsed: !!n.collapsed, order: Number(n.order) || 0,
+    out[id] = { id, text: String(n.text ?? '').slice(0, 400), parent: n.parent ?? null, color: COLORS.includes(n.color) ? n.color : null, collapsed: !!n.collapsed, order: Number(n.order) || 0, taskId: n.taskId || null,
       // hand placement: offset from the automatic layout, inherited by the branch
       dx: Math.max(-5000, Math.min(5000, Number(n.dx) || 0)), dy: Math.max(-5000, Math.min(5000, Number(n.dy) || 0)) }
   }

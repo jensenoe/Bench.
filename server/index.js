@@ -26,16 +26,21 @@ const timeclock = await import('./timeclock.js')
 const settings = await import('./settings.js')
 const notes = await import('./notes.js')
 const calendar = await import('./calendar.js')
+const updates = await import('./updates.js')
 
 const PORT = Number(process.env.PORT || 5178)
 const app = express()
 app.use(express.json({ limit: '1mb' }))
 
-const wrap = fn => (req, res) => Promise.resolve(fn(req, res))
-  .catch(err => { console.error(err); res.status(500).json({ error: err.message }) })
+// A synchronous throw (the Today cap) must land in the same catch as a rejected promise, hence .then.
+const wrap = fn => (req, res) => Promise.resolve().then(() => fn(req, res))
+  .catch(err => { if (!err.status) console.error(err); res.status(err.status || 500).json({ error: err.message }) })
 
-/** Settings as the UI sees them (no internal flags). */
-const publicSettings = () => { const { _pathSetByUser, ...rest } = settings.get(); return { ...rest, firstName: settings.displayFirstName() } }
+/** Settings as the UI sees them (no internal flags; the token only as a yes or no). */
+const publicSettings = () => { const { _pathSetByUser, updateToken, ...rest } = settings.get(); return { ...rest, hasUpdateToken: Boolean(updateToken), firstName: settings.displayFirstName() } }
+
+/** What the last background sync did, so the UI can say "3 new from Issues" without polling every tool. */
+let background = null
 
 app.get('/api/settings', wrap((_req, res) => res.json(publicSettings())))
 app.put('/api/settings', wrap((req, res) => {
@@ -54,6 +59,7 @@ app.get('/api/state', wrap(async (_req, res) => {
     sources: await sourceStatus(),
     desktop: bridge.desktop,
     settings: publicSettings(),
+    background,
     logbookCount: notes.listEntries().length,
     napkinCount: notes.listMaps().length,
     version: JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8')).version,
@@ -119,6 +125,12 @@ app.post('/api/logbook/:id/actions/:aid/to-board', wrap((req, res) => {
   res.json({ task: t, entry: notes.updateEntry(e.id, { actions: e.actions }) })
 }))
 
+/** A meeting template: same title, people, project and tags, dated today, everything else empty. */
+app.post('/api/logbook/:id/duplicate', wrap((req, res) => {
+  const e = notes.listEntries().find(x => x.id === req.params.id); if (!e) return res.status(404).json({ error: 'not found' })
+  res.json(notes.createEntry({ title: e.title, attendees: e.attendees, project: e.project, tags: e.tags, date: req.body?.date || new Date().toISOString().slice(0, 10) }))
+}))
+
 app.get('/api/calendar/today', wrap(async (_req, res) => res.json(await calendar.todaysMeetings())))
 
 // Napkin
@@ -126,6 +138,16 @@ app.get('/api/napkin', wrap((_req, res) => res.json(notes.listMaps())))
 app.post('/api/napkin', wrap((req, res) => res.json(notes.createMap(req.body || {}))))
 app.patch('/api/napkin/:id', wrap((req, res) => { const m = notes.updateMap(req.params.id, req.body || {}); m ? res.json(m) : res.status(404).json({ error: 'not found' }) }))
 app.delete('/api/napkin/:id', wrap((req, res) => res.json({ deleted: notes.deleteMap(req.params.id) })))
+/** A napkin node becomes a task on the board (Active lane) and remembers which map it came from. */
+app.post('/api/napkin/:id/nodes/:nid/to-board', wrap((req, res) => {
+  const m = notes.listMaps().find(x => x.id === req.params.id); if (!m) return res.status(404).json({ error: 'not found' })
+  const n = m.nodes?.[req.params.nid]; if (!n) return res.status(404).json({ error: 'no such node' })
+  if (n.taskId && store.allTasks().some(t => t.id === n.taskId)) return res.json({ task: store.allTasks().find(t => t.id === n.taskId), map: m })
+  const parent = n.parent ? m.nodes[n.parent]?.text : null
+  const t = store.createTask({ title: n.text || 'Idea', lane: 'active', project: req.body?.project || null, tags: ['napkin'], notes: `From the napkin: ${m.title}${parent ? ', under ' + parent : ''}` })
+  const nodes = { ...m.nodes, [n.id]: { ...n, taskId: t.id } }
+  res.json({ task: t, map: notes.updateMap(m.id, { nodes, root: m.root }) })
+}))
 
 /** Last seven days: hours, completions, logbook entries. The week strip on Home. */
 app.get('/api/week', wrap((_req, res) => {
@@ -140,6 +162,11 @@ app.get('/api/week', wrap((_req, res) => {
 }))
 
 app.get('/api/timeclock', wrap((_req, res) => res.json(timeclock.snapshot())))
+app.get('/api/timeclock/month', wrap((req, res) => res.json(timeclock.month(String(req.query.ym || '')))))
+app.get('/api/timeclock/probe', wrap(async (_req, res) => res.json(await timeclock.probe())))
+app.post('/api/timeclock/close-unclosed', wrap((req, res) => res.json(timeclock.closeUnclosed(req.body?.time))))
+app.post('/api/timeclock/dismiss-unclosed', wrap((_req, res) => res.json(timeclock.dismissUnclosed())))
+app.get('/api/updates', wrap(async (req, res) => res.json(await updates.check({ force: req.query.force === '1' }))))
 app.post('/api/timeclock/punch', wrap(async (req, res) => res.json(await timeclock.punch(req.body?.kind))))
 app.post('/api/timeclock/reset', wrap((_req, res) => res.json(timeclock.resetToday())))
 app.post('/api/auth/signin', wrap(async (req, res) => res.json(await auth.signIn({ tier: req.body?.tier || 'core' }))))
@@ -184,7 +211,9 @@ const mins = Number(process.env.SYNC_INTERVAL_MINUTES || 2)
 if ((auth.isConfigured() || bridge.desktop) && mins > 0) {
   setInterval(async () => {
     const r = await syncConnected()
-    for (const [k, v] of Object.entries(r)) if (v.ok) console.log(`[sync:${k}] ${v.fetched} (+${v.added}, ${v.closed} closed)`)
+    const ok = Object.entries(r).filter(([, v]) => v.ok)
+    for (const [k, v] of ok) console.log(`[sync:${k}] ${v.fetched} (+${v.added}, ${v.closed} closed)`)
+    if (ok.length) background = { at: new Date().toISOString(), added: ok.reduce((s, [, v]) => s + (v.added || 0), 0), closed: ok.reduce((s, [, v]) => s + (v.closed || 0), 0), sources: Object.fromEntries(ok.map(([k, v]) => [k, { added: v.added || 0, closed: v.closed || 0 }])) }
   }, mins * 60_000)
 }
 export { app }

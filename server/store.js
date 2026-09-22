@@ -11,6 +11,9 @@ const DATA_DIR = process.env.BENCH_DATA_DIR || path.join(__dirname, '..', 'data'
 const DB_FILE = path.join(DATA_DIR, 'tasks.json')
 
 export const LANES = ['today', 'innovation', 'active', 'waiting', 'parked']
+/** Today holds this many open tasks. A sixth has to wait for one to leave. */
+export const TODAY_CAP = 5
+export const REPEATS = ['daily', 'weekly', 'fortnightly', 'monthly']
 
 const EMPTY = { tasks: [], meta: { lastSync: null, lastSyncError: null, sources: {}, version: 2 } }
 
@@ -18,9 +21,27 @@ function ensureDir() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
 }
 
+/** Refused writes carry a status so the API can answer 409 instead of 500. */
+export class CapError extends Error { constructor(msg) { super(msg); this.status = 409 } }
+
 let cache = null
+let diskMtime = 0            // mtime of tasks.json when we last read or wrote it
+let knownIds = new Set()     // task ids that were on disk at that moment (to tell a delete from an add)
+
+const mtimeOf = () => { try { return fs.statSync(DB_FILE).mtimeMs } catch { return 0 } }
+function readDisk() {
+  const raw = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'))
+  if (!raw || typeof raw !== 'object') throw new Error('not an object')
+  if (!Array.isArray(raw.tasks)) raw.tasks = []
+  if (!raw.meta) raw.meta = structuredClone(EMPTY.meta)
+  if (!raw.meta.sources) raw.meta.sources = {}
+  return raw
+}
+const remember = (db) => { knownIds = new Set(db.tasks.map(t => t.id)); diskMtime = mtimeOf() }
 
 export function load() {
+  // Another Bench on the same shared folder may have written since we last looked.
+  if (cache && mtimeOf() !== diskMtime) reconcile()
   if (cache) return cache
   ensureDir()
   if (!fs.existsSync(DB_FILE)) {
@@ -29,28 +50,59 @@ export function load() {
     return cache
   }
   try {
-    cache = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'))
-    if (!cache || typeof cache !== 'object') cache = structuredClone(EMPTY)
-    if (!Array.isArray(cache.tasks)) cache.tasks = []
-    if (!cache.meta) cache.meta = structuredClone(EMPTY.meta)
-    if (!cache.meta.sources) cache.meta.sources = {}
+    cache = readDisk()
+    remember(cache)
   } catch (err) {
     // Never lose data to a parse error - move it aside and start clean.
     const bak = DB_FILE + '.corrupt-' + Date.now()
     fs.copyFileSync(DB_FILE, bak)
     console.error(`[store] tasks.json unreadable, backed up to ${bak}`)
     cache = structuredClone(EMPTY)
+    remember(cache)
   }
   return cache
+}
+
+/**
+ * Two people on one shared folder: fold what is on disk into what we hold, per task,
+ * newest updatedAt wins. A task that is only on disk is theirs if we never saw it (keep it) and
+ * ours if we knew it (we deleted it: drop). A task that is only ours is new (keep it) unless we knew
+ * it from disk and have not touched it since (they deleted it: drop).
+ */
+function reconcile() {
+  let disk
+  try { disk = readDisk() } catch { return }   // mid-write by the other side; try again next time
+  const ours = new Map(cache.tasks.map(t => [t.id, t]))
+  const theirs = new Map(disk.tasks.map(t => [t.id, t]))
+  const merged = []
+  for (const [id, t] of theirs) {
+    const mine = ours.get(id)
+    if (!mine) { if (!knownIds.has(id)) merged.push(t); continue }
+    merged.push((mine.updatedAt || '') >= (t.updatedAt || '') ? mine : t)
+  }
+  for (const [id, t] of ours) {
+    if (theirs.has(id)) continue
+    if (!knownIds.has(id) || (t.updatedAt || '') > new Date(diskMtime).toISOString()) merged.push(t)
+  }
+  merged.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+  const sources = { ...disk.meta.sources }
+  for (const [k, v] of Object.entries(cache.meta.sources || {})) {
+    if (!sources[k] || (v.lastSync || v.lastAttempt || '') >= (sources[k].lastSync || sources[k].lastAttempt || '')) sources[k] = v
+  }
+  cache = { ...disk, ...cache, tasks: merged, meta: { ...disk.meta, ...cache.meta, sources } }
+  remember({ tasks: disk.tasks })
+  diskMtime = mtimeOf()
 }
 
 /** Atomic write: temp file + rename, so a crash mid-write cannot truncate the store. */
 export function save() {
   ensureDir()
+  if (cache && mtimeOf() !== diskMtime) reconcile()
   backupOnce(DB_FILE)   // yesterday's state, once a day, before the first write
   const tmp = DB_FILE + '.tmp'
   fs.writeFileSync(tmp, JSON.stringify(cache, null, 2), 'utf8')
   fs.renameSync(tmp, DB_FILE)
+  remember(cache)
 }
 
 const now = () => new Date().toISOString()
@@ -63,33 +115,55 @@ const now = () => new Date().toISOString()
  *   priority     1 (now), 2 (this week), 3 (when there is room), or null
  *   effortHours  rough size, for planning a day
  *   tags         free labels
+ *   checklist    steps inside the task, [{ id, text, done }]
+ *   repeat       null, daily, weekly, fortnightly or monthly: completing it creates the next one
+ *   supplier, poNumber, orderedOn   the procurement side of a part with a lead time
  */
-export const OWN_FIELDS = ['assignedBy', 'lead', 'project', 'priority', 'effortHours', 'tags']
+export const OWN_FIELDS = ['assignedBy', 'lead', 'project', 'priority', 'effortHours', 'tags', 'checklist', 'repeat', 'supplier', 'poNumber', 'orderedOn']
 const clampPrio = p => (p === null || p === undefined || p === '') ? null : Math.min(3, Math.max(1, Number(p) || 3))
 const normTags = t => Array.isArray(t) ? [...new Set(t.map(x => String(x).trim()).filter(Boolean))].slice(0, 12)
   : typeof t === 'string' ? normTags(t.split(/[,;]/)) : []
+const normChecklist = c => Array.isArray(c) ? c.map(x => typeof x === 'string' ? { text: x } : x)
+  .map(x => ({ id: x.id || crypto.randomUUID(), text: String(x.text || '').trim().slice(0, 300), done: !!x.done })).filter(x => x.text).slice(0, 60)
+  : typeof c === 'string' ? normChecklist(c.split(/\n/)) : []
+const normRepeat = r => REPEATS.includes(r) ? r : null
+const str = v => (typeof v === 'string' && v.trim()) ? v.trim() : null
+const dateStr = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : null
 const ownFields = (input = {}) => ({
-  assignedBy: input.assignedBy?.trim() || null,
-  lead: input.lead?.trim() || null,
-  project: input.project?.trim() || null,
+  assignedBy: str(input.assignedBy),
+  lead: str(input.lead),
+  project: str(input.project),
   priority: clampPrio(input.priority),
   effortHours: input.effortHours === null || input.effortHours === undefined || input.effortHours === '' ? null : Math.max(0, Number(input.effortHours) || 0),
-  tags: normTags(input.tags)
+  tags: normTags(input.tags),
+  checklist: normChecklist(input.checklist),
+  repeat: normRepeat(input.repeat),
+  supplier: str(input.supplier),
+  poNumber: str(input.poNumber),
+  orderedOn: dateStr(input.orderedOn)
 })
 
 export function allTasks() {
   return load().tasks
 }
 
+/** Open tasks on Today, not counting one particular id. */
+const todayCount = (db, exceptId = null) => db.tasks.filter(t => t.lane === 'today' && !t.done && t.id !== exceptId).length
+function assertRoom(db, exceptId = null) {
+  if (todayCount(db, exceptId) >= TODAY_CAP) throw new CapError(`Today is full. Five is the rule; move something out before this comes in.`)
+}
+
 export function createTask(input) {
   const db = load()
+  const lane = LANES.includes(input.lane) ? input.lane : 'active'
+  if (lane === 'today') assertRoom(db)
   const task = {
     id: crypto.randomUUID(),
     source: 'local',
     plannerId: null,
     title: (input.title || '').trim(),
     notes: input.notes || '',
-    lane: LANES.includes(input.lane) ? input.lane : 'active',
+    lane,
     done: false,
     dueDate: input.dueDate || null,
     leadTimeDays: input.leadTimeDays ?? null,
@@ -110,31 +184,75 @@ export function createTask(input) {
   return task
 }
 
+const addDays = (iso, n) => { const d = new Date(iso.length === 10 ? iso + 'T12:00:00' : iso); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10) }
+const addMonths = (iso, n) => { const d = new Date(iso.length === 10 ? iso + 'T12:00:00' : iso); d.setMonth(d.getMonth() + n); return d.toISOString().slice(0, 10) }
+/** The next date for a repeating task: from its due date, or from today when it has none. */
+export function nextOccurrence(repeat, from = null) {
+  const base = from || new Date().toISOString().slice(0, 10)
+  if (repeat === 'daily') return addDays(base, 1)
+  if (repeat === 'weekly') return addDays(base, 7)
+  if (repeat === 'fortnightly') return addDays(base, 14)
+  if (repeat === 'monthly') return addMonths(base, 1)
+  return null
+}
+
+/** Completing a repeating task leaves the next one behind, in the same lane, checklist unticked. */
+function spawnNext(db, t) {
+  const due = nextOccurrence(t.repeat, t.dueDate)
+  const next = {
+    ...structuredClone(t),
+    id: crypto.randomUUID(), done: false, completedAt: null, completedBy: undefined,
+    dueDate: due, orderBy: t.orderBy ? nextOccurrence(t.repeat, t.orderBy) : null,
+    checklist: (t.checklist || []).map(c => ({ ...c, id: crypto.randomUUID(), done: false })),
+    waitingSince: t.lane === 'waiting' ? now() : null,
+    createdAt: now(), updatedAt: now(), lastTouched: now(), order: db.tasks.length,
+    repeatOf: t.id
+  }
+  delete next.completedBy
+  // Today is capped; a repeat that would overflow it waits in Active.
+  if (next.lane === 'today' && todayCount(db) >= TODAY_CAP) next.lane = 'active'
+  db.tasks.push(next)
+  return next
+}
+
 export function updateTask(id, patch) {
   const db = load()
   const t = db.tasks.find(x => x.id === id)
   if (!t) return null
+
+  const lane = patch.lane && LANES.includes(patch.lane) ? patch.lane : t.lane
+  const willBeOpen = patch.done === false || (patch.done !== true && !t.done)
+  if (lane === 'today' && willBeOpen && (lane !== t.lane || (patch.done === false && t.done))) assertRoom(db, id)
 
   // Entering the waiting lane starts the clock; leaving it stops.
   if (patch.lane && patch.lane !== t.lane) {
     if (patch.lane === 'waiting' && !t.waitingSince) patch.waitingSince = now()
     if (patch.lane !== 'waiting') patch.waitingSince = null
   }
-  if (patch.done === true && !t.done) { patch.completedAt = now(); patch.completedBy = 'local' }
+  let spawned = null
+  if (patch.done === true && !t.done) {
+    patch.completedAt = now(); patch.completedBy = 'local'
+    if (t.repeat) spawned = spawnNext(db, t)
+  }
   if (patch.done === false) patch.completedAt = null
 
   const allowed = ['title', 'notes', 'lane', 'done', 'dueDate', 'leadTimeDays',
     'orderBy', 'waitingOn', 'waitingSince', 'completedAt', 'completedBy', 'order',
     ...OWN_FIELDS]
   for (const k of allowed) if (k in patch) t[k] = patch[k]
+  if ('lane' in patch) t.lane = lane
   if ('priority' in patch) t.priority = clampPrio(patch.priority)
   if ('effortHours' in patch) t.effortHours = patch.effortHours === null || patch.effortHours === '' ? null : Math.max(0, Number(patch.effortHours) || 0)
   if ('tags' in patch) t.tags = normTags(patch.tags)
+  if ('checklist' in patch) t.checklist = normChecklist(patch.checklist)
+  if ('repeat' in patch) t.repeat = normRepeat(patch.repeat)
+  for (const k of ['supplier', 'poNumber']) if (k in patch) t[k] = str(patch[k])
+  if ('orderedOn' in patch) t.orderedOn = dateStr(patch.orderedOn)
 
   t.updatedAt = now()
   t.lastTouched = now()
   save()
-  return t
+  return spawned ? { ...t, spawned } : t
 }
 
 export function deleteTask(id) {
@@ -196,7 +314,7 @@ export function mergeSource(source, remote) {
   for (const t of db.tasks) {
     if (t.source === source && !t.done && !seen.has(t.sourceId)) { t.done = true; t.completedAt = now(); closed++ }
   }
-  db.meta.sources[source] = { lastSync: now(), count: remote.length, error: null }
+  db.meta.sources[source] = { ...(db.meta.sources[source] || {}), lastSync: now(), count: remote.length, error: null }
   save()
   return { added, updated, closed }
 }

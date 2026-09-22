@@ -27,7 +27,8 @@ export const DEFAULTS = {
   lunchAt: '12:00',
   lunchEnds: '12:30',
   roundMinutes: 5,
-  nudges: true              // water / coffee line under the completion toast
+  nudges: true,             // water / coffee line under the completion toast
+  updateToken: ''           // optional GitHub token with read access to the repo, so the update check can see releases
 }
 
 const ALLOWED = Object.keys(DEFAULTS)
