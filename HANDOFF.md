@@ -62,7 +62,7 @@ BOM data shape) and 23 (the noon log) landed. What to know when touching them:
 - The tray (`electron/main.cjs`) only exists when packaged; `npm run desktop` behaves as before. Nobody has
   run the packaged tray yet: check that close hides, the tray menu opens, the notification click shows the
   window, and Quit really quits.
-- Photographs are rendered at 2400 px now (`src/library.json`, bat regenerated); the installer shrank accordingly.
+- Photographs are rendered at 2400 px now (`src/library.json`, bat regenerated): 139 MB of pictures instead of 196, installer and portable exe 220 MB instead of 290.
 - Headless checks of the new UI live in the session scratchpad only; the CI workflow runs tests, lint and build.
 
 Rules of the road: read `CLAUDE.md`. Be direct with Noël, show reasoning, do not soften. No em dashes in
