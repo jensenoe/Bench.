@@ -1,20 +1,30 @@
-/** Page header: a terrain render with the title set into it. Work pages take the compact one. */
+/**
+ * Page header: a terrain render with the title set into it.
+ * Work pages take the compact one: still tall, and the page content starts on top of the picture's
+ * lower part (negative bottom margin), so the photograph is not cut off by a fade but covered by
+ * the first panel, the way the doors sit on the Home page.
+ */
 import Photo from './Photo.jsx'
+
+export const OVERLAP = 120   // px of photograph the first panel sits on
 
 export default function TerrainHeader({ scene, title, line, aside, compact = false }) {
   return (
-    <header className={`on-photo relative isolate overflow-hidden ${compact ? 'h-[46vh] min-h-[340px] max-h-[560px]' : 'h-[52vh] min-h-[380px]'}`}>
+    <header className={`on-photo relative isolate overflow-hidden ${compact ? 'h-[58vh] min-h-[460px] max-h-[760px]' : 'h-[52vh] min-h-[380px]'}`}
+      style={compact ? { marginBottom: -OVERLAP } : undefined}>
       <Photo key={scene.terrain} src={scene.terrain} fallback={scene.fallback}
         className="photo absolute inset-0 h-full w-full object-cover" />
-      {/* The photograph stays a photograph for most of the header; the page arrives in the last quarter, eased. */}
+      {/* A light veil over most of the picture; the page colour only arrives at the very bottom, where the content already covers it. */}
       <div className="absolute inset-0" style={{
-        background: 'linear-gradient(to bottom, rgba(var(--veil),.3) 0%, rgba(var(--veil),.06) 28%, rgba(var(--veil),.14) 52%, rgba(var(--veil),.42) 72%, rgba(var(--veil),.78) 88%, var(--page-bg) 100%)' }} />
-      <div className={`relative z-10 mx-auto flex h-full col flex-col justify-end px-6 ${compact ? 'pb-6' : 'pb-10'}`}>
+        background: compact
+          ? 'linear-gradient(to bottom, rgba(var(--veil),.28) 0%, rgba(var(--veil),.06) 30%, rgba(var(--veil),.1) 55%, rgba(var(--veil),.38) 78%, rgba(var(--veil),.72) 92%, var(--page-bg) 100%)'
+          : 'linear-gradient(to bottom, rgba(var(--veil),.35) 0%, rgba(var(--veil),.1) 45%, var(--page-bg) 100%)' }} />
+      <div className="relative z-10 mx-auto flex h-full col flex-col justify-end px-6" style={{ paddingBottom: compact ? OVERLAP + 28 : 40 }}>
         <div className="flex flex-wrap items-end justify-between gap-6">
-          <div className={`glass ${compact ? 'px-6 py-4' : 'px-7 py-6'}`}>
-            <h1 className={`display font-semibold leading-none ${compact ? 'text-[32px] sm:text-[40px]' : 'text-[40px] sm:text-[56px]'}`}
+          <div className={`glass ${compact ? 'px-7 py-5' : 'px-7 py-6'}`}>
+            <h1 className={`display font-semibold leading-none ${compact ? 'text-[36px] sm:text-[46px]' : 'text-[40px] sm:text-[56px]'}`}
               style={{ textShadow: 'var(--shadow-text)' }}>{title}.</h1>
-            {line && <p className={`max-w-[48ch] leading-relaxed ${compact ? 'mt-2 text-[13.5px]' : 'mt-3 text-[14.5px]'}`} style={{ color: 'var(--ink-2)' }}>{line}</p>}
+            {line && <p className={`max-w-[48ch] leading-relaxed ${compact ? 'mt-2.5 text-[14px]' : 'mt-3 text-[14.5px]'}`} style={{ color: 'var(--ink-2)' }}>{line}</p>}
           </div>
           {aside}
         </div>

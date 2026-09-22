@@ -210,6 +210,7 @@ export default function App() {
         {r === 'board' && page('board', <>
           <TerrainHeader compact scene={{ ...scene, terrain: boardImage.src, fallback: boardImage.fallback }} title="Board" line={SHEETS[0].body}
             aside={<Aside n={stats.today} label="of 5 on today" tone={stats.today > 5 ? STATUS.overdue : 'var(--accent)'} />} />
+          <div className="relative">
           <Coach id="board" steps={COACH.board} />
           <main className="mx-auto col px-6">
             <SourceFilter tasks={state.tasks} value={sourceFilter} onChange={setSourceFilter} />
@@ -219,11 +220,13 @@ export default function App() {
               {['innovation', 'waiting', 'active', 'parked'].map(k => <Lane key={k} laneKey={k} tasks={byLane(k)} onPatch={onPatch} onDelete={onDelete} onCreate={onCreate} />)}
             </div>
           </main>
+          </div>
         </>)}
 
         {r === 'procurement' && page('proc', <>
           <TerrainHeader compact scene={sceneAt('dusk', now)} title="Procurement" line={SHEETS[1].body}
             aside={<Aside n={pressing.length} label="order dates in 14 days" tone={late ? STATUS.overdue : pressing.length ? STATUS.caution : STATUS.done} />} />
+          <div className="relative">
           <Coach id="procurement" steps={COACH.procurement} />
           <main className="mx-auto col flex flex-col gap-4 px-6">
             {pressing.length ? <LeadTime items={pressing} /> :
@@ -231,30 +234,35 @@ export default function App() {
                 <p className="mt-3 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>Nothing inside 14 days. Add an order-by date to any task with a lead time worth tracking; the supplier and the PO number go on the same card once it is ordered.</p></section>}
             {later.length > 0 && <LeadTime items={later} compact title="Later, and ordered." span={`${later.length} more`} />}
           </main>
+          </div>
         </>)}
 
         {r === 'logbook' && page('logbook', <>
           <TerrainHeader compact scene={sceneAt('dusk', now, 3)} title="Logbook" line={SHEETS[3].body}
             aside={<Aside n={logCount} label={logCount === 1 ? 'entry' : 'entries'} tone="var(--accent)" />} />
+          <div className="relative">
           <Coach id="logbook" steps={COACH.logbook} />
           <Logbook onRefresh={refresh} />
+          </div>
         </>)}
 
         {r === 'napkin' && page('napkin', <>
           <TerrainHeader compact scene={sceneAt('day', now, 3)} title="Napkin" line={SHEETS[4].body} />
+          <div className="relative">
           <Coach id="napkin" steps={COACH.napkin} />
           <Napkin />
+          </div>
         </>)}
 
         {r === 'tools' && page('tools', <>
           <TerrainHeader compact scene={sceneAt('night', now)} title="Tools" line={SHEETS[2].body}
             aside={<Aside n={open.filter(t => t.source && t.source !== 'local').length} label="assigned to you" tone="var(--accent)" />} />
-          <Tools state={state} onPatch={onPatch} onDelete={onDelete} onRefresh={refresh} onConnect={() => setSettingsOpen(true)} />
+          <div className="relative"><Tools state={state} onPatch={onPatch} onDelete={onDelete} onRefresh={refresh} onConnect={() => setSettingsOpen(true)} /></div>
         </>)}
 
         {r === 'hours' && page('hours', <>
           <TerrainHeader compact scene={sceneAt('dawn', now, 2)} title="Hours" line="The month as the Zeiterfassung sheet sees it, with what still waits to be written." />
-          <Hours clock={timeclock.clock} />
+          <div className="relative"><Hours clock={timeclock.clock} /></div>
         </>)}
       </AnimatePresence>
 
