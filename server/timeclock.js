@@ -120,7 +120,7 @@ export function days(n = 7) {
  *   clock out     up to the next 5       (17:01 -> 17:05)
  *   lunch out/in  the exact minute; the break is what it was
  */
-const roundFor = (kind, d) => {
+export const roundFor = (kind, d) => {
   const r = new Date(d); r.setSeconds(0, 0)
   const step = ROUND_MIN()
   if (kind === 'in') r.setMinutes(Math.floor(r.getMinutes() / step) * step)

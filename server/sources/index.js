@@ -50,7 +50,7 @@ export async function sourceStatus() {
   const meta = getMeta().sources || {}
   const out = {}
   for (const [key, def] of Object.entries(SOURCES)) {
-    const { probe, ...pub } = def
+    const { probe: _probe, ...pub } = def
     out[key] = {
       ...pub, ...(meta[key] || {}),
       available: def.kind === 'graph' || bridge.desktop,

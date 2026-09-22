@@ -5,7 +5,7 @@ export default function SyncBar({ auth, meta, onRefresh }) {
   const [busy, setBusy] = useState(false)
   const [code, setCode] = useState(null)
 
-  const btn = "rounded-md border border-white/25 bg-white/10 px-2 py-1 text-[11px] text-white/90 backdrop-blur-sm"
+  const btn = 'rounded-md border border-white/25 bg-white/10 px-2 py-1 text-[11px] text-white/90 backdrop-blur-sm'
 
   if (!auth.configured) {
     return <span className="rounded-md bg-black/25 px-2 py-1 text-[11px] text-white/85 backdrop-blur-sm" title="Set AZURE_CLIENT_ID in .env to enable Planner sync">

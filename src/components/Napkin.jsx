@@ -71,7 +71,7 @@ export default function Napkin() {
     const wanted = new URLSearchParams(location.hash.split('?')[1] || '').get('map')
     const pick = m.find(x => x.id === wanted) || m[0]
     if (pick) open(pick)
-  }) }, [])   // eslint-disable-line react-hooks/exhaustive-deps
+  }) }, [])
   const open = (m) => { setSel(m.id); setNodes(m.nodes); setRoot(m.root); setActive(m.root); setEditing(null); setView({ x: 0, y: 0, k: 1 }); setDirty(false) }
   const map = maps?.find(m => m.id === sel)
 
@@ -112,7 +112,7 @@ export default function Napkin() {
       else if (e.key === 'c') { cycleColor(active) }
     }
     addEventListener('keydown', onKey); return () => removeEventListener('keydown', onKey)
-  })   // eslint-disable-line react-hooks/exhaustive-deps
+  })
 
   // pan and zoom (background only) and node dragging
   const toMap = (e) => {

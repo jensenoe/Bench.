@@ -13,7 +13,6 @@ export default function Nav({ route, auth, meta, onRefresh, now, scene, timecloc
     <a key={id} href={`#/${id}`} className="text-[14px] transition-colors xl:text-[15px] 2xl:text-[16.5px]"
        style={{ color: route === id ? 'var(--ink)' : 'var(--ink-3)' }}>{label}</a>
   )
-  const pill = { background: 'var(--ink)', color: 'var(--bg)' }
 
   return (
     <nav className="fixed inset-x-0 top-0 z-50" style={{

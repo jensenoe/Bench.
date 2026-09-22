@@ -124,8 +124,8 @@ export function updateTask(id, patch) {
   if (patch.done === false) patch.completedAt = null
 
   const allowed = ['title', 'notes', 'lane', 'done', 'dueDate', 'leadTimeDays',
-                   'orderBy', 'waitingOn', 'waitingSince', 'completedAt', 'completedBy', 'order',
-                   ...OWN_FIELDS]
+    'orderBy', 'waitingOn', 'waitingSince', 'completedAt', 'completedBy', 'order',
+    ...OWN_FIELDS]
   for (const k of allowed) if (k in patch) t[k] = patch[k]
   if ('priority' in patch) t.priority = clampPrio(patch.priority)
   if ('effortHours' in patch) t.effortHours = patch.effortHours === null || patch.effortHours === '' ? null : Math.max(0, Number(patch.effortHours) || 0)

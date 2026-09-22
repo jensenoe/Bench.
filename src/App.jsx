@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import * as api from './api.js'
-import { sceneFor, sceneAt, lunchScene, cockpitCover, setCollections, setCadence, ALL_SCENES, STATUS } from './scenes.js'
+import { sceneFor, sceneAt, lunchScene, cockpitCover, setCollections, setCadence, STATUS } from './scenes.js'
 import { SHEETS, cheer } from './copy.js'
 import { daysUntil, daysSince } from './lanes.js'
 import Nav from './components/Nav.jsx'

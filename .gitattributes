@@ -1,0 +1,10 @@
+# Source stays LF on every machine; cmd.exe scripts need CRLF.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+*.jpg binary
+*.png binary
+*.ico binary
+*.bmp binary
+*.woff2 binary

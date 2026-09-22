@@ -11,7 +11,7 @@ const Sec = ({ title, children }) => (
       <h3 className="text-[11.5px] font-medium" style={{ color: 'var(--ink-3)' }}>{title}</h3>
       <div className="mt-3 flex flex-col gap-3">{children}</div>
     </section>
-  )
+)
 const Chips = ({ items, value, onPick, multi }) => (
     <div className="flex flex-wrap gap-1.5">
       {items.map(it => {
@@ -20,7 +20,7 @@ const Chips = ({ items, value, onPick, multi }) => (
           style={{ color: on ? 'var(--ink)' : 'var(--ink-3)', background: on ? 'rgba(var(--ink-rgb),.1)' : 'transparent', border: '1px solid var(--line)' }}>{it.label}</button>
       })}
     </div>
-  )
+)
 const Field = ({ label, k, type = 'text', placeholder, hint, mono, draft, set, save }) => (
     <label className="block text-[11.5px]" style={{ color: 'var(--ink-3)' }}>{label}
       <input type={type} value={draft[k] ?? ''} placeholder={placeholder} onChange={e => set(k, e.target.value)} onBlur={() => save(k)}
@@ -28,14 +28,14 @@ const Field = ({ label, k, type = 'text', placeholder, hint, mono, draft, set, s
         className={`field mt-1 w-full px-2.5 py-2 text-[13px] ${mono ? 'tnum' : ''}`} style={{ color: 'var(--ink)' }} />
       {hint && <span className="mt-1 block text-[11px] leading-relaxed">{hint}</span>}
     </label>
-  )
+)
 const Toggle = ({ on, onChange, label }) => (
     <button onClick={onChange} className="flex items-center gap-2.5 text-[13px]">
       <span className="inline-block h-[18px] w-[30px] rounded-full p-[2px] transition-colors" style={{ background: on ? 'var(--accent)' : 'rgba(var(--ink-rgb),.14)' }}>
         <span className="block h-[14px] w-[14px] rounded-full transition-transform" style={{ background: on ? 'var(--accent-ink)' : 'var(--ink-3)', transform: on ? 'translateX(12px)' : 'none' }} />
       </span>{label}
     </button>
-  )
+)
 
 
 /**
