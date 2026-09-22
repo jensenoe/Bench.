@@ -1,6 +1,7 @@
 import { mergeSource, noteSourceError, patchSource, getMeta } from '../store.js'
 import { syncFromPlanner } from '../planner.js'
 import { bridge } from '../bridge.js'
+import { getAccount } from '../auth.js'
 import { fetchQms, ORIGIN as QMS } from './qms.js'
 import { fetchBom, ORIGIN as BOM } from './bom.js'
 import { fetchIssues, ORIGIN as ISSUES } from './issues.js'
@@ -43,6 +44,22 @@ export async function syncSource(key) {
 export async function syncAll() {
   const out = {}
   for (const key of Object.keys(SOURCES)) out[key] = await syncSource(key)
+  return out
+}
+
+/**
+ * The background poll: only the tools that are actually connected. Graph sources need a signed-in
+ * Microsoft account; cookie sources need a sync that has succeeded since sign-in. Anything else is
+ * left alone, so an unconnected tool does not log an error every couple of minutes.
+ */
+export async function syncConnected() {
+  const account = await getAccount().catch(() => null)
+  const meta = getMeta().sources || {}
+  const out = {}
+  for (const [key, def] of Object.entries(SOURCES)) {
+    const connected = def.kind === 'graph' ? Boolean(account) : (bridge.desktop && meta[key]?.signedIn === true)
+    if (connected) out[key] = await syncSource(key)
+  }
   return out
 }
 

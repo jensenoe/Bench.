@@ -20,24 +20,42 @@ libraries you switch on.
 
 ## Install
 
-`build-exe.bat` produces two things in `release\`:
+Two ways in, both from GitHub. Neither needs admin rights.
 
-- `Bench-Setup-1.0.0.exe`, a normal Windows installer (per user, no admin). Give this to
-  colleagues. First start asks for a name and a work email; that is the whole setup.
-- `Bench-portable.exe`, no install, keeps `data\` beside itself. A copy on a share is the
-  shared board.
+**The installer.** Open the repository's *Releases* page and download
+`Bench-Setup-<version>.exe`. Run it. First start asks for a name and a work email; that is
+the whole setup. `Bench-portable-<version>.exe` sits next to it for a no-install copy that
+keeps `data\` beside itself (a copy on a share is the shared board).
 
-The installer ships the photographs, so `fetch-photos.bat` runs as part of the build
-(it skips what is already there). An installed Bench keeps the board in your profile until
-**Settings > This machine > Choose a shared folder**; after a restart everyone pointing at
-that folder sees the same list. Your hours, sign-ins and settings never enter that folder.
+**The zip.** *Code > Download ZIP*, unpack it anywhere, double-click `install-bench.bat`.
+It installs Node.js if the machine has none (through winget), fetches the packages and the
+photographs, builds the app and then starts the same installer. Ten to fifteen minutes the
+first time, mostly downloads; the unpacked folder can be deleted afterwards.
+
+An installed Bench keeps the board in your profile until **Settings > This machine > Choose
+a shared folder**; after a restart everyone pointing at that folder sees the same list. Your
+hours, sign-ins and settings never enter that folder.
 
 ### Building it
 
 `build-exe.bat` needs Node LTS. It installs dependencies, fetches the photographs, builds
-the interface and packages both executables. If packaging stops at *Cannot create symbolic
-link*, turn on Windows Developer Mode or run the script once as Administrator;
-`build-exe.bat plain` skips the icon stamping instead.
+the interface and packages both executables into `release\`. If packaging stops at *Cannot
+create symbolic link*, turn on Windows Developer Mode or run the script once as
+Administrator; `build-exe.bat plain` skips the icon stamping instead, and `build-exe.bat auto`
+(what `install-bench.bat` uses) falls back to that by itself and never pauses.
+
+### Publishing a release
+
+Bump `version` in `package.json`, commit, then tag and push:
+
+```bash
+git tag v0.9.0-beta.2 && git push --tags
+```
+
+The *Release* workflow in `.github/workflows/release.yml` builds both exes on a Windows
+runner, runs the tests and lint, and attaches the exes to a GitHub release (marked
+pre-release while the version carries a suffix). *Actions > Release > Run workflow* builds
+without publishing and leaves the exes as a workflow artifact.
 
 ## The four tools
 
@@ -55,7 +73,7 @@ empty panel is a fact, not a failure. Sync is always available; Sign in appears 
 tool asked for one.
 
 **Cockpit** (`cockpit.tom.fit`) has its own door on the landing page and opens in a
-separate window on the same kept session. Sync runs every 5 minutes
+separate window on the same kept session. Connected tools sync every 2 minutes
 while the app is open, or on demand from the Tools page.
 
 **What syncs and what doesn't.** The tool owns the title, the status and whether it's
@@ -74,7 +92,7 @@ folder can still override it for another tenant:
 ```
 AZURE_CLIENT_ID=<another app id>
 AZURE_TENANT_ID=<its tenant>
-SYNC_INTERVAL_MINUTES=5
+SYNC_INTERVAL_MINUTES=2
 # Time clock target. Default: Documents/TomFit_Zeiterfassung_<year>_<name>.xlsx in your OneDrive.
 # TIMESHEET_PATH=Documents/TomFit_Zeiterfassung_2026_Noel Jensen.xlsx
 # TIMESHEET_URL=<a OneDrive sharing link to the workbook, wins over the path>

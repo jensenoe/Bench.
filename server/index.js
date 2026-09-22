@@ -20,7 +20,7 @@ const express = (await import('express')).default
 const store = await import('./store.js')
 const auth = await import('./auth.js')
 const { completeInPlanner } = await import('./planner.js')
-const { syncAll, syncSource, sourceStatus, SOURCES } = await import('./sources/index.js')
+const { syncAll, syncConnected, syncSource, sourceStatus, SOURCES } = await import('./sources/index.js')
 const { bridge } = await import('./bridge.js')
 const timeclock = await import('./timeclock.js')
 const settings = await import('./settings.js')
@@ -179,11 +179,11 @@ timeclock.setDigestSource(() => {
 })
 timeclock.startScheduler()
 
-// Background poll while the app is running.
-const mins = Number(process.env.SYNC_INTERVAL_MINUTES || 5)
+// Background poll while the app is running: every 2 minutes, connected tools only.
+const mins = Number(process.env.SYNC_INTERVAL_MINUTES || 2)
 if ((auth.isConfigured() || bridge.desktop) && mins > 0) {
   setInterval(async () => {
-    const r = await syncAll()
+    const r = await syncConnected()
     for (const [k, v] of Object.entries(r)) if (v.ok) console.log(`[sync:${k}] ${v.fetched} (+${v.added}, ${v.closed} closed)`)
   }, mins * 60_000)
 }
