@@ -1,0 +1,146 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Outfit Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Work Sans Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Near-black base. The scene contributes a glow at the top of the
+   page and one accent; it does not tint the whole surface.
+
+   Shape lock: section panels 20px, rows 12px, inputs 10px,
+   buttons and nav items full pill. Nothing else.
+   ────────────────────────────────────────────────────────────────── */
+:root {
+  --col: 1120px;   /* one reading column for every page; wider on big screens */
+  /* Night, not void: a deep warm grey so the panels have somewhere to sit. */
+  --bg:      #15161C;
+  --bg-2:    #1A1B22;
+  --panel:   #1E1F27;
+  --row:     #25262F;
+  --veil:    21,22,28;            /* bg as rgb, for scrims over photographs */
+  --ink-rgb: 243,243,241;
+  --line:    rgba(var(--ink-rgb),.08);
+  --line-2:  rgba(var(--ink-rgb),.14);
+  --ink:     #F3F3F1;
+  --ink-2:   rgba(var(--ink-rgb),.72);
+  --ink-3:   rgba(var(--ink-rgb),.48);
+  --shadow-text: 0 2px 8px rgba(0,0,0,.4), 0 10px 50px rgba(0,0,0,.4);
+  --shadow-text-soft: 0 1px 4px rgba(0,0,0,.5);
+  --photo-filter: saturate(.88) contrast(1.04);
+  --shadow-panel: 0 30px 80px rgba(0,0,0,.45);
+
+  --page-bg: var(--bg); --page-veil: var(--veil); --page-ink: var(--ink); --page-ink-rgb: var(--ink-rgb);   /* the page behind a photo, unaffected by .on-photo */
+
+  /* set per scene */
+  --glow: #1B2A3C;
+  --accent: #8CC4F5;
+  --accent-ink: #0A1C2E;
+  color-scheme: dark;
+}
+
+/* Light: warm paper, crisp lines, dark type. Photographs are not washed out: anything that
+   sits on a photograph (.on-photo) keeps the night treatment, so the pictures stay pictures
+   and the paper is for the panels. */
+:root[data-theme="light"] {
+  --bg:      #F3F1EC;
+  --bg-2:    #EAE8E2;
+  --panel:   #FFFFFF;
+  --row:     #F7F6F2;
+  --veil:    243,241,236;
+  --ink-rgb: 22,22,26;
+  --line:    rgba(var(--ink-rgb),.10);
+  --line-2:  rgba(var(--ink-rgb),.18);
+  --ink:     #16161A;
+  --ink-2:   rgba(var(--ink-rgb),.76);
+  --ink-3:   rgba(var(--ink-rgb),.56);
+  --shadow-text: none;
+  --shadow-text-soft: none;
+  --photo-filter: saturate(.92) contrast(1.02);
+  --shadow-panel: 0 20px 50px rgba(22,22,26,.14), 0 1px 0 rgba(22,22,26,.06);
+  --page-bg: #F3F1EC; --page-veil: 243,241,236; --page-ink: #16161A; --page-ink-rgb: 22,22,26;
+  color-scheme: light;
+}
+:root[data-theme="light"] .panel { box-shadow: 0 1px 2px rgba(22,22,26,.04); }
+
+/* A panel that sits inside a photo area but belongs to the page (the header aside). */
+.off-photo {
+  --bg: var(--page-bg); --veil: var(--page-veil);
+  --ink: var(--page-ink); --ink-rgb: var(--page-ink-rgb);
+  --ink-2: rgba(var(--page-ink-rgb),.72); --ink-3: rgba(var(--page-ink-rgb),.5);
+  --line: rgba(var(--page-ink-rgb),.08); --line-2: rgba(var(--page-ink-rgb),.14);
+  color: var(--ink);
+}
+
+/* Everything laid over a photograph: night tokens in both themes. */
+.on-photo {
+  --bg: #15161C; --veil: 21,22,28;
+  --ink: #F3F3F1; --ink-rgb: 243,243,241;
+  --ink-2: rgba(243,243,241,.74); --ink-3: rgba(243,243,241,.5);
+  --line: rgba(243,243,241,.08); --line-2: rgba(243,243,241,.14);
+  --shadow-text: 0 2px 8px rgba(0,0,0,.4), 0 10px 50px rgba(0,0,0,.4);
+  --shadow-text-soft: 0 1px 4px rgba(0,0,0,.5);
+  color: var(--ink);
+}
+
+html, body, #root { min-height: 100%; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); -webkit-font-smoothing: antialiased;
+}
+
+.display { font-family: var(--font-display); letter-spacing: -0.025em; }
+.tnum { font-variant-numeric: tabular-nums; }
+
+@media (min-width: 1536px) { :root { --col: 1320px; } }
+.col { max-width: var(--col); }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; }
+.row   { background: var(--row);   border: 1px solid var(--line); border-radius: 12px; }
+.pill  { border-radius: 9999px; }
+
+.field {
+  background: var(--bg-2); border: 1px solid var(--line-2); border-radius: 10px; color: var(--ink);
+}
+.field:focus { border-color: var(--accent); outline: none; }
+
+/* image treatment: everything photographic sits *in* the dark */
+.photo { filter: var(--photo-filter); }
+.photo-veil { background: linear-gradient(to top, rgba(var(--veil),.96) 0%, rgba(var(--veil),.6) 40%, rgba(var(--veil),.12) 100%); }
+
+/* frosted glass behind type that sits on a photograph. Same 20px radius as panels. */
+.glass {
+  background: rgba(var(--veil), .42);
+  -webkit-backdrop-filter: blur(22px) saturate(1.15);
+  backdrop-filter: blur(22px) saturate(1.15);
+  border: 1px solid rgba(var(--ink-rgb), .09);
+  border-radius: 20px;
+  box-shadow: 0 1px 0 rgba(var(--ink-rgb), .04) inset;
+}
+
+/* ambient motion */
+@keyframes drift-a { from { transform: translateX(-3%) } to { transform: translateX(3%) } }
+@keyframes drift-b { from { transform: translateX(2%) }  to { transform: translateX(-2%) } }
+.drift-a { animation: drift-a 90s ease-in-out infinite alternate; }
+.drift-b { animation: drift-b 120s ease-in-out infinite alternate; }
+@keyframes twinkle { 0%,100% { opacity:.55 } 50% { opacity:1 } }
+.twinkle { animation: twinkle 6s ease-in-out infinite; }
+
+/* tactile */
+button:active, a.pill:active { transform: translateY(1px); }
+
+@layer base {
+  input, textarea, select, button { font: inherit; color: inherit; }
+  ::placeholder { color: var(--ink-3); opacity: 1; }
+}
+:where(button, input, select, textarea, a, [tabindex]):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(var(--ink-rgb),.12); border-radius: 99px; border: 3px solid var(--bg); }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .drift-a, .drift-b, .twinkle { animation: none; }
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}

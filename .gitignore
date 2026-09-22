@@ -1,0 +1,25 @@
+# dependencies and build output
+node_modules/
+dist/
+release/
+
+# secrets and per-user state (never in the repo)
+.env
+.msal-cache.json
+data/
+backups/
+*.log
+
+# fetched photographs: fetch-photos.bat rebuilds them; the five procedural renders and the ridge stay
+public/terrain/*.jpg
+!public/terrain/dawn.jpg
+!public/terrain/day.jpg
+!public/terrain/dusk.jpg
+!public/terrain/night.jpg
+!public/terrain/ridge.jpg
+
+# editor and OS noise
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

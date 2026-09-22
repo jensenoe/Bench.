@@ -1,0 +1,10 @@
+Bench.
+
+Made at TomFit Health Training AG by Noel Jensen, for internal use.
+
+This program runs on your machine. It stores its board in a folder you choose
+and your own settings, sign-in tokens and hours in your Windows user profile.
+It talks only to Microsoft 365 (Planner, your OneDrive workbook) and the
+TomFit tools you sign in to. Nothing is sent anywhere else.
+
+Photographs are from Pexels and Unsplash under their free licences.

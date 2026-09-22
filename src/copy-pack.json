@@ -1,0 +1,377 @@
+{
+  "encouragements": [
+    "One less thing on the bench.",
+    "Ticked. On to the next.",
+    "That one is done and it stays done.",
+    "Small step, right direction.",
+    "Progress is mostly this. One box at a time.",
+    "Torqued and checked. Move on.",
+    "Good. The list is shorter than it was.",
+    "Nothing dramatic, just done. That is the point.",
+    "Within tolerance. Move on.",
+    "One wire fewer to trace.",
+    "That was the hard part of the easy part.",
+    "Done is a good word.",
+    "The board thanks you. Quietly.",
+    "You can stop carrying that one now.",
+    "Rhythm is just this, repeated.",
+    "Another line through another line.",
+    "Cleared. Breathe once, then the next.",
+    "That took longer than planned. Still done.",
+    "Off the bench, out of your head.",
+    "Not perfect. Finished. That counts.",
+    "Momentum is built in pieces this size.",
+    "One test passed. Log it and go on.",
+    "The checklist likes you today.",
+    "Quiet win. Those add up.",
+    "Signed off. Let it go.",
+    "It is easier to think with one less open loop.",
+    "The next one will feel smaller now.",
+    "Ticked before lunch. Reasonable.",
+    "That is what a good hour looks like.",
+    "Fewer loose ends than five minutes ago.",
+    "Good enough today beats perfect next week.",
+    "Done. No fanfare needed.",
+    "Whatever the mood was, it got done.",
+    "Another one you do not have to remember.",
+    "Cable tied, labelled, forgotten. Ideal.",
+    "One task less between you and the interesting one.",
+    "Steady beats fast. This was steady.",
+    "Fixed for real, not just for now.",
+    "That is the kind of small that matters.",
+    "Marked done. The board is a little calmer.",
+    "Half the job is deciding it is finished. You did.",
+    "Nothing left to do there. Rare, enjoy it.",
+    "A closed ticket is a quiet ticket.",
+    "Right. What is next.",
+    "One more thing you will not have to explain later.",
+    "Screws in, cover on, box ticked.",
+    "The plan survived contact with reality. Once.",
+    "Confine yourself to the present. Marcus Aurelius",
+    "Waste no more time arguing about what a good man should be. Be one. Marcus Aurelius",
+    "It is not that we have a short time to live, but that we waste a lot of it. Seneca",
+    "While we wait for life, life passes. Seneca",
+    "First say to yourself what you would be; and then do what you have to do. Epictetus",
+    "No great thing is created suddenly. Epictetus",
+    "A journey of a thousand miles begins with a single step. Lao Tzu",
+    "Do the difficult things while they are easy and do the great things while they are small. Lao Tzu",
+    "It does not matter how slowly you go as long as you do not stop. Confucius",
+    "The man who moves a mountain begins by carrying away small stones. Confucius",
+    "Well done is better than well said. Benjamin Franklin",
+    "Little strokes fell great oaks. Benjamin Franklin",
+    "Knowing is not enough; we must apply. Willing is not enough; we must do. Goethe",
+    "Perfection is attained not when there is nothing more to add, but when there is nothing left to take away. Antoine de Saint-Exupéry",
+    "Well begun is half done. Aristotle"
+  ],
+  "nudges": [
+    "Glass of water before the next one.",
+    "A coffee would not be wrong now.",
+    "Water. You know the drill.",
+    "Kettle on? A coffee suits this point in the day.",
+    "Half a litre of water buys a clearer afternoon.",
+    "Small coffee, then the next thing.",
+    "Refill the bottle while you are up.",
+    "Stand up for a minute. The bench will wait.",
+    "Water first, then the next task.",
+    "Coffee break. Short one.",
+    "Two minutes at the window. Nothing will break.",
+    "Drink something. Water is the sensible choice.",
+    "An espresso now and then is fine engineering practice.",
+    "Sip of water. Your brain runs on it.",
+    "Shoulders down. Look at something far away.",
+    "Coffee if you like. Water either way."
+  ],
+  "greetings": {
+    "dawn": [
+      [
+        "Early start,",
+        "{name}."
+      ],
+      [
+        "Still dark outside,",
+        "{name}."
+      ],
+      [
+        "Up before the birds,",
+        "{name}."
+      ],
+      [
+        "First one in,",
+        "{name}."
+      ],
+      [
+        "Quiet hours,",
+        "{name}."
+      ],
+      [
+        "Coffee first, then the board,",
+        "{name}."
+      ],
+      [
+        "The day has not started yet, except for you,",
+        "{name}."
+      ]
+    ],
+    "day": [
+      [
+        "Morning,",
+        "{name}."
+      ],
+      [
+        "Good morning,",
+        "{name}."
+      ],
+      [
+        "Late morning already,",
+        "{name}."
+      ],
+      [
+        "Here is the bench,",
+        "{name}."
+      ],
+      [
+        "Afternoon,",
+        "{name}."
+      ],
+      [
+        "Good afternoon,",
+        "{name}."
+      ],
+      [
+        "Back at it,",
+        "{name}."
+      ],
+      [
+        "Halfway there,",
+        "{name}."
+      ]
+    ],
+    "dusk": [
+      [
+        "Evening,",
+        "{name}."
+      ],
+      [
+        "Light is going,",
+        "{name}."
+      ],
+      [
+        "Last stretch,",
+        "{name}."
+      ],
+      [
+        "Nearly time to close the lid,",
+        "{name}."
+      ],
+      [
+        "Good evening,",
+        "{name}."
+      ],
+      [
+        "Wrapping up,",
+        "{name}."
+      ],
+      [
+        "The day is thinning out,",
+        "{name}."
+      ]
+    ],
+    "night": [
+      [
+        "Late one,",
+        "{name}."
+      ],
+      [
+        "Still here,",
+        "{name}."
+      ],
+      [
+        "Night shift,",
+        "{name}."
+      ],
+      [
+        "It can wait until morning,",
+        "{name}."
+      ],
+      [
+        "Quiet on the bench,",
+        "{name}."
+      ],
+      [
+        "Long day,",
+        "{name}."
+      ]
+    ],
+    "lunch": [
+      [
+        "Lunch,",
+        "{name}."
+      ],
+      [
+        "Step away for a bit,",
+        "{name}."
+      ],
+      [
+        "Board is paused. Eat something,",
+        "{name}."
+      ],
+      [
+        "Midday. Fork before keyboard,",
+        "{name}."
+      ]
+    ],
+    "early": [
+      [
+        "Up before the sun,",
+        "{name}."
+      ],
+      [
+        "Early one,",
+        "{name}."
+      ],
+      [
+        "The bench is still cold,",
+        "{name}."
+      ],
+      [
+        "First in,",
+        "{name}."
+      ],
+      [
+        "Before the phones start,",
+        "{name}."
+      ],
+      [
+        "Quiet hours,",
+        "{name}."
+      ]
+    ]
+  },
+  "quietStates": [
+    "Nothing open. Enjoy it while it lasts.",
+    "The board is clear. You did that.",
+    "Nothing pressing. A good moment for the Innovation lane.",
+    "Empty for now. That is earned, not accidental.",
+    "Quiet bench. The idea you keep postponing would fit here.",
+    "All clear. Coffee, then something you actually want to build.",
+    "No fires. Rare enough to notice.",
+    "Nothing waiting on you. Something might be waiting in Innovation.",
+    "Clear board, open afternoon. Use it before Planner does.",
+    "Nothing urgent. Prototype something."
+  ],
+  "sheets": {
+    "board": {
+      "lines": [
+        "The whole bench, one screen.",
+        "Five lanes. Five today. That is the rule.",
+        "Everything that owns a piece of your day, in one place.",
+        "What is on the bench, and only that."
+      ],
+      "bodies": [
+        "Five lanes from idea to done, with a hard cap of five items on Today so the day stays a day.",
+        "Planner tasks and tool items land here as cards, and Today never holds more than five of them.",
+        "One board, fed by Planner and the four TomFit tools, so nothing lives only in someone else's inbox.",
+        "Five lanes, one cap: Today takes five, and the rest waits its turn until there is room."
+      ]
+    },
+    "procurement": {
+      "lines": [
+        "Order it before it is late.",
+        "Lead times, worked backwards.",
+        "What you are waiting on, and who is holding it.",
+        "Parts arrive on their schedule, not yours."
+      ],
+      "bodies": [
+        "Every item gets an order-by date worked back from its lead time, so the deadline you see is the one that matters.",
+        "A list of parts and requests, each with the day you must order it and the person it is currently waiting on.",
+        "Lead time in, order-by date out, with a separate view of everything sitting with a supplier or a colleague.",
+        "Procurement tracks what needs ordering, when it becomes too late, and which items are blocked on other people."
+      ]
+    },
+    "tools": {
+      "lines": [
+        "Four tools. One sign-in each.",
+        "Read straight from the source.",
+        "The tools you already use, without the tabs.",
+        "Tickets, quality, parts, gates."
+      ],
+      "bodies": [
+        "Issue tickets, the QMS, the structured BOM and Phase Gate are read directly from the TomFit tools, no export step.",
+        "Sign in once per tool and Bench. pulls your open items from Issue tickets, QMS, structured BOM and Phase Gate.",
+        "The four TomFit tools stay the system of record; Bench. only reads what is assigned to you and shows it on the board.",
+        "Each tool keeps its own login, you sign in once, and from then on your items appear here without copying."
+      ]
+    },
+    "cockpit": {
+      "lines": [
+        "The company view, one window over.",
+        "Zoom out when you need to.",
+        "TomFit at a glance.",
+        "The overview, kept signed in."
+      ],
+      "bodies": [
+        "The TomFit Cockpit is the company overview dashboard, opened in its own window so it does not crowd the bench.",
+        "Cockpit shows the wider TomFit picture and keeps your sign-in, so it is one click away rather than one login away.",
+        "A separate window for the company dashboard, with your session kept so you can glance at it and come back.",
+        "Cockpit is the TomFit overview; Bench. opens it beside the board and remembers you are signed in."
+      ]
+    },
+    "logbook": {
+      "lines": [
+        "What was said, kept.",
+        "Meetings, written down once.",
+        "The minutes, without the ceremony.",
+        "Who said what, and what follows."
+      ],
+      "bodies": [
+        "One entry per meeting: who was there, what was decided, what someone has to do next. Actions go to the board with a click and keep a line back here.",
+        "Notes from the room, in the order they happened. Decisions on one side, actions on the other, and a search that finds the sentence you half remember.",
+        "A place for meeting notes that does not become a second task list: the actions leave for the board, the context stays.",
+        "Dated entries, attendees, decisions, actions. Nothing more, and it is enough."
+      ]
+    },
+    "napkin": {
+      "lines": [
+        "Ideas, before they are tasks.",
+        "Sketch first. Sort later.",
+        "The back of the napkin, kept.",
+        "Branches, not bullet points."
+      ],
+      "bodies": [
+        "Mind maps that lay themselves out. One idea in the middle, branches on both sides, Tab for a child, Enter for the next thought.",
+        "For the part of the work that is not a list yet. Draw the shape of a problem, fold what is settled, come back when it is time to decide.",
+        "A quick canvas for thinking out loud. Every branch is editable in place and the map keeps itself tidy.",
+        "Where a wiring concept, a supplier question or a test plan starts, before any of it is a task."
+      ]
+    }
+  },
+  "about": {
+    "short": "The day was spread across five tools. This is the one place it all shows at once.",
+    "long": "Bench. exists because the pieces of the day were spread across five tools, and none of them showed the whole bench at once. It runs locally and keeps everything in a folder you choose. Noël built it at TomFit for his own bench first; if it helps yours too, good.",
+    "footer": "Runs on this machine, nothing in a cloud of its own. The board lives in a folder you choose; your hours, sign-ins and settings stay in your own profile. It talks to Microsoft 365 and the TomFit tools, and to nothing else."
+  },
+  "firstRun": {
+    "title": "Before we start.",
+    "body": "Your name, as the tools spell it, for the greeting and to match what Issues, QMS and the BOM assign to you. A work email too, because the tools sometimes list people by address. Nothing is sent anywhere.",
+    "nameLabel": "Name, as the tools spell it",
+    "emailLabel": "Work email",
+    "cta": "Next",
+    "connectTitle": "One sign-in.",
+    "connectBody": "Bench. reads your Planner tasks and writes your hours into the Zeiterfassung workbook through Microsoft 365. Connect now and it is ready when you open the bench; skip and the button waits in Settings.",
+    "skip": "Skip for now",
+    "done": "Open the bench"
+  },
+  "earlyStates": [
+    "Coffee first. The board can wait ten minutes.",
+    "The quiet before seven is worth more than the hour after five. Use it on one thing.",
+    "Nobody is asking for anything yet. Pick the piece that needs a clear head.",
+    "Early start. Remember to stop early too."
+  ],
+  "lateStates": [
+    "Tomorrow is a day as well, {name}.",
+    "It is late. The bench will still be here in the morning.",
+    "Whatever is left will not get better after seven. Tomorrow is a day as well.",
+    "Long one. Write down where you stopped and go home.",
+    "Past the useful hours. Tomorrow is a day as well."
+  ]
+}
