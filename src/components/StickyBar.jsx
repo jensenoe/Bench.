@@ -12,7 +12,7 @@ export default function StickyBar({ show, stats, children }) {
           <div className="mx-auto flex h-14 max-w-[1180px] items-center justify-between gap-4 px-4 sm:px-6">
             <div className="flex items-baseline gap-4">
               <span className="font-display text-[17px]">Ridgeline</span>
-              <span className="hidden text-[11.5px] sm:inline" style={{ color: 'var(--ink-faint)' }}>
+              <span className="hidden text-[13px] sm:inline" style={{ color: 'var(--ink-faint)' }}>
                 <b className="tnum" style={{ color: 'var(--color-alpenglow)' }}>{stats.today}</b> today
                 <span className="mx-2">·</span>
                 <b className="tnum">{stats.open}</b> open

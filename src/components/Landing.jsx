@@ -45,7 +45,7 @@ function Door({ s, tall = false, wide = false, sheetState, doorImages }) {
         <p className="mt-2 text-[14px]" style={{ color: 'var(--ink-2)' }}>{s.line}</p>
         {(tall || wide) && <p className="mt-3 max-w-[48ch] text-[13px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>{s.body}</p>}
         <div className="mt-5 flex items-center justify-between">
-          <span className="tnum text-[12.5px]" style={{ color: st?.tone || 'var(--ink-3)' }}>{ext ? 'Opens in its own window, signed in' : ready ? st?.text : 'Not built yet'}</span>
+          <span className="tnum text-[13.5px]" style={{ color: st?.tone || 'var(--ink-3)' }}>{ext ? 'Opens in its own window, signed in' : ready ? st?.text : 'Not built yet'}</span>
           {ready && <span className="pill grid h-9 w-9 place-items-center transition-transform group-hover:translate-x-1"
                           style={{ background: 'var(--ink)', color: 'var(--bg)' }}>{ext ? <ArrowSquareOut size={15} weight="bold" /> : <ArrowRight size={15} weight="bold" />}</span>}
         </div>

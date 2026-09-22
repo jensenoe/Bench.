@@ -11,7 +11,7 @@ export default function SourceFilter({ tasks, value, onChange }) {
       {keys.map(k => {
         const on = value === k
         return (
-          <button key={k} onClick={() => onChange(k)} className="pill flex items-center gap-1.5 px-3 py-1.5 text-[12.5px] transition-colors"
+          <button key={k} onClick={() => onChange(k)} className="pill flex items-center gap-1.5 px-3 py-1.5 text-[13.5px] transition-colors"
             style={{ color: on ? 'var(--ink)' : 'var(--ink-3)', background: on ? 'rgba(var(--ink-rgb),.1)' : 'transparent', border: '1px solid var(--line)' }}>
             {LABEL[k]}<span className="tnum" style={{ color: on ? 'var(--ink-2)' : 'var(--ink-3)', opacity: .8 }}>{count(k)}</span>
           </button>

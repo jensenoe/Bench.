@@ -20,7 +20,7 @@ export default function Vista({ scene, children }) {
         style={{ y: imgY, scale: imgScale }}
         className="photo absolute inset-0 h-full w-full object-cover object-center will-change-transform" />
       <div className="pointer-events-none absolute inset-0" style={{
-        background: 'linear-gradient(to top, var(--page-bg) 0%, rgba(var(--page-veil),.72) 16%, rgba(var(--page-veil),.2) 42%, rgba(var(--page-veil),.06) 100%)' }} />
+        background: 'linear-gradient(to top, var(--page-bg) 0%, rgba(var(--page-veil),.6) 9%, rgba(var(--page-veil),.16) 26%, rgba(var(--page-veil),.05) 100%)' }} />
       <motion.div style={{ y: copyY, opacity: copyO }} className="relative z-10 h-full">{children}</motion.div>
     </section>
   )

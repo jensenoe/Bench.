@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Plus, X, ArrowRight, Check, MagnifyingGlass, CalendarBlank } from '@phosphor-icons/react'
+import { Plus, X, ArrowRight, Check, MagnifyingGlass, CalendarBlank, Copy } from '@phosphor-icons/react'
+import DateField from './DateField.jsx'
 import * as api from '../api.js'
 import { fmtDate } from '../lanes.js'
 
@@ -52,6 +53,8 @@ export default function Logbook({ onRefresh }) {
   const add = async () => { const e = await api.createEntry({ title: 'Meeting', date: new Date().toISOString().slice(0, 10) }); await load(); setSel(e.id) }
   const save = async (patch) => { if (!entry) return; const e = await api.patchEntry(entry.id, patch); setEntries(list => list.map(x => x.id === e.id ? e : x)) }
   const remove = async () => { if (!entry || !confirm(`Delete "${entry.title}"?`)) return; await api.removeEntry(entry.id); const list = await load(); setSel(list[0]?.id || null) }
+  /** A recurring meeting: a new entry with the same title, people, project and tags, dated today. */
+  const template = async () => { if (!entry) return; const e = await api.duplicateEntry(entry.id); await load(); setSel(e.id) }
 
   // group the list by month
   const groups = useMemo(() => {
@@ -69,27 +72,27 @@ export default function Logbook({ onRefresh }) {
         <aside className="panel flex max-h-[78vh] flex-col overflow-hidden">
           <div className="flex items-center gap-2 p-3" style={{ borderBottom: '1px solid var(--line)' }}>
             <div className="field flex flex-1 items-center gap-2 px-2.5 py-1.5"><MagnifyingGlass size={13} style={{ color: 'var(--ink-3)' }} />
-              <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search notes" className="w-full bg-transparent text-[12.5px] outline-none" /></div>
+              <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search notes" className="w-full bg-transparent text-[13.5px] outline-none" /></div>
             <button onClick={fromCalendar} aria-label="From today's meetings" title="Start from today's meetings" className="pill grid h-8 w-8 place-items-center" style={{ border: '1px solid var(--line-2)', color: meetings ? 'var(--ink)' : 'var(--ink-3)' }}><CalendarBlank size={13} weight="bold" /></button>
             <button onClick={add} aria-label="New entry" className="pill grid h-8 w-8 place-items-center" style={{ background: 'var(--ink)', color: 'var(--bg)' }}><Plus size={13} weight="bold" /></button>
           </div>
           {meetings !== null && (
             <div className="p-2" style={{ borderBottom: '1px solid var(--line)' }}>
-              <div className="px-3 pb-1 pt-1 text-[10.5px] font-medium" style={{ color: 'var(--ink-3)' }}>Today's meetings</div>
-              {meetingsNote && <p className="px-3 pb-2 text-[12px]" style={{ color: 'var(--ink-3)' }}>{meetingsNote}</p>}
+              <div className="px-3 pb-1 pt-1 text-[12px] font-medium" style={{ color: 'var(--ink-3)' }}>Today's meetings</div>
+              {meetingsNote && <p className="px-3 pb-2 text-[13px]" style={{ color: 'var(--ink-3)' }}>{meetingsNote}</p>}
               {meetings.map(m => (
                 <button key={m.id} onClick={() => startFromMeeting(m)} className="block w-full rounded-[10px] px-3 py-2 text-left transition-colors hover:bg-[rgba(var(--ink-rgb),.06)]">
-                  <div className="flex items-baseline justify-between gap-2"><span className="truncate text-[13px]">{m.subject}</span><span className="tnum shrink-0 text-[11px]" style={{ color: 'var(--ink-3)' }}>{m.allDay ? 'all day' : m.start}</span></div>
-                  <div className="mt-0.5 truncate text-[11.5px]" style={{ color: 'var(--ink-3)' }}>{[m.location, m.attendees.slice(0, 3).join(', ')].filter(Boolean).join(' · ') || 'Start an entry from this'}</div>
+                  <div className="flex items-baseline justify-between gap-2"><span className="truncate text-[13px]">{m.subject}</span><span className="tnum shrink-0 text-[12.5px]" style={{ color: 'var(--ink-3)' }}>{m.allDay ? 'all day' : m.start}</span></div>
+                  <div className="mt-0.5 truncate text-[13px]" style={{ color: 'var(--ink-3)' }}>{[m.location, m.attendees.slice(0, 3).join(', ')].filter(Boolean).join(' · ') || 'Start an entry from this'}</div>
                 </button>
               ))}
             </div>
           )}
           <div className="flex-1 overflow-y-auto p-2">
-            {!filtered.length && <p className="px-3 py-6 text-center text-[12.5px]" style={{ color: 'var(--ink-3)' }}>{entries.length ? 'Nothing matches.' : 'No entries yet. The plus starts one.'}</p>}
+            {!filtered.length && <p className="px-3 py-6 text-center text-[13.5px]" style={{ color: 'var(--ink-3)' }}>{entries.length ? 'Nothing matches.' : 'No entries yet. The plus starts one.'}</p>}
             {groups.map(([k, list]) => (
               <div key={k} className="mb-3">
-                <div className="px-3 pb-1 pt-2 text-[10.5px] font-medium" style={{ color: 'var(--ink-3)' }}>{monthLabel(k)}</div>
+                <div className="px-3 pb-1 pt-2 text-[12px] font-medium" style={{ color: 'var(--ink-3)' }}>{monthLabel(k)}</div>
                 {list.map(e => {
                   const openActions = (e.actions || []).filter(a => !a.done).length
                   return (
@@ -97,9 +100,9 @@ export default function Logbook({ onRefresh }) {
                       style={{ background: e.id === sel ? 'rgba(var(--ink-rgb),.08)' : 'transparent' }}>
                       <div className="flex items-baseline justify-between gap-2">
                         <span className="truncate text-[13px]">{e.title}</span>
-                        <span className="tnum shrink-0 text-[11px]" style={{ color: 'var(--ink-3)' }}>{fmt(e.date)}</span>
+                        <span className="tnum shrink-0 text-[12.5px]" style={{ color: 'var(--ink-3)' }}>{fmt(e.date)}</span>
                       </div>
-                      <div className="mt-0.5 truncate text-[11.5px]" style={{ color: 'var(--ink-3)' }}>
+                      <div className="mt-0.5 truncate text-[13px]" style={{ color: 'var(--ink-3)' }}>
                         {[e.project, (e.attendees || []).slice(0, 3).join(', '), openActions ? `${openActions} open` : null].filter(Boolean).join(' · ') || 'No details yet'}
                       </div>
                     </button>
@@ -113,14 +116,14 @@ export default function Logbook({ onRefresh }) {
         <AnimatePresence mode="wait">
           {entry ? (
             <motion.section key={entry.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: .25 }} className="panel p-6 sm:p-8">
-              <Entry entry={entry} save={save} remove={remove} onRefresh={onRefresh} setEntries={setEntries} />
+              <Entry entry={entry} save={save} remove={remove} template={template} onRefresh={onRefresh} setEntries={setEntries} />
             </motion.section>
           ) : (
             <section className="panel grid min-h-[320px] place-items-center p-8 text-center">
               <div>
                 <h2 className="display text-[28px] font-semibold leading-none">Nothing open.</h2>
                 <p className="mt-3 text-[13px]" style={{ color: 'var(--ink-3)' }}>Pick an entry on the left, or start one.</p>
-                <button onClick={add} className="pill mt-5 px-4 py-2 text-[12.5px] font-medium" style={{ background: 'var(--ink)', color: 'var(--bg)' }}>New entry</button>
+                <button onClick={add} className="pill mt-5 px-4 py-2 text-[13.5px] font-medium" style={{ background: 'var(--ink)', color: 'var(--bg)' }}>New entry</button>
               </div>
             </section>
           )}
@@ -130,7 +133,7 @@ export default function Logbook({ onRefresh }) {
   )
 }
 
-function Entry({ entry, save, remove, onRefresh, setEntries }) {
+function Entry({ entry, save, remove, template, onRefresh, setEntries }) {
   const [f, setF] = useState(() => draft(entry))
   useEffect(() => { setF(draft(entry)) }, [entry.id, entry.updatedAt])
   const set = (k, v) => setF(s => ({ ...s, [k]: v }))
@@ -149,15 +152,18 @@ function Entry({ entry, save, remove, onRefresh, setEntries }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <input value={f.title} onChange={e => set('title', e.target.value)} onBlur={() => commit('title')} onKeyDown={e => e.key === 'Enter' && e.target.blur()}
           className="display w-full max-w-[640px] bg-transparent text-[30px] font-semibold leading-none tracking-tight outline-none sm:text-[36px]" placeholder="Meeting" />
-        <button onClick={remove} aria-label="Delete entry" className="grid h-7 w-7 place-items-center rounded-md" style={{ color: 'var(--ink-3)' }}><X size={13} weight="bold" /></button>
+        <div className="flex items-center gap-1">
+          <button onClick={template} title="New entry like this one, dated today" className="pill flex items-center gap-1.5 px-3 py-1.5 text-[13.5px]" style={{ border: '1px solid var(--line-2)', color: 'var(--ink-2)' }}><Copy size={12} /> Again today</button>
+          <button onClick={remove} aria-label="Delete entry" className="grid h-7 w-7 place-items-center rounded-md" style={{ color: 'var(--ink-3)' }}><X size={13} weight="bold" /></button>
+        </div>
       </div>
       <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <label className="text-[10.5px]" style={{ color: 'var(--ink-3)' }}>Date<input type="date" value={f.date} onChange={e => set('date', e.target.value)} onBlur={() => commit('date')} className={INP + ' mt-1'} /></label>
-        <label className="text-[10.5px]" style={{ color: 'var(--ink-3)' }}>Project<input value={f.project} onChange={e => set('project', e.target.value)} onBlur={() => commit('project')} placeholder="machine, build, programme" className={INP + ' mt-1'} /></label>
-        <label className="text-[10.5px]" style={{ color: 'var(--ink-3)' }}>Who was there<input value={f.attendees} onChange={e => set('attendees', e.target.value)} onBlur={() => commit('attendees')} placeholder="names, comma separated" className={INP + ' mt-1'} /></label>
+        <label className="block text-[12px]" style={{ color: 'var(--ink-3)' }}>Date<DateField className="mt-1" clearable={false} value={f.date} onChange={v => { set('date', v); if (v && v !== entry.date) save({ date: v }) }} /></label>
+        <label className="text-[12px]" style={{ color: 'var(--ink-3)' }}>Project<input value={f.project} onChange={e => set('project', e.target.value)} onBlur={() => commit('project')} placeholder="machine, build, programme" className={INP + ' mt-1'} /></label>
+        <label className="text-[12px]" style={{ color: 'var(--ink-3)' }}>Who was there<input value={f.attendees} onChange={e => set('attendees', e.target.value)} onBlur={() => commit('attendees')} placeholder="names, comma separated" className={INP + ' mt-1'} /></label>
       </div>
 
-      <label className="mt-6 block text-[10.5px]" style={{ color: 'var(--ink-3)' }}>Notes
+      <label className="mt-6 block text-[12px]" style={{ color: 'var(--ink-3)' }}>Notes
         <textarea ref={notesRef} value={f.notes} onChange={e => set('notes', e.target.value)} onBlur={() => commit('notes')} rows={6} placeholder="What was said. What was shown. What was left open."
           className={INP + ' mt-1 min-h-[160px] resize-none leading-relaxed'} />
       </label>
@@ -170,7 +176,7 @@ function Entry({ entry, save, remove, onRefresh, setEntries }) {
         </div>
         <div>
           <div className="flex items-baseline justify-between"><h3 className="display text-[18px] font-semibold leading-none">Actions.</h3>
-            <span className="tnum text-[12px]" style={{ color: 'var(--ink-3)' }}>{actions.filter(a => a.done).length}/{actions.length}</span></div>
+            <span className="tnum text-[13px]" style={{ color: 'var(--ink-3)' }}>{actions.filter(a => a.done).length}/{actions.length}</span></div>
           <ul className="mt-3 flex flex-col gap-1.5">
             {actions.map(a => (
               <li key={a.id} className="row px-3 py-2">
@@ -183,19 +189,19 @@ function Entry({ entry, save, remove, onRefresh, setEntries }) {
                 </div>
                 <div className="mt-1.5 flex items-center gap-3 pl-[26px]">
                   <Owner a={a} onCommit={owner => setActions(actions.map(x => x.id === a.id ? { ...x, owner } : x))} />
-                  {a.taskId ? <a href="#/board" className="text-[11px] underline-offset-2 hover:underline" style={{ color: 'var(--ink-3)' }}>on the board</a>
-                    : <button onClick={() => toBoard(a)} title="Put this on the board" className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--accent)' }}>to the board <ArrowRight size={11} weight="bold" /></button>}
+                  {a.taskId ? <a href="#/board" className="text-[12.5px] underline-offset-2 hover:underline" style={{ color: 'var(--ink-3)' }}>on the board</a>
+                    : <button onClick={() => toBoard(a)} title="Put this on the board" className="flex items-center gap-1 text-[12.5px]" style={{ color: 'var(--accent)' }}>to the board <ArrowRight size={11} weight="bold" /></button>}
                 </div>
               </li>
             ))}
           </ul>
           <div className="mt-2 flex gap-2">
             <input value={newAction} onChange={e => setNewAction(e.target.value)} onKeyDown={e => e.key === 'Enter' && addAction()} placeholder="Add an action" className={INP} />
-            <button onClick={addAction} className="pill px-3.5 text-[12.5px] font-medium" style={{ background: 'var(--ink)', color: 'var(--bg)' }}>Add</button>
+            <button onClick={addAction} className="pill px-3.5 text-[13.5px] font-medium" style={{ background: 'var(--ink)', color: 'var(--bg)' }}>Add</button>
           </div>
         </div>
       </div>
-      <p className="mt-6 text-[11px]" style={{ color: 'var(--ink-3)' }}>Saves as you go. Last change {new Date(entry.updatedAt).toLocaleString('de-CH', { dateStyle: 'medium', timeStyle: 'short' })}.</p>
+      <p className="mt-6 text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Saves as you go. Last change {new Date(entry.updatedAt).toLocaleString('de-CH', { dateStyle: 'medium', timeStyle: 'short' })}.</p>
     </>
   )
 }
@@ -211,7 +217,7 @@ function ActionText({ a, onCommit }) {
 function Owner({ a, onCommit }) {
   const [v, setV] = useState(a.owner || '')
   useEffect(() => { setV(a.owner || '') }, [a.owner])
-  return <input value={v} placeholder="owner" onChange={e => setV(e.target.value)} onBlur={() => v !== (a.owner || '') && onCommit(v)} onKeyDown={e => e.key === 'Enter' && e.target.blur()} className="field w-28 px-2 py-1 text-[11.5px]" />
+  return <input value={v} placeholder="owner" onChange={e => setV(e.target.value)} onBlur={() => v !== (a.owner || '') && onCommit(v)} onKeyDown={e => e.key === 'Enter' && e.target.blur()} className="field w-28 px-2 py-1 text-[13px]" />
 }
 
 const draft = e => ({ title: e.title || '', date: e.date || '', project: e.project || '', attendees: (e.attendees || []).join(', '), notes: e.notes || '', decisions: (e.decisions || []).join('\n'), tags: (e.tags || []).join(', ') })

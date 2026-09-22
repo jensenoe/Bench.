@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Check } from '@phosphor-icons/react'
 import Photo from './Photo.jsx'
 import Connect from './Connect.jsx'
+import * as api from '../api.js'
 import { FIRST_RUN } from '../copy.js'
 
 const EASE = [0.16, 1, 0.3, 1]
@@ -21,6 +22,9 @@ export default function FirstRun({ scene, auth, onSave, onRefresh }) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
+  const [probe, setProbe] = useState(null)
+  // The first punch should not be the first test of the workbook path: look for it as soon as the sign-in lands.
+  useEffect(() => { if (auth?.signedIn && !probe) api.probeWorkbook().then(setProbe).catch(e => setProbe({ ok: false, message: e.message })) }, [auth?.signedIn])   // eslint-disable-line react-hooks/exhaustive-deps
   const ok = name.trim().length >= 2 && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())
   const next = async e => { e.preventDefault(); if (!ok) return; setBusy(true); try { await onSave({ name: name.trim(), email: email.trim() }); setStep(1) } finally { setBusy(false) } }
   const finish = async () => { setBusy(true); try { await onSave({ setupDone: true }); await onRefresh?.() } finally { setBusy(false) } }
@@ -43,9 +47,9 @@ export default function FirstRun({ scene, auth, onSave, onRefresh }) {
               <h1 className="display mt-3 text-[clamp(44px,7vw,84px)] font-semibold leading-[.95] tracking-tight">{FIRST_RUN.title}</h1>
               <p className="mt-5 text-[15px] leading-relaxed" style={{ color: 'var(--ink-2)' }}>{FIRST_RUN.body}</p>
               <div className="mt-8 grid gap-3 sm:grid-cols-2">
-                <label className="text-[11.5px]" style={{ color: 'var(--ink-3)' }}>{FIRST_RUN.nameLabel}
+                <label className="text-[13px]" style={{ color: 'var(--ink-3)' }}>{FIRST_RUN.nameLabel}
                   <input autoFocus value={name} onChange={e => setName(e.target.value)} placeholder="Noël Jensen" className="field mt-1 w-full px-3 py-2.5 text-[15px]" /></label>
-                <label className="text-[11.5px]" style={{ color: 'var(--ink-3)' }}>{FIRST_RUN.emailLabel}
+                <label className="text-[13px]" style={{ color: 'var(--ink-3)' }}>{FIRST_RUN.emailLabel}
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="name@tom.fit" className="field mt-1 w-full px-3 py-2.5 text-[15px]" /></label>
               </div>
               <button type="submit" disabled={!ok || busy} className="pill mt-6 px-6 py-3 text-[14px] font-medium transition-opacity disabled:opacity-40"
@@ -61,7 +65,12 @@ export default function FirstRun({ scene, auth, onSave, onRefresh }) {
               <p className="mt-5 text-[15px] leading-relaxed" style={{ color: 'var(--ink-2)' }}>{FIRST_RUN.connectBody}</p>
               <div className="mt-8">
                 {auth?.signedIn ? (
-                  <p className="flex items-center gap-2 text-[14px]"><Check size={15} weight="bold" style={{ color: 'var(--accent)' }} /> Connected as <span className="tnum">{auth.username}</span></p>
+                  <div>
+                    <p className="flex items-center gap-2 text-[14px]"><Check size={15} weight="bold" style={{ color: 'var(--accent)' }} /> Connected as <span className="tnum">{auth.username}</span></p>
+                    <p className="mt-2 text-[13.5px] leading-relaxed" style={{ color: probe ? (probe.ok ? 'var(--ink-2)' : '#E8B85A') : 'var(--ink-3)' }}>
+                      {!probe ? 'Looking for your hours workbook.' : probe.ok ? <>Your hours workbook is there: sheet <span className="tnum">{probe.sheet}</span>, today is row <span className="tnum">{probe.row}</span>.</> : <>{probe.message} The path can be fixed in Settings before the first punch.</>}
+                    </p>
+                  </div>
                 ) : (
                   <Connect auth={auth} onRefresh={onRefresh} tier="core" label="Connect Microsoft 365" quiet big />
                 )}
@@ -71,7 +80,7 @@ export default function FirstRun({ scene, auth, onSave, onRefresh }) {
                   style={auth?.signedIn ? { background: 'var(--accent)', color: 'var(--accent-ink)' } : { border: '1px solid var(--line-2)', color: 'var(--ink)' }}>
                   {auth?.signedIn ? FIRST_RUN.done : FIRST_RUN.skip}
                 </button>
-                {!auth?.signedIn && <span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>You can connect later from the gear.</span>}
+                {!auth?.signedIn && <span className="text-[13.5px]" style={{ color: 'var(--ink-3)' }}>You can connect later from the gear.</span>}
               </div>
             </motion.div>
           )}

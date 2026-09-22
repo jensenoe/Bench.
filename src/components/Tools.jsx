@@ -6,7 +6,10 @@ import { STATUS } from '../scenes.js'
 
 const ORDER = ['issues', 'qms', 'bom', 'planner']
 
-/** Everything assigned to you across the four tools, grouped by tool, with connection state. */
+/**
+ * The four tools as one status list, then what each one has assigned to you.
+ * One line per tool says where it stands; the button on the line is the one thing to do about it.
+ */
 export default function Tools({ state, onPatch, onDelete, onRefresh, onConnect }) {
   const [busy, setBusy] = useState(null)
   const [result, setResult] = useState({})   // key -> one line about the last sync you clicked
@@ -29,85 +32,74 @@ export default function Tools({ state, onPatch, onDelete, onRefresh, onConnect }
     finally { setBusy(null) }
   }
 
+  const rows = ORDER.map(key => {
+    const s = sources[key]; if (!s) return null
+    const mine = tasks.filter(t => t.source === key)
+    const open = mine.filter(t => !t.done)
+    const needsSignIn = s.kind === 'site' ? s.signedIn === false : (state.auth.configured && !state.auth.signedIn)
+    const expired = s.kind === 'graph' && state.auth.signedIn && s.error === 'needs-signin'
+    const adminWait = s.kind === 'graph' && s.error === 'needs-admin-consent'
+    const problem = s.error && !['needs-signin', 'needs-admin-consent'].includes(s.error) ? s.error : null
+    const last = s.lastSync ? new Date(s.lastSync).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' }) : null
+    let status, tone = 'var(--ink-3)'
+    if (!s.available) status = 'Desktop app only'
+    else if (problem) { status = problem; tone = STATUS.overdue }
+    else if (adminWait) { status = 'Needs a one-time admin approval'; tone = STATUS.caution }
+    else if (expired) { status = 'Microsoft 365 sign-in has expired'; tone = STATUS.caution }
+    else if (needsSignIn) { status = s.kind === 'graph' ? 'Not connected' : 'Not signed in'; tone = STATUS.caution }
+    else if (last) { status = `${open.length} assigned to ${who}${s.total != null ? ` of ${s.total}` : ''} · synced ${last}${s.stale ? ' · cached copy' : ''}`; tone = 'var(--ink-2)' }
+    else status = 'Connected, not synced yet'
+    return { key, s, mine, open, needsSignIn, expired, adminWait, problem, status, tone }
+  }).filter(Boolean)
+
+  const btn = 'pill flex items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium disabled:opacity-50'
+  const dark = { background: 'var(--ink)', color: 'var(--bg)' }, line = { border: '1px solid var(--line-2)' }
+
   return (
     <main className="mx-auto col px-6">
       {!state.desktop && (
-        <p className="panel mb-4 px-5 py-4 text-[13px] leading-relaxed" style={{ color: 'var(--ink-2)' }}>
+        <p className="panel mb-4 px-5 py-4 text-[13.5px] leading-relaxed" style={{ color: 'var(--ink-2)' }}>
           You're running the web version. Issues, QMS and BOM need the desktop app, which holds a signed-in session to each tool. Planner works here.
         </p>
       )}
-      <div className="flex flex-col gap-4">
-        {ORDER.map(key => {
-          const s = sources[key]; if (!s) return null
-          const mine = tasks.filter(t => t.source === key)
-          const open = mine.filter(t => !t.done)
-          const needsSignIn = s.kind === 'site' ? s.signedIn === false : (state.auth.configured && !state.auth.signedIn)
-          // signed in on paper, but Graph said no: the refresh token has gone stale
-          const expired = s.kind === 'graph' && state.auth.signedIn && s.error === 'needs-signin'
-          const adminWait = s.kind === 'graph' && s.error === 'needs-admin-consent'
-          const problem = s.error && !['needs-signin', 'needs-admin-consent'].includes(s.error) ? s.error : null
-          const last = s.lastSync ? new Date(s.lastSync).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' }) : null
-          return (
-            <section key={key} className="panel p-6 sm:p-7">
-              <header className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <h2 className="display text-[24px] font-semibold leading-none">{s.label}.</h2>
-                  <p className="mt-2 flex items-center gap-2 text-[12.5px]" style={{ color: 'var(--ink-3)' }}>
-                    <a href={s.origin} onClick={e => { e.preventDefault(); api.openExternal(s.origin) }} className="inline-flex items-center gap-1 hover:underline">
-                      {s.origin.replace('https://', '')} <ArrowSquareOut size={11} />
-                    </a>
-                    {last && <span>· synced {last}</span>}
-                    {s.total != null && <span className="tnum">· {s.total} in the tool, {open.length} assigned to {who}</span>}
-                    {s.stale && <span style={{ color: STATUS.caution }}>· cached copy</span>}
-                  </p>
-                  {result[key] && <p className="mt-1.5 text-[12.5px]" style={{ color: result[key].startsWith('Failed') || result[key].startsWith('The tool') ? STATUS.caution : 'var(--ink-2)' }}>{result[key]}</p>}
-                </div>
-                <div className="flex items-center gap-2">
-                  {problem && <span className="flex items-center gap-1.5 text-[12px]" style={{ color: STATUS.overdue }}><Warning size={13} weight="bold" /> {problem}</span>}
-                  {s.available && needsSignIn && s.kind === 'site' && (
-                    <button disabled={busy === key} onClick={() => run(key, () => api.signInSource(key))}
-                      className="pill flex items-center gap-1.5 px-4 py-2 text-[12.5px] font-medium" style={{ background: 'var(--ink)', color: 'var(--bg)' }}>
-                      <SignIn size={13} weight="bold" /> Sign in
-                    </button>
-                  )}
-                  {adminWait && (
-                    <button onClick={onConnect} className="pill flex items-center gap-1.5 px-4 py-2 text-[12.5px]" style={{ border: '1px solid var(--line-2)', color: 'var(--ink-2)' }}>
-                      <Warning size={13} weight="bold" /> Needs admin approval
-                    </button>
-                  )}
-                  {expired && (
-                    <button onClick={async () => { await api.signOut(); await onRefresh(); onConnect() }} className="pill flex items-center gap-1.5 px-4 py-2 text-[12.5px] font-medium" style={{ background: 'var(--ink)', color: 'var(--bg)' }}>
-                      <SignIn size={13} weight="bold" /> Reconnect Microsoft 365
-                    </button>
-                  )}
-                  {s.available && !needsSignIn && (
-                    <button disabled={busy === key} onClick={() => run(key, () => api.syncSource(key))}
-                      className="pill flex items-center gap-1.5 px-3.5 py-2 text-[12.5px]" style={{ border: '1px solid var(--line-2)' }}>
-                      <ArrowsClockwise size={12} weight="bold" className={busy === key ? 'animate-spin' : ''} /> Sync
-                    </button>
-                  )}
-                  {s.available && needsSignIn && s.kind === 'graph' && (
-                    <button onClick={onConnect} className="pill flex items-center gap-1.5 px-4 py-2 text-[12.5px] font-medium" style={{ background: 'var(--ink)', color: 'var(--bg)' }}>
-                      <SignIn size={13} weight="bold" /> Connect Microsoft 365
-                    </button>
-                  )}
-                  {!s.available && <span className="text-[12px]" style={{ color: 'var(--ink-3)' }}>Desktop only</span>}
-                </div>
-              </header>
 
-              {open.length > 0 ? (
-                <ul className="mt-5 flex flex-col gap-2">{open.map(t => <TaskCard key={t.id} task={t} onPatch={onPatch} onDelete={onDelete} />)}</ul>
-              ) : (
-                <p className="mt-5 flex items-center gap-2 text-[12.5px]" style={{ color: 'var(--ink-3)' }}>
-                  {s.lastSync ? <><Check size={13} weight="bold" color={STATUS.done} /> Nothing here is assigned to {who} right now{s.total != null ? ` (${s.total} in the tool)` : ''}. Matching uses the name and email in Settings.</>
-                    : needsSignIn ? 'Sign in once. SSO does the rest, and the session is kept.' : 'Not synced yet. Sync reads the tool on the kept session.'}
-                </p>
-              )}
-              {mine.length > open.length && <p className="mt-3 text-[11.5px]" style={{ color: 'var(--ink-3)' }}>{mine.length - open.length} completed</p>}
-            </section>
-          )
-        })}
-      </div>
+      <section className="panel px-6 py-2 sm:px-7">
+        {rows.map(({ key, s, needsSignIn, expired, adminWait, problem, status, tone }, i) => (
+          <div key={key} className="flex flex-wrap items-center gap-x-5 gap-y-2 py-3.5" style={{ borderTop: i ? '1px solid var(--line)' : 'none' }}>
+            <div className="min-w-[200px]">
+              <div className="display text-[18px] font-semibold leading-none">{s.label}.</div>
+              <a href={s.origin} onClick={e => { e.preventDefault(); api.openExternal(s.origin) }} className="mt-1 inline-flex items-center gap-1 text-[13.5px] hover:underline" style={{ color: 'var(--ink-3)' }}>
+                {s.origin.replace('https://', '')} <ArrowSquareOut size={11} />
+              </a>
+            </div>
+            <div className="min-w-0 flex-1 text-[13.5px]" style={{ color: tone }}>
+              <span className="inline-flex items-center gap-1.5">{problem || adminWait || expired ? <Warning size={13} weight="bold" /> : (!needsSignIn && s.available && s.lastSync) ? <Check size={13} weight="bold" color={STATUS.done} /> : null}{status}</span>
+              {result[key] && <div className="mt-0.5 text-[13.5px]" style={{ color: result[key].startsWith('Failed') || result[key].startsWith('The tool') ? STATUS.caution : 'var(--ink-3)' }}>{result[key]}</div>}
+            </div>
+            <div className="flex items-center gap-2">
+              {s.available && needsSignIn && s.kind === 'site' && <button disabled={busy === key} onClick={() => run(key, () => api.signInSource(key))} className={btn} style={dark}><SignIn size={13} weight="bold" /> Sign in</button>}
+              {adminWait && <button onClick={onConnect} className={btn} style={line}><Warning size={13} weight="bold" /> Approval link</button>}
+              {expired && <button onClick={async () => { await api.signOut(); await onRefresh(); onConnect() }} className={btn} style={dark}><SignIn size={13} weight="bold" /> Reconnect</button>}
+              {s.available && needsSignIn && s.kind === 'graph' && <button onClick={onConnect} className={btn} style={dark}><SignIn size={13} weight="bold" /> Connect Microsoft 365</button>}
+              {s.available && !needsSignIn && <button disabled={busy === key} onClick={() => run(key, () => api.syncSource(key))} className={btn} style={line}><ArrowsClockwise size={12} weight="bold" className={busy === key ? 'animate-spin' : ''} /> Sync</button>}
+            </div>
+          </div>
+        ))}
+        <p className="py-3 text-[13.5px]" style={{ borderTop: '1px solid var(--line)', color: 'var(--ink-3)' }}>Connected tools sync by themselves every two minutes. Matching uses the name and email in Settings.</p>
+      </section>
+
+      {rows.filter(r => r.open.length).map(({ key, s, open, mine }) => (
+        <section key={key} className="panel mt-4 p-6 sm:p-7">
+          <div className="flex items-baseline justify-between">
+            <h2 className="display text-[22px] font-semibold leading-none">{s.label}.</h2>
+            <span className="tnum text-[13px]" style={{ color: 'var(--ink-3)' }}>{open.length} open{mine.length > open.length ? `, ${mine.length - open.length} done` : ''}</span>
+          </div>
+          <ul className="mt-4 flex flex-col gap-2">{open.map(t => <TaskCard key={t.id} task={t} onPatch={onPatch} onDelete={onDelete} draggable={false} />)}</ul>
+        </section>
+      ))}
+      {rows.every(r => !r.open.length) && (
+        <p className="mt-6 text-center text-[13.5px]" style={{ color: 'var(--ink-3)' }}>Nothing across the tools is assigned to {who} right now.</p>
+      )}
     </main>
   )
 }

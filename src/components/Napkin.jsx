@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Plus, X, ArrowsOut } from '@phosphor-icons/react'
+import { Plus, X, ArrowsOut, Export, ArrowRight } from '@phosphor-icons/react'
 import * as api from '../api.js'
 
 /**
@@ -65,6 +65,7 @@ export default function Napkin() {
   const svgRef = useRef(null), drag = useRef(null), saveTimer = useRef(null)
   const nodeDrag = useRef(null)                 // { id, sx, sy } from mousedown on a node
   const [ghost, setGhost] = useState(null)      // { id, x, y, target: { id, mode } } while a node is being dragged
+  const [note, setNote] = useState(null)        // one line of feedback under the toolbar (exported, sent to the board)
 
   const load = async () => { const m = await api.getMaps(); setMaps(m); return m }
   useEffect(() => { load().then(m => {
@@ -95,6 +96,17 @@ export default function Napkin() {
   const setText = (id, text) => change(n => ({ ...n, [id]: { ...n[id], text } }))
   const cycleColor = (id) => { const keys = [null, ...Object.keys(PALETTE)]; const cur = nodes[id].color; change(n => ({ ...n, [id]: { ...n[id], color: keys[(keys.indexOf(cur) + 1) % keys.length] } })) }
   const toggle = (id) => change(n => ({ ...n, [id]: { ...n[id], collapsed: !n[id].collapsed } }))
+  const say = (text) => { setNote(text); clearTimeout(say.t); say.t = setTimeout(() => setNote(null), 4000) }
+  /** The selected node becomes a task in the Active lane; the node remembers it. */
+  const toBoard = async (id) => {
+    if (!id || id === root || !map) return
+    if (nodes[id]?.taskId) { location.hash = `#/board?task=${nodes[id].taskId}`; return }
+    try {
+      const r = await api.nodeToBoard(map.id, id)
+      setMaps(list => list.map(x => x.id === r.map.id ? r.map : x)); setNodes(r.map.nodes)
+      say(`On the board: ${r.task.title}`)
+    } catch (e) { say(e.message) }
+  }
 
   const pos = useMemo(() => nodes && root ? layout(nodes, root) : {}, [nodes, root])
 
@@ -110,6 +122,7 @@ export default function Napkin() {
       else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); remove(active) }
       else if (e.key === ' ') { e.preventDefault(); toggle(active) }
       else if (e.key === 'c') { cycleColor(active) }
+      else if (e.key === 't') { toBoard(active) }
     }
     addEventListener('keydown', onKey); return () => removeEventListener('keydown', onKey)
   })
@@ -189,6 +202,51 @@ export default function Napkin() {
   }
   useEffect(() => { if (nodes) fit() }, [sel])   // eslint-disable-line react-hooks/exhaustive-deps
 
+  /** The map as a standalone picture, in the current theme's colours. */
+  const svgString = () => {
+    const cs = getComputedStyle(document.documentElement)
+    const v = (n, fb) => (cs.getPropertyValue(n).trim() || fb)
+    const ink = v('--ink', '#F3F3F1'), row = v('--row', '#25262F'), panel = v('--panel', '#1E1F27'), line = v('--line-2', 'rgba(243,243,241,.14)'), accent = v('--accent', '#8CC4F5'), bg = v('--bg', '#15161C'), ink3 = v('--ink-3', 'rgba(243,243,241,.48)')
+    const col = c => c ? (c === 'accent' ? accent : PALETTE[c]) : null
+    const ps = Object.entries(pos); if (!ps.length) return null
+    const xs = ps.map(([id, p]) => id === root ? -NODE_W / 2 : p.x), ys = ps.map(([, p]) => p.y)
+    const minX = Math.min(...xs) - 40, maxX = Math.max(...xs) + NODE_W + 40, minY = Math.min(...ys) - 40, maxY = Math.max(...ys) + NODE_H + 40
+    const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    let out = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${minX} ${minY} ${maxX - minX} ${maxY - minY}" width="${maxX - minX}" height="${maxY - minY}" font-family="Work Sans, Segoe UI, Helvetica, Arial, sans-serif" font-size="13">`
+    out += `<rect x="${minX}" y="${minY}" width="${maxX - minX}" height="${maxY - minY}" fill="${panel}"/>`
+    for (const n of Object.values(nodes)) {
+      if (!n.parent || !pos[n.id] || !pos[n.parent]) continue
+      const a = pos[n.parent], b = pos[n.id]
+      const x1 = a.dir === 0 ? (b.dir > 0 ? NODE_W / 2 : -NODE_W / 2) : (a.dir > 0 ? a.x + NODE_W : a.x), y1 = a.y + NODE_H / 2
+      const x2 = b.dir > 0 ? b.x : b.x + NODE_W, y2 = b.y + NODE_H / 2, mx = (x1 + x2) / 2
+      out += `<path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" fill="none" stroke="${col(n.color || nodes[n.parent].color) || ink3}" stroke-width="1.5" opacity=".8"/>`
+    }
+    for (const n of Object.values(nodes)) {
+      const p = pos[n.id]; if (!p) continue
+      const isRoot = n.id === root, x = isRoot ? -NODE_W / 2 : p.x, c = col(n.color)
+      out += `<rect x="${x}" y="${p.y}" width="${NODE_W}" height="${NODE_H}" rx="${isRoot ? 18 : 10}" fill="${isRoot ? ink : row}" stroke="${c || line}"/>`
+      if (c && !isRoot) out += `<rect x="${x}" y="${p.y + 8}" width="3" height="${NODE_H - 16}" rx="1.5" fill="${c}"/>`
+      const text = (n.text || 'New idea'), shown = text.length > 24 ? text.slice(0, 23) + '…' : text
+      out += `<text x="${isRoot ? x + NODE_W / 2 : x + 12}" y="${p.y + NODE_H / 2 + 4.5}" text-anchor="${isRoot ? 'middle' : 'start'}" font-weight="${isRoot ? 600 : 400}" fill="${isRoot ? bg : ink}">${esc(shown)}</text>`
+    }
+    return out + '</svg>'
+  }
+  const download = (blob, name) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 3000) }
+  const exportMap = (kind) => {
+    const svg = svgString(); if (!svg || !map) return
+    const name = (map.title || 'napkin').replace(/[^\w-]+/g, '-').replace(/^-|-$/g, '') || 'napkin'
+    if (kind === 'svg') { download(new Blob([svg], { type: 'image/svg+xml' }), `${name}.svg`); return say('Saved as SVG.') }
+    const img = new Image()
+    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }))
+    img.onload = () => {
+      const c = document.createElement('canvas'); c.width = img.width * 2; c.height = img.height * 2
+      const ctx = c.getContext('2d'); ctx.scale(2, 2); ctx.drawImage(img, 0, 0)
+      c.toBlob(b => { download(b, `${name}.png`); say('Saved as PNG.') }, 'image/png'); URL.revokeObjectURL(url)
+    }
+    img.onerror = () => say('The picture could not be drawn.')
+    img.src = url
+  }
+
   const newMap = async () => { const m = await api.createMap({ title: 'New map' }); await load(); open(m); setEditing(m.root) }
   const rename = async (title) => { if (!map || title === map.title) return; const m = await api.patchMap(map.id, { title }); setMaps(list => list.map(x => x.id === m.id ? m : x)) }
   const removeMap = async () => { if (!map || !confirm(`Delete "${map.title}"?`)) return; await api.removeMap(map.id); const list = await load(); list.length ? open(list[0]) : (setSel(null), setNodes(null)) }
@@ -199,10 +257,10 @@ export default function Napkin() {
     <main className="mx-auto col px-6">
       <div className="mb-3 flex flex-wrap items-center gap-1.5">
         {maps.map(m => (
-          <button key={m.id} onClick={() => open(m)} className="pill max-w-[220px] truncate px-3 py-1.5 text-[12.5px] transition-colors"
+          <button key={m.id} onClick={() => open(m)} className="pill max-w-[220px] truncate px-3 py-1.5 text-[13.5px] transition-colors"
             style={{ color: m.id === sel ? 'var(--ink)' : 'var(--ink-3)', background: m.id === sel ? 'rgba(var(--ink-rgb),.1)' : 'transparent', border: '1px solid var(--line)' }}>{m.title}</button>
         ))}
-        <button onClick={newMap} className="pill flex items-center gap-1.5 px-3 py-1.5 text-[12.5px]" style={{ background: 'var(--ink)', color: 'var(--bg)' }}><Plus size={12} weight="bold" /> New map</button>
+        <button onClick={newMap} className="pill flex items-center gap-1.5 px-3 py-1.5 text-[13.5px]" style={{ background: 'var(--ink)', color: 'var(--bg)' }}><Plus size={12} weight="bold" /> New map</button>
       </div>
 
       {map && nodes ? (
@@ -210,17 +268,25 @@ export default function Napkin() {
           <div className="absolute left-4 top-4 z-10 flex items-center gap-3">
             <input key={map.id} defaultValue={map.title} onBlur={e => rename(e.target.value.trim() || map.title)} onKeyDown={e => e.key === 'Enter' && e.target.blur()}
               className="display bg-transparent text-[20px] font-semibold tracking-tight outline-none" />
-            <span className="tnum text-[11.5px]" style={{ color: 'var(--ink-3)' }}>{Object.keys(nodes).length} nodes{dirty ? ' · saving' : ''}</span>
+            <span className="tnum text-[13px]" style={{ color: 'var(--ink-3)' }}>{Object.keys(nodes).length} nodes{dirty ? ' · saving' : ''}</span>
+            {note && <span className="text-[13.5px]" style={{ color: 'var(--accent)' }}>{note}</span>}
           </div>
           <div className="absolute right-4 top-4 z-10 flex items-center gap-1">
             {Object.values(nodes).some(n => n.dx || n.dy) && (
               <button onClick={() => change(n => { for (const k of Object.keys(n)) if (n[k].dx || n[k].dy) n[k] = { ...n[k], dx: 0, dy: 0 }; return n })} title="Put every node back on the grid"
-                className="pill px-2.5 py-1 text-[11.5px]" style={{ color: 'var(--ink-3)', border: '1px solid var(--line)' }}>Tidy</button>
+                className="pill px-2.5 py-1 text-[13px]" style={{ color: 'var(--ink-3)', border: '1px solid var(--line)' }}>Tidy</button>
             )}
+            {active && active !== root && nodes[active] && (
+              <button onClick={() => toBoard(active)} title={nodes[active].taskId ? 'Open its task on the board' : 'Make a task of this node (T)'} className="pill flex items-center gap-1.5 px-2.5 py-1 text-[13px]" style={{ color: nodes[active].taskId ? 'var(--ink-3)' : 'var(--accent)', border: '1px solid var(--line)' }}>
+                {nodes[active].taskId ? 'On the board' : 'To the board'} <ArrowRight size={11} weight="bold" />
+              </button>
+            )}
+            <button onClick={() => exportMap('png')} title="Save as PNG" className="pill flex items-center gap-1.5 px-2.5 py-1 text-[13px]" style={{ color: 'var(--ink-3)', border: '1px solid var(--line)' }}><Export size={12} /> PNG</button>
+            <button onClick={() => exportMap('svg')} title="Save as SVG" className="pill px-2.5 py-1 text-[13px]" style={{ color: 'var(--ink-3)', border: '1px solid var(--line)' }}>SVG</button>
             <button onClick={fit} title="Reset view" className="grid h-7 w-7 place-items-center rounded-md" style={{ color: 'var(--ink-3)' }}><ArrowsOut size={14} /></button>
             <button onClick={removeMap} title="Delete map" className="grid h-7 w-7 place-items-center rounded-md" style={{ color: 'var(--ink-3)' }}><X size={13} weight="bold" /></button>
           </div>
-          <p className="pointer-events-none absolute bottom-3 left-4 z-10 text-[11px]" style={{ color: 'var(--ink-3)' }}>Tab child · Enter sibling · double-click edit · Delete branch · Space fold · C colour · drag a node anywhere, onto another to move it under it · drag the background to pan, wheel to zoom</p>
+          <p className="pointer-events-none absolute bottom-3 left-4 z-10 text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Tab child · Enter sibling · double-click edit · Delete branch · Space fold · C colour · T to the board · drag a node anywhere, onto another to move it under it · drag the background to pan, wheel to zoom</p>
 
           <svg ref={svgRef} className={`h-full w-full select-none ${ghost ? 'cursor-grabbing' : 'cursor-grab active:cursor-grabbing'}`} onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp} onWheel={onWheel}>
             <rect data-bg="1" width="100%" height="100%" fill="transparent" />
@@ -253,6 +319,7 @@ export default function Napkin() {
                       <rect x={-4} y={ghost.target.mode === 'before' ? -GAP_Y / 2 - 1.5 : NODE_H + GAP_Y / 2 - 1.5} width={NODE_W + 8} height={3} rx={1.5} fill="var(--accent)" />
                     )}
                     {color && !isRoot && <rect x={0} y={8} width={3} height={NODE_H - 16} rx={1.5} fill={color} />}
+                    {n.taskId && !isRoot && <circle cx={NODE_W - 9} cy={9} r={3} fill="var(--accent)"><title>On the board</title></circle>}
                     {editing === n.id ? (
                       <foreignObject x={6} y={4} width={NODE_W - 12} height={NODE_H - 8}>
                         <input autoFocus defaultValue={n.text} onBlur={e => { setText(n.id, e.target.value); setEditing(null) }}
@@ -288,7 +355,7 @@ export default function Napkin() {
           <div>
             <h2 className="display text-[28px] font-semibold leading-none">A clean napkin.</h2>
             <p className="mt-3 max-w-[40ch] text-[13px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>One idea in the middle, branches on both sides. Tab makes a child, Enter a sibling. It lays itself out.</p>
-            <button onClick={newMap} className="pill mt-5 px-4 py-2 text-[12.5px] font-medium" style={{ background: 'var(--ink)', color: 'var(--bg)' }}>Start one</button>
+            <button onClick={newMap} className="pill mt-5 px-4 py-2 text-[13.5px] font-medium" style={{ background: 'var(--ink)', color: 'var(--bg)' }}>Start one</button>
           </div>
         </section>
       )}

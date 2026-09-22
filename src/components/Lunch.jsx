@@ -62,16 +62,20 @@ export default function Lunch({ clock, punch, now, scene }) {
           )}
         </motion.div>
 
-        <ul className="mt-16 flex flex-wrap gap-x-8 gap-y-2 text-[12px]" style={{ color: 'var(--ink-3)' }}>
+        <ul className="mt-16 flex flex-wrap gap-x-8 gap-y-2 text-[13px]" style={{ color: 'var(--ink-3)' }}>
           {(clock?.events || []).filter(e => e.kind !== 'pause').map((e, i) => (
             <li key={i} className="tnum">
               {{ in: 'In', lunchOut: 'Lunch', lunchIn: 'Back', out: 'Out' }[e.kind]} {e.label}
               <span className="ml-1.5" style={{ color: e.error ? '#F0776B' : e.written ? 'var(--ink-3)' : '#E8B85A' }}>
-                {e.error ? 'not written' : e.written ? `· ${e.cell}` : '· waiting'}{e.auto ? ' · auto' : ''}
+                {e.error ? '· not written' : e.written ? '· in the sheet' : '· waiting'}{e.auto ? ' · auto' : ''}
               </span>
             </li>
           ))}
-          {clock && <li>{clock.workbook}</li>}
+          {clock?.lastError
+            ? <li style={{ color: '#E8B85A' }}>{clock.lastError}</li>
+            : clock?.sheet && clock.events.some(e => e.written)
+              ? <li>Written to {clock.sheet.name}, row {clock.sheet.row}.</li>
+              : clock?.pending > 0 ? <li>Waiting for Microsoft 365 to write the sheet.</li> : null}
         </ul>
       </div>
     </section>

@@ -26,12 +26,12 @@ export default class Fault extends Component {
           <p className="mt-3 text-[13.5px] leading-relaxed" style={{ color: 'var(--ink-2)' }}>
             The page hit an error while drawing itself. Nothing on the board or in the time clock is lost; both live on disk. The details are in bench.log, and below.
           </p>
-          <pre className="tnum mt-4 max-h-[180px] overflow-auto rounded-[10px] p-3 text-[11px] leading-relaxed" style={{ background: 'rgba(var(--ink-rgb),.06)', color: 'var(--ink-3)', whiteSpace: 'pre-wrap' }}>{details.trim()}</pre>
+          <pre className="tnum mt-4 max-h-[180px] overflow-auto rounded-[10px] p-3 text-[12.5px] leading-relaxed" style={{ background: 'rgba(var(--ink-rgb),.06)', color: 'var(--ink-3)', whiteSpace: 'pre-wrap' }}>{details.trim()}</pre>
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <button onClick={() => location.reload()} className="pill px-5 py-2.5 text-[13px] font-medium" style={{ background: 'var(--ink)', color: 'var(--bg)' }}>Reload</button>
             <button onClick={() => { location.hash = '#/'; location.reload() }} className="pill px-5 py-2.5 text-[13px]" style={{ border: '1px solid var(--line-2)' }}>Home and reload</button>
-            <button onClick={() => { try { navigator.clipboard.writeText(details) } catch { /* ignore */ } }} className="text-[12.5px] underline underline-offset-2" style={{ color: 'var(--ink-3)' }}>Copy details</button>
-            {window.bench?.openLog && <button onClick={() => window.bench.openLog()} className="text-[12.5px] underline underline-offset-2" style={{ color: 'var(--ink-3)' }}>Open the log</button>}
+            <button onClick={() => { try { navigator.clipboard.writeText(details) } catch { /* ignore */ } }} className="text-[13.5px] underline underline-offset-2" style={{ color: 'var(--ink-3)' }}>Copy details</button>
+            {window.bench?.openLog && <button onClick={() => window.bench.openLog()} className="text-[13.5px] underline underline-offset-2" style={{ color: 'var(--ink-3)' }}>Open the log</button>}
           </div>
         </div>
       </div>

@@ -3,15 +3,15 @@ import { ArrowsClockwise, GearSix, MagnifyingGlass } from '@phosphor-icons/react
 import * as api from '../api.js'
 import { SHEETS } from '../copy.js'
 import Clock from './Clock.jsx'
-import Punch from './Punch.jsx'
+import TimeClock from './TimeClock.jsx'
 import Reminder from './Reminder.jsx'
 
-/** One line. Text links and a single pill. Sized to read from a normal sitting distance on a 1080p screen. */
+/** One line. Text links, the clock, the time clock as one control, search and the gear. Sized to read from a normal sitting distance on a 1080p screen. */
 export default function Nav({ route, auth, meta, onRefresh, now, scene, timeclock, onSettings, settingsOpen, onSearch }) {
   const [busy, setBusy] = useState(false)
-  const link = (id, label) => (
-    <a key={id} href={`#/${id}`} className="text-[14px] transition-colors xl:text-[15px] 2xl:text-[16.5px]"
-       style={{ color: route === id ? 'var(--ink)' : 'var(--ink-3)' }}>{label}</a>
+  const link = (id, label, i) => (
+    <a key={id} href={`#/${id}`} title={i !== undefined ? `Press ${i}` : undefined} className="text-[14px] transition-colors xl:text-[15px] 2xl:text-[16.5px]"
+      style={{ color: route === id ? 'var(--ink)' : 'var(--ink-3)' }}>{label}</a>
   )
 
   return (
@@ -23,13 +23,13 @@ export default function Nav({ route, auth, meta, onRefresh, now, scene, timecloc
         <div className="flex shrink-0 items-baseline gap-7 whitespace-nowrap xl:gap-10 2xl:gap-14">
           <a href="#/" className="display text-[23px] font-semibold tracking-tight 2xl:text-[27px]">Bench<span style={{ color: 'var(--accent)' }}>.</span></a>
           <div className="hidden items-baseline gap-5 lg:flex xl:gap-7 2xl:gap-9">
-            {link('', 'Home')}
-            {SHEETS.filter(s => !s.external).map(s => link(s.id, s.title))}
+            {link('', 'Home', 1)}
+            {SHEETS.filter(s => !s.external).map((s, i) => link(s.id, s.title, i + 2))}
           </div>
         </div>
-        <div className="relative flex shrink-0 items-center gap-4 whitespace-nowrap xl:gap-5 2xl:gap-7">
+        <div className="relative flex shrink-0 items-center gap-4 whitespace-nowrap xl:gap-5 2xl:gap-6">
           <Clock now={now} scene={scene} />
-          <Punch clock={timeclock?.clock} punch={timeclock?.punch} now={now} canWrite={auth.signedIn} />
+          <TimeClock clock={timeclock?.clock} punch={timeclock?.punch} now={now} />
           <Reminder clock={timeclock?.clock} now={now} />
           {auth.configured && auth.signedIn && (
             <button disabled={busy} title={meta.lastSyncError || auth.username}
@@ -40,7 +40,7 @@ export default function Nav({ route, auth, meta, onRefresh, now, scene, timecloc
                 ? new Date(meta.lastSync).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' }) : 'Sync'}</span>
             </button>
           )}
-          <button onClick={onSearch} aria-label="Search" title="Search (Ctrl K)" className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[rgba(var(--ink-rgb),.08)] 2xl:h-11 2xl:w-11" style={{ color: 'var(--ink-3)' }}><MagnifyingGlass size={18} /></button>
+          <button onClick={onSearch} aria-label="Search" title="Search (Ctrl K or /)" className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[rgba(var(--ink-rgb),.08)] 2xl:h-11 2xl:w-11" style={{ color: 'var(--ink-3)' }}><MagnifyingGlass size={18} /></button>
           <button onClick={onSettings} aria-label="Settings" title="Settings"
             className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[rgba(var(--ink-rgb),.08)] 2xl:h-11 2xl:w-11" style={{ color: settingsOpen ? 'var(--ink)' : 'var(--ink-3)', background: settingsOpen ? 'rgba(var(--ink-rgb),.1)' : 'transparent' }}>
             <GearSix size={19} weight={settingsOpen ? 'fill' : 'regular'} className="2xl:hidden" /><GearSix size={21} weight={settingsOpen ? 'fill' : 'regular'} className="hidden 2xl:block" />

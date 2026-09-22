@@ -9,7 +9,7 @@ import * as api from '../api.js'
  * when the box opens, so the board stays light the rest of the time.
  */
 const KINDS = { task: 'Task', entry: 'Logbook', node: 'Napkin', page: 'Page' }
-const PAGES = [['', 'Home'], ['board', 'Board'], ['procurement', 'Procurement'], ['tools', 'Tools'], ['logbook', 'Logbook'], ['napkin', 'Napkin']]
+const PAGES = [['', 'Home'], ['board', 'Board'], ['procurement', 'Procurement'], ['tools', 'Tools'], ['logbook', 'Logbook'], ['napkin', 'Napkin'], ['hours', 'Hours']]
 const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
 export default function Search({ open, onClose, tasks = [] }) {
@@ -69,18 +69,18 @@ export default function Search({ open, onClose, tasks = [] }) {
               <MagnifyingGlass size={16} style={{ color: 'var(--ink-3)' }} />
               <input ref={input} value={q} onChange={e => setQ(e.target.value)} onKeyDown={onKey} placeholder="Search tasks, notes, maps, pages"
                 className="w-full bg-transparent text-[16px]" style={{ outline: 'none' }} />
-              <span className="tnum hidden text-[11px] sm:inline" style={{ color: 'var(--ink-3)' }}>esc</span>
+              <span className="tnum hidden text-[12.5px] sm:inline" style={{ color: 'var(--ink-3)' }}>esc</span>
             </div>
             <div className="max-h-[52vh] overflow-y-auto p-2">
-              {!q.trim() && <p className="px-3 py-6 text-center text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Type a word. Tasks, logbook entries, napkin nodes and pages.</p>}
-              {q.trim() && !results.length && <p className="px-3 py-6 text-center text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Nothing matches.</p>}
+              {!q.trim() && <p className="px-3 py-6 text-center text-[13.5px]" style={{ color: 'var(--ink-3)' }}>Type a word. Tasks, logbook entries, napkin nodes and pages.</p>}
+              {q.trim() && !results.length && <p className="px-3 py-6 text-center text-[13.5px]" style={{ color: 'var(--ink-3)' }}>Nothing matches.</p>}
               {results.map((r, k) => (
                 <button key={r.hash + k} onMouseEnter={() => setI(k)} onClick={() => go(r)} className="flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left"
                   style={{ background: k === i ? 'rgba(var(--ink-rgb),.08)' : 'transparent' }}>
-                  <span className="w-[62px] shrink-0 text-[10.5px] font-medium" style={{ color: 'var(--ink-3)' }}>{KINDS[r.kind]}</span>
+                  <span className="w-[62px] shrink-0 text-[12px] font-medium" style={{ color: 'var(--ink-3)' }}>{KINDS[r.kind]}</span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[13.5px]">{r.title}</span>
-                    {r.sub && <span className="block truncate text-[11.5px]" style={{ color: 'var(--ink-3)' }}>{r.sub}</span>}
+                    {r.sub && <span className="block truncate text-[13px]" style={{ color: 'var(--ink-3)' }}>{r.sub}</span>}
                   </span>
                   {k === i && <ArrowElbowDownLeft size={13} style={{ color: 'var(--ink-3)' }} />}
                 </button>

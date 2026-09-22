@@ -21,7 +21,7 @@ export default function Week({ refreshKey }) {
     <section className="mt-16">
       <div className="flex items-baseline justify-between">
         <h2 className="display text-[22px] font-semibold leading-none">The week.</h2>
-        <p className="tnum text-[12.5px]" style={{ color: 'var(--ink-3)' }}>{hm(total) || '0:00'} on the clock · {done} ticked off</p>
+        <p className="tnum text-[13.5px]" style={{ color: 'var(--ink-3)' }}>{hm(total) || '0:00'} on the clock · {done} ticked off</p>
       </div>
       <div className="mt-6 grid grid-cols-7 gap-3">
         {days.map((d, i) => {
@@ -33,13 +33,13 @@ export default function Week({ refreshKey }) {
               <div className="relative h-[96px] overflow-hidden rounded-[10px]" style={{ background: 'rgba(var(--ink-rgb),.045)' }}>
                 {h > 0 && <motion.div initial={{ height: 0 }} animate={{ height: h }} transition={{ duration: .6, delay: i * .04, ease: [0.16, 1, 0.3, 1] }}
                   className="absolute inset-x-0 bottom-0 rounded-[10px]" style={{ background: d.today ? 'var(--accent)' : 'rgba(var(--ink-rgb),.28)', opacity: d.open && !d.today ? .5 : 1 }} />}
-                {d.worked > 0 && <span className="tnum absolute left-0 right-0 top-2 text-center text-[11px]" style={{ color: d.today && h > 30 ? 'var(--accent-ink)' : 'var(--ink-2)' }}>{hm(d.worked)}</span>}
+                {d.worked > 0 && <span className="tnum absolute left-0 right-0 top-2 text-center text-[12.5px]" style={{ color: d.today && h > 30 ? 'var(--accent-ink)' : 'var(--ink-2)' }}>{hm(d.worked)}</span>}
               </div>
               <div className="mt-2 flex items-center justify-between">
-                <span className="text-[11.5px]" style={{ color: d.today ? 'var(--ink)' : 'var(--ink-3)', fontWeight: d.today ? 500 : 400 }}>{date.toLocaleDateString('en-GB', { weekday: 'short' })}</span>
+                <span className="text-[13px]" style={{ color: d.today ? 'var(--ink)' : 'var(--ink-3)', fontWeight: d.today ? 500 : 400 }}>{date.toLocaleDateString('en-GB', { weekday: 'short' })}</span>
                 <span className="flex items-center gap-[3px]">
                   {Array.from({ length: Math.min(d.completed, 6) }).map((_, k) => <span key={k} className="block h-[5px] w-[5px] rounded-full" style={{ background: '#8CD3A2' }} />)}
-                  {d.completed > 6 && <span className="tnum text-[10px]" style={{ color: 'var(--ink-3)' }}>+{d.completed - 6}</span>}
+                  {d.completed > 6 && <span className="tnum text-[12px]" style={{ color: 'var(--ink-3)' }}>+{d.completed - 6}</span>}
                   {d.logbook > 0 && <span className="ml-1 block h-[5px] w-[9px] rounded-sm" title={`${d.logbook} logbook`} style={{ background: 'var(--accent)', opacity: .8 }} />}
                 </span>
               </div>
@@ -47,7 +47,7 @@ export default function Week({ refreshKey }) {
           )
         })}
       </div>
-      <p className="mt-3 text-[11.5px]" style={{ color: 'var(--ink-3)' }}>Bars are hours on the clock, dots are tasks ticked off here, the small bar is a logbook entry. Today fills in live.</p>
+      <p className="mt-3 text-[13px]" style={{ color: 'var(--ink-3)' }}>Bars are hours on the clock, dots are tasks ticked off here, the small bar is a logbook entry. Today fills in live.</p>
     </section>
   )
 }
