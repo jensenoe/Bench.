@@ -4,6 +4,36 @@ Written by the Cowork session that built Bench. up to 0.9.0-beta.1 (22 Sep 2026)
 Windows machine with the real toolchain, the real Microsoft tenant and GitHub. That is exactly what the
 previous session did not have, so the list below is ordered by what only you can do first.
 
+## Status after the first Claude Code session (22 Sep 2026, afternoon)
+
+Done, on `main` in small commits:
+
+- Section 0: `git init`, `.gitignore` verified (no photos, data, backups or token cache staged), first
+  commit made. Not pushed: `gh` is not installed and no GitHub remote is known. Ask Noël for the repo URL,
+  then `git remote add origin <url> && git push -u origin main`. A `.gitattributes` pins LF (CRLF for `.bat`).
+- Section 1: `npx electron-builder --win nsis portable` completes with the guarded `installer.nsh`.
+  `release\Bench-Setup-0.9.0-beta.1.exe` and `Bench-portable-0.9.0-beta.1.exe`, 290 MB each, well under
+  the 450 MB ceiling. Not yet done: installing it and looking at the installer pages (needs a human).
+- Section 2: no `bench.log` exists yet, so the noon crash has not been captured. Added `child-process-gone`
+  logging (GPU death is not seen by `render-process-gone`) and a `"hardwareAcceleration": false` opt-out in
+  `machine.json` / portable `settings.json`. Read the log after the next noon.
+- Section 5 (what headless Chromium can show): all seven pages at 900/1280/1440/1920 in both themes.
+  No console errors, no horizontal scroll, focus ring visible on every tabbed control, Escape closes Search.
+  Fixed: Logbook action checkboxes had no label; motion/react now honours reduced motion (`MotionConfig`).
+  Open: the page links are `hidden lg:flex`, so a window between 900 and 1023 px wide has no nav apart from
+  the footer and the doors. Decide whether to shrink the nav at that width or raise `minWidth`.
+  Found on the way: `Punch.jsx` defined two wrapper components inside render, so every nav button remounted
+  every second (the rule from CLAUDE.md, fourth time). Fixed. `Stat.jsx` and `StickyBar.jsx` imported
+  `framer-motion`, which is not a declared dependency; now `motion/react`. Unused `Hero.jsx` removed.
+- Section 6: `scripts/gen-fetch.mjs` and `npm run photos:bat`. Regenerates the bat byte for byte except
+  three photographer names that are now transliterated properly (Cyrillic, ł, ı), and keeps the README
+  counts current (the range is 24 to 39, not 40).
+- Section 7: Vitest (`npm test`, 35 tests over `store`, `timeclock`, `scenes`) and ESLint 9 with the house
+  style (`npm run lint`, zero errors, 11 warnings left on purpose). `roundFor` is exported for the tests.
+
+Still needs Noël present: sections 3 and 4 (Microsoft 365 on the real tenant, QMS and BOM cookie sessions),
+the installer walk-through, and the questions in section 8.
+
 Rules of the road: read `CLAUDE.md`. Be direct with Noël, show reasoning, do not soften. No em dashes in
 copy. Headlines end with periods. Ask before anything irreversible on his data folders.
 
