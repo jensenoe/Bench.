@@ -28,6 +28,14 @@ Read `HANDOFF.md` before changing anything; it lists what is verified, what is n
 - Server settings whitelist lives in `server/settings.js` (`DEFAULTS` keys). Adding a setting means adding it there and in the Settings panel.
 - Task fields the board owns vs. the source tool owns: `OWN_FIELDS` in `server/store.js`. A sync never overwrites lane, notes, order-by, waiting-on, priority, tags.
 
+## Working here
+
+- `ROADMAP.md` is the task list; refer to items by number in commits and tick them there when they land.
+- Dates in the UI go through `src/components/DateField.jsx`, never a bare `<input type="date">`.
+- Task writes can be refused: `CapError` (409) from `server/store.js` when Today is full. The UI turns that
+  message into a toast, not the red error pill.
+- The tray and close-to-hide only exist when `app.isPackaged`; dev runs quit on close as before.
+
 ## Testing here
 
 - `npx vite build` must pass. Playwright + Chromium are available for screenshots: start `BENCH_DATA_DIR=<tmp> PORT=5199 node server/index.js`, drive `http://127.0.0.1:5199/#/<route>`. Seed data shape: see `server/store.js` `createTask` and `server/notes.js`.

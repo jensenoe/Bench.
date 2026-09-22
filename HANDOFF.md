@@ -51,6 +51,20 @@ Added later the same afternoon, on Noël's request:
 - `release\data\` (a portable test run from 13:29) was copied to `backups\portable-data-2026-09-22-1329\`
   before `build-exe.bat` cleared `release\`.
 
+Later still, after Noël's evaluation: `ROADMAP.md` lists 32 items; all but 9 (BOM-fed procurement, needs the
+BOM data shape) and 23 (the noon log) landed. What to know when touching them:
+
+- `server/store.js` now enforces the Today cap (`CapError`, 409) for local creates and moves, merges per
+  task when another Bench wrote the shared file (`reconcile`, tested in `tests/store-shared.test.js`), and
+  owns `checklist`, `repeat`, `supplier`, `poNumber`, `orderedOn`. Completing a repeating task spawns the next.
+- `server/timeclock.js`: `plainError`, `probe` (workbook check), `closeUnclosed`, `month`. `server/updates.js`
+  asks GitHub for the latest release; private repo, so a token (Settings > About) makes it real.
+- The tray (`electron/main.cjs`) only exists when packaged; `npm run desktop` behaves as before. Nobody has
+  run the packaged tray yet: check that close hides, the tray menu opens, the notification click shows the
+  window, and Quit really quits.
+- Photographs are rendered at 2400 px now (`src/library.json`, bat regenerated); the installer shrank accordingly.
+- Headless checks of the new UI live in the session scratchpad only; the CI workflow runs tests, lint and build.
+
 Rules of the road: read `CLAUDE.md`. Be direct with Noël, show reasoning, do not soften. No em dashes in
 copy. Headlines end with periods. Ask before anything irreversible on his data folders.
 

@@ -57,6 +57,33 @@ runner, runs the tests and lint, and attaches the exes to a GitHub release (mark
 pre-release while the version carries a suffix). *Actions > Release > Run workflow* builds
 without publishing and leaves the exes as a workflow artifact.
 
+## Everyday
+
+- **Keyboard.** `n` adds a task from anywhere (Alt 1 to 5 picks the lane, Enter adds). `/` or
+  Ctrl K searches tasks, notes, maps and pages. `1` to `7` switch pages. Escape closes whatever is open.
+- **Drag and drop.** Cards move between lanes by dragging; the lane lights up when it will take the
+  card, red when Today is full. The lane menu on the card still works.
+- **Today is a rule.** Five open tasks. The server refuses a sixth from you with "Today is full";
+  a sync may still land a due-today ticket there, and the lane says so.
+- **Checklists, repeats, procurement.** The sliders on a card open every field: a checklist ticked
+  from the card, a repeat (daily, weekly, fortnightly, monthly) that leaves the next occurrence behind
+  when you complete one, and supplier, PO number and ordered-on for parts with a lead time.
+- **Whose work.** Once tasks carry other people's names as lead, a Whose row appears above the
+  lanes: mine, everyone, or one person. Mine means no lead, or a lead that is you.
+- **Sync feedback.** Connected tools sync every two minutes; when that brings or closes something,
+  a quiet toast says how many and from where.
+- **Hours.** The time clock is one control in the nav: the state, the one action that fits the hour,
+  and a panel with the rest. `#/hours` shows the month the way the Zeiterfassung sheet has it, with
+  punches that still wait to be written and any that failed, in plain words. A day left open is
+  offered for closing at the next start, with the out time you choose, written to that day's row.
+- **Tray.** Closing the window hides it; Bench keeps running so the 12:00 toast and the 12:30
+  auto-end fire. Quit from the tray menu. `machine.json` `"closeToTray": false` restores the old way.
+- **Updates.** Settings > About checks GitHub for a newer release. The repository is private, so a
+  fine-grained token with read access makes the check real; without one the button opens the
+  releases page. A newer version is also announced once at start.
+- **Napkin and Logbook.** A node becomes a task with `T` or the button; the map exports as PNG or
+  SVG. A recurring meeting starts from its last entry with *Again today*.
+
 ## The four tools
 
 | Tool | How it's read | Sign-in |
@@ -107,7 +134,7 @@ again and consent to the second scope.
 
 ## Time clock
 
-The pill next to the clock is the punch. **Clock in**, **Lunch**, **Back**, **Clock out**;
+The time clock in the nav shows the state and the one action that fits the hour (**Clock in**, **Lunch**, **Back**, **Clock out**); the panel behind it has the rest and a link to the month;
 at noon the pill itself turns into Lunch. Clock in rounds **down** to five minutes (08:08
 becomes 08:05), clock out rounds **up** (17:01 becomes 17:05), and the two lunch punches are
 the exact minute so the break is what it was. Everything is written straight into the month sheet of
@@ -136,10 +163,10 @@ A quiet reminder fades in under the punch a minute after start: not clocked in o
 morning, still clocked in after 17:15 or nine and a half hours. The cross puts it away for the day.
 
 Today's punches live in your user profile, not in the shared data folder, so a colleague
-opening the same board sees the tasks and not your hours. **Reset today** in the footer
+opening the same board sees the tasks and not your hours. **Reset today** in Settings > Hours
 forgets the local punches; the sheet keeps whatever was written.
 
-**Starts with Windows** (footer) is on by default for the built `.exe`. A `settings.json`
+**Starts with Windows** (Settings > This machine) is on by default for the built `.exe`. A `settings.json`
 beside the exe with `{ "startup": false }` turns the default off for everyone.
 
 ## Settings
@@ -207,7 +234,7 @@ each show a short walk-through the first time they open; Settings can bring them
 
 | Lane | Rule |
 |---|---|
-| **Today** | Five slots. Over five, the board tells you to move things out. |
+| **Today** | Five slots. A sixth is refused until one leaves; only a sync may land a due-today ticket there. |
 | **Innovation** | Shows days since each item moved; flags the lane past 14. |
 | **Waiting on** | Ages from the day it left your hands. Red past a week. |
 | **Active** | In flight, not today. Today pulls from here. |
