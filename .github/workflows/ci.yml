@@ -1,0 +1,24 @@
+# Every push and pull request: the tests, the lint and a production build of the interface.
+# Photographs and the installer are not part of this; the Release workflow does those on a tag.
+name: CI
+
+on:
+  push:
+    branches: ['**']
+    tags-ignore: ['v*']
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-fund --no-audit
+      - run: npm test
+      - run: npm run lint
+      - run: npm run build

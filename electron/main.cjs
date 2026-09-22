@@ -8,7 +8,7 @@
  *    folder is read by whoever opens it. Credentials (MSAL cache, cookies) live in
  *    per-user storage and never enter that folder.
  */
-const { app, BrowserWindow, screen, session, shell, ipcMain, Notification, dialog } = require('electron')
+const { app, BrowserWindow, screen, session, shell, ipcMain, Notification, dialog, Tray, Menu, nativeImage } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 const net = require('node:net')
@@ -194,6 +194,34 @@ function applyStartupDefault() {
   fs.writeFileSync(marker, new Date().toISOString())
 }
 
+// ── tray ──────────────────────────────────────────────────────────────
+// Closing the window hides it; the app, the server and the time clock keep running from the tray,
+// so the 12:00 toast, the 12:30 auto-end and the morning digest fire with the window closed.
+// Quit lives in the tray menu. machine config { "closeToTray": false } restores close-means-quit.
+let tray = null, quitting = false
+const closeToTray = () => readMachineCfg().closeToTray !== false
+function showMain() {
+  if (!mainWin || mainWin.isDestroyed()) return
+  if (mainWin.isMinimized()) mainWin.restore()
+  mainWin.show(); mainWin.focus()
+}
+function makeTray() {
+  try {
+    const icon = nativeImage.createFromPath(path.join(__dirname, '..', 'build', 'icon.ico'))
+    tray = new Tray(icon.isEmpty() ? nativeImage.createFromPath(path.join(__dirname, '..', 'dist', 'icon.png')).resize({ width: 16, height: 16 }) : icon)
+    tray.setToolTip('Bench.')
+    const menu = Menu.buildFromTemplate([
+      { label: 'Open Bench.', click: showMain },
+      { label: 'Lunch screen', click: () => { showMain(); mainWin?.webContents.send('bench:route', '#/lunch') } },
+      { type: 'separator' },
+      { label: 'Quit Bench.', click: () => { quitting = true; app.quit() } }
+    ])
+    tray.setContextMenu(menu)
+    tray.on('click', showMain)
+    tray.on('double-click', showMain)
+  } catch (err) { log('[tray]', err) }
+}
+
 // ── app ───────────────────────────────────────────────────────────────
 let mainWin
 async function start() {
@@ -217,7 +245,7 @@ async function start() {
     const b = d.workArea; return saved.x >= b.x - 50 && saved.y >= b.y - 50 && saved.x < b.x + b.width - 100 && saved.y < b.y + b.height - 100
   })
   mainWin = new BrowserWindow({
-    width: saved.width || 1380, height: saved.height || 900, ...(onScreen ? { x: saved.x, y: saved.y } : {}), minWidth: 900, minHeight: 600,
+    width: saved.width || 1380, height: saved.height || 900, ...(onScreen ? { x: saved.x, y: saved.y } : {}), minWidth: 1024, minHeight: 640,
     backgroundColor: '#0A0A0B', title: 'Bench.', autoHideMenuBar: true, icon: path.join(__dirname, '..', 'dist', 'icon.png'),
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, sandbox: true }
   })
@@ -246,8 +274,12 @@ async function start() {
   mainWin.webContents.on('unresponsive', () => log('[renderer] unresponsive'))
   mainWin.webContents.on('responsive', () => log('[renderer] responsive again'))
   mainWin.webContents.on('console-message', (_e, level, message, line, source) => { if (level >= 3) log('[renderer] error', `${message} (${source}:${line})`) })
+  // The close button hides the window; Quit in the tray menu (or a real quit) ends the app.
+  mainWin.on('close', e => { if (!quitting && closeToTray() && app.isPackaged) { e.preventDefault(); mainWin.hide() } })
+  if (app.isPackaged) makeTray()
   await mainWin.loadURL(`http://127.0.0.1:${port}/`)
 }
+app.on('before-quit', () => { quitting = true })
 
 ipcMain.handle('bench:info', () => ({ dataDir: DATA_DIR, secretsDir: SECRETS_DIR, logFile: LOG_FILE, version: app.getVersion(), portable: PORTABLE, machineCfg: MACHINE_CFG }))
 ipcMain.handle('bench:open-external', (_e, url) => { if (/^https?:/.test(url)) shell.openExternal(url) })
@@ -280,11 +312,12 @@ ipcMain.handle('bench:open-log', () => shell.showItemInFolder(LOG_FILE))
 
 // Started at sign-in: a second launch must not open a second instance (and a second server).
 if (!app.requestSingleInstanceLock()) app.quit()
-app.on('second-instance', () => { if (mainWin && !mainWin.isDestroyed()) { if (mainWin.isMinimized()) mainWin.restore(); mainWin.focus() } })
+app.on('second-instance', showMain)
 
 app.whenReady().then(start).catch(err => {
   log('[main] start failed', err)
   dialog.showErrorBox('Bench could not start', `${err.stack || err.message}\n\nData folder: ${DATA_DIR}`)
   app.quit()
 })
-app.on('window-all-closed', () => app.quit())
+// With the tray, a closed window is hidden, not gone; only a real quit ends the process.
+app.on('window-all-closed', () => { if (!app.isPackaged || !closeToTray()) app.quit() })
