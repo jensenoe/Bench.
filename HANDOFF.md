@@ -35,6 +35,22 @@ Done, on `main` in small commits:
 Still needs Noël present: sections 3 and 4 (Microsoft 365 on the real tenant, QMS and BOM cookie sessions),
 the installer walk-through, and the questions in section 8.
 
+Added later the same afternoon, on Noël's request:
+
+- All-in-one install: `install-bench.bat` at the repo root (installs Node LTS via winget if missing, runs
+  `build-exe.bat auto`, starts the resulting installer). `build-exe.bat` takes `auto` (no pauses, retries
+  without icon stamping when the symlink step fails) next to `plain`. `.github/workflows/release.yml` builds
+  both exes on a Windows runner for `v*` tags and attaches them to a GitHub release, so the installer itself
+  can be downloaded from GitHub. Actions minutes on a private repo are billed; Windows counts double.
+- Background sync every 2 minutes (`SYNC_INTERVAL_MINUTES`, default was 5) and only for connected tools
+  (`syncConnected` in `server/sources/index.js`): Graph sources need a signed-in account, cookie sources a
+  successful sync since sign-in. Manual Sync on the Tools page still tries everything.
+- Repo hygiene check for Noël's concern: git history holds no tokens, MSAL cache, board, time clock or
+  settings files. It does hold the public Azure client id and tenant id, the SharePoint site and list ids,
+  and his work email as package author. Removed the unused `SyncBar.jsx` and `start-ridgeline.bat`.
+- `release\data\` (a portable test run from 13:29) was copied to `backups\portable-data-2026-09-22-1329\`
+  before `build-exe.bat` cleared `release\`.
+
 Rules of the road: read `CLAUDE.md`. Be direct with Noël, show reasoning, do not soften. No em dashes in
 copy. Headlines end with periods. Ask before anything irreversible on his data folders.
 
