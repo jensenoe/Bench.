@@ -1,6 +1,20 @@
 # Bench.
 
-**Beta 1 (0.9.0-beta.1).** Everything here works on my machine and on the mocks; the
+## Download
+
+**[Download the latest installer](https://github.com/jensenoe/Bench./releases/latest)**, then:
+
+1. On that page, open **Assets** and click **Bench-Setup-…exe**.
+2. Run it. Windows says *Windows protected your PC* because the installer is not signed: click **More info**, then **Run anyway**.
+3. Next, Next, Install. No admin rights; it installs into your own profile.
+4. First start asks for your name and work email, then offers the Microsoft 365 sign-in.
+
+Installing over an older Bench keeps your board, hours and settings. `Bench-portable-…exe` on the
+same page is the no-install version: keep it in any folder and run it from there.
+
+---
+
+**Beta 2 (0.9.0-beta.2).** Everything here works on my machine and on the mocks; the
 Microsoft paths (Planner, the hours workbook, the issue list, the calendar) still want a
 first real run in the tom.fit tenant, and the issue list and calendar need a one-time admin
 approval, see below.
@@ -20,17 +34,11 @@ libraries you switch on.
 
 ## Install
 
-Two ways in, both from GitHub. Neither needs admin rights.
-
-**The installer.** Open the repository's *Releases* page and download
-`Bench-Setup-<version>.exe`. Run it. First start asks for a name and a work email; that is
-the whole setup. `Bench-portable-<version>.exe` sits next to it for a no-install copy that
-keeps `data\` beside itself (a copy on a share is the shared board).
-
-**The zip.** *Code > Download ZIP*, unpack it anywhere, double-click `install-bench.bat`.
-It installs Node.js if the machine has none (through winget), fetches the packages and the
-photographs, builds the app and then starts the same installer. Ten to fifteen minutes the
-first time, mostly downloads; the unpacked folder can be deleted afterwards.
+The installer above is the normal way in. The other way builds it on your own machine:
+*Code > Download ZIP*, unpack it anywhere, double-click `install-bench.bat`. It installs
+Node.js if the machine has none (through winget), fetches the packages and the photographs,
+builds the app and then starts the same installer. Ten to fifteen minutes the first time,
+mostly downloads; the unpacked folder can be deleted afterwards. Neither way needs admin rights.
 
 An installed Bench keeps the board in your profile until **Settings > This machine > Choose
 a shared folder**; after a restart everyone pointing at that folder sees the same list. Your

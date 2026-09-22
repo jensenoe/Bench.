@@ -64,6 +64,20 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
+          name: Bench. ${{ github.ref_name }}
           files: release/*.exe
           generate_release_notes: true
           prerelease: ${{ contains(github.ref_name, '-') }}
+          body: |
+            ## Install
+
+            1. Under **Assets** below, download **Bench-Setup-${{ github.ref_name }}.exe** (drop the `v` from the file name if it does not match exactly; take the file that starts with `Bench-Setup`).
+            2. Run it. Windows will say *Windows protected your PC* because the installer is not signed: click **More info**, then **Run anyway**.
+            3. Next, Next, Install. No admin rights are needed; it installs into your own profile.
+            4. First start asks for your name and work email, then offers the Microsoft 365 sign-in.
+
+            **Bench-portable** is the same app without an installer: keep it in any folder and run it from there.
+
+            Already have Bench.? Install over the old one; your board, hours and settings stay.
+
+            ## What changed
