@@ -217,7 +217,7 @@ the part. Anything inside 7 days surfaces on Home and Procurement.
 302 photographs from Pexels and Unsplash, free licences, fetched by `fetch-photos.bat`
 and shipped inside the installer. Eleven libraries share the clock (Alps, Tropics, Urban,
 Monochrome, Pacific Northwest, Desert, Brutalist, Italian coast, Canada, Autumn, Gothic;
-24 to 40 each across dawn, day, dusk and night),
+24 to 39 each across dawn, day, dusk and night),
 four alpine villages at dusk for the lunch screen, and five offices and benches for the
 Cockpit door. Photo URLs and photographers are in `src/library.json`; swap any you dislike
 and rerun the fetch. Plus one of yours on the Board.
