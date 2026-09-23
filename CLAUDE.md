@@ -29,6 +29,8 @@ Read `HANDOFF.md` before changing anything; it lists what is verified, what is n
 - Server settings whitelist lives in `server/settings.js` (`DEFAULTS` keys). Adding a setting means adding it there and in the Settings panel.
 - Task fields the board owns vs. the source tool owns: `OWN_FIELDS` in `server/store.js`. A sync never overwrites lane, notes, order-by, waiting-on, priority, tags.
 - Server features live in their own module with `registerRoutes(app)` and, for background work, `start()`; `server/index.js` only imports and calls them (`day.js`, `core.js`, `machines.js`, `inbox.js`, `weather.js`, `updates.js`). Client fetch helpers for a feature go in `src/api/<feature>.js`.
+- Server notifications go through `server/notify.js` (history behind the bell), never `bridge.notify` directly; the desktop drops them in quiet hours. Storage is `server/db.js` (json default, sqlite opt-in via `BENCH_STORAGE`); store.js and notes.js do not touch files themselves.
+- `scripts/mcp.mjs` is the MCP server (docs/mcp.md); `server/phone.js` is the LAN server on port 5199 behind a PIN. Both find the running Bench through the port file in `BENCH_USER_DIR`.
 - Any component can raise a toast with `window.dispatchEvent(new CustomEvent('bench:toast', { detail: { text, by, plain: true } }))` and ask for fresh state with `new Event('bench:refresh')`; App listens to both. Per-user state (brief seen, reminders sent, inbox handled) goes in `BENCH_USER_DIR`, never in the shared folder.
 
 ## Working here

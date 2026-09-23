@@ -8,6 +8,7 @@ import { ABOUT } from '../copy.js'
 import { fmtDate } from '../lanes.js'
 import Connect from './Connect.jsx'
 import Health from './Health.jsx'
+import { MailReading, PhoneView, StorageLine } from './SettingsIntegrations.jsx'
 
 const TABS = [
   { key: 'you', label: 'You' },
@@ -44,7 +45,7 @@ const Field = ({ label, k, type = 'text', placeholder, hint, mono, step, draft, 
     </label>
 )
 const Toggle = ({ on, onChange, label, hint }) => (
-    <button onClick={onChange} role="switch" aria-checked={on} className="flex items-start gap-2.5 text-left text-[13px]">
+    <button onClick={onChange} role="switch" aria-checked={on} className="flex min-h-6 items-start gap-2.5 text-left text-[13px]">
       <span className="mt-[1px] inline-block h-[18px] w-[30px] shrink-0 rounded-full p-[2px] transition-colors" style={{ background: on ? 'var(--accent)' : 'rgba(var(--ink-rgb),.14)' }}>
         <span className="block h-[14px] w-[14px] rounded-full transition-transform" style={{ background: on ? 'var(--accent-ink)' : 'var(--ink-3)', transform: on ? 'translateX(12px)' : 'none' }} />
       </span>
@@ -134,12 +135,12 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
   const collValue = (draft.collections || []).length >= COLLECTIONS.length ? 'all' : (draft.collections || [])
   const clock = timeclock?.clock
   const panelProps = (key) => ({ role: 'tabpanel', id: `settings-panel-${key}`, 'aria-labelledby': `settings-tab-${key}`, hidden: tab !== key, tabIndex: 0, className: 'outline-none' })
-  const link = 'underline underline-offset-2'
+  const link = 'underline underline-offset-2 -my-[3px] py-[3px]'   // 13 px text plus this is a 24 px hit area
 
   return (
     <AnimatePresence>
       {open && (
-        <motion.aside ref={panel} key="settings" role="dialog" aria-label="Settings"
+        <motion.div ref={panel} key="settings" role="dialog" aria-label="Settings"
           initial={{ opacity: 0, y: -8, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: .98 }}
           transition={{ duration: .22, ease: [0.16, 1, 0.3, 1] }}
           className="panel fixed right-4 top-[84px] z-[60] w-[min(420px,calc(100vw-2rem))] overflow-y-auto px-6 pb-6 pt-5"
@@ -172,6 +173,14 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
                 <div className="mt-1.5"><Chips items={[15, 25, 50, 90].map(m => ({ key: m, label: `${m} min` }))} value={Number(draft.focusMinutes) || 25} onPick={v => saveNow({ focusMinutes: v })} /></div>
               </div>
               <Field draft={draft} set={set} save={save} label="Hours in a working day" k="workdayHours" type="number" step="0.1" mono placeholder="8.4" hint="Today's free hours are what is left of this after the cards on it." />
+            </Sec>
+            <Sec title="Quiet hours">
+              <div className="grid grid-cols-2 gap-2">
+                <Field draft={draft} set={set} save={save} label="Quiet from" k="quietFrom" mono placeholder="19:00" />
+                <Field draft={draft} set={set} save={save} label="Quiet to" k="quietTo" mono placeholder="07:00" />
+              </div>
+              <Toggle on={draft.quietWeekends !== false} onChange={() => saveNow({ quietWeekends: draft.quietWeekends === false })} label="Quiet at the weekend" />
+              <Note>No notification between these times or on a quiet weekend day, the lunch reminders included; the board itself keeps working.</Note>
             </Sec>
           </div>
 
@@ -209,6 +218,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
                 <Field draft={draft} set={set} save={save} label="Lunch ends" k="lunchEnds" mono placeholder="12:30" />
                 <Field draft={draft} set={set} save={save} label="Round down, min" k="roundMinutes" type="number" mono />
               </div>
+              <Field draft={draft} set={set} save={save} label="Hourly rate, CHF" k="hourlyRate" type="number" step="1" mono placeholder="0" hint="For the cost per machine on the Review page. Zero shows hours only." />
               <div className="flex flex-wrap items-center gap-3 text-[13.5px]">
                 <button onClick={checkWorkbook} disabled={probe?.busy} className="pill px-3.5 py-1.5 text-[13.5px] font-medium disabled:opacity-50" style={{ border: '1px solid var(--line-2)' }}>{probe?.busy ? 'Looking' : 'Check the workbook'}</button>
                 <a href="#/hours" onClick={onClose} className={link} style={{ color: 'var(--ink-3)' }}>This month's hours</a>
@@ -261,6 +271,12 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
                 hint="OneDrive's camera roll folder works well: the phone uploads a picture, Bench sees it within half a minute and offers it on the Board, to go onto a task as a link. Pictures from the last fourteen days. Empty means off." />
               {info?.chooseFolder && <button onClick={async () => { const r = await window.bench.chooseFolder?.(); if (r?.path) saveNow({ inboxDir: r.path }) }} className={`text-[13px] ${link}`}>Choose a folder</button>}
             </Sec>
+            <Sec title="Order confirmations and delivery notes">
+              <MailReading on={draft.mailRead === true} onToggle={() => saveNow({ mailRead: draft.mailRead !== true })} />
+            </Sec>
+            <Sec title="The phone">
+              <PhoneView draft={draft} set={set} save={save} saveNow={saveNow} />
+            </Sec>
             <Sec title="Introductions">
               <p className="text-[13.5px]" style={{ color: 'var(--ink-3)' }}>The short walk-throughs on the Board, Procurement, Logbook and Napkin show once. <button onClick={() => { try { for (const k of Object.keys(localStorage)) if (k.startsWith('bench.coach.')) localStorage.removeItem(k) } catch { /* ignore */ } }} className={link} style={{ color: 'var(--ink-2)' }}>Show them again</button>.</p>
             </Sec>
@@ -295,6 +311,9 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
                 {imported && <span style={{ color: 'var(--ink-3)' }}>{imported}</span>}
               </div>
             </Sec>
+            <Sec title="Storage.">
+              <StorageLine />
+            </Sec>
             <Sec title="Backups.">
               <p className="text-[13px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>A copy of the board, once a day before the first write, kept thirty days. Restore puts one back in place of what is there now.</p>
               {backups === null ? <Note>Looking.</Note>
@@ -303,7 +322,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
                   <ul className="flex flex-col gap-1.5 text-[13px]">
                     {backups.slice(0, 12).map(b => (
                       <li key={b.file} className="row flex items-center gap-3 px-3 py-2">
-                        <span className="tnum shrink-0" style={{ color: 'var(--ink-2)' }}>{fmtDate(b.at)} {hhmm(b.at)}</span>
+                        <span className="tnum shrink-0" data-volatile style={{ color: 'var(--ink-2)' }}>{fmtDate(b.at)} {hhmm(b.at)}</span>
                         <span className="min-w-0 flex-1 truncate" title={b.file}>{b.name}</span>
                         <span className="tnum shrink-0" style={{ color: 'var(--ink-3)' }}>{kb(b.size)}</span>
                         <button onClick={() => doRestore(b)} className={`shrink-0 ${link}`} style={{ color: 'var(--ink-2)' }}>Restore</button>
@@ -358,7 +377,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
               </div>
             </Sec>
           </div>
-        </motion.aside>
+        </motion.div>
       )}
     </AnimatePresence>
   )

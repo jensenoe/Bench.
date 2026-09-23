@@ -1,7 +1,8 @@
 /**
  * The day's two bookends and the week's review (roadmap 68, 69, 72, 73, 83).
  *
- *   GET  /api/day/brief         what the morning looks like: leftovers, arrivals, due, orders, meetings, the sheet
+ *   GET  /api/day/brief         what the morning looks like: leftovers, arrivals, due, orders, meetings, the sheet,
+ *                               parts to chase and the days the sheet differs (roadmap 108)
  *   POST /api/day/brief/seen    the brief was shown; do not show it again today
  *   POST /api/day/brief/apply   move some leftovers back to Active, record what stays on Today
  *   GET  /api/day/close         what the evening looks like: open Today tasks, hours, ticked
@@ -24,7 +25,9 @@ import * as notes from './notes.js'
 import * as timeclock from './timeclock.js'
 import * as calendar from './calendar.js'
 import * as settings from './settings.js'
-import { bridge } from './bridge.js'
+import { notify } from './notify.js'
+import * as reminders from './reminders.js'
+import * as drift from './drift.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const STATE_FILE = path.join(
@@ -212,12 +215,39 @@ function ensureDay() {
 async function meetingsSoft() {
   try { const r = await calendar.todaysMeetings(); return r?.ok ? (r.events || []) : [] } catch { return [] }
 }
+/** Parts to chase (roadmap 71) as the reminder sees them; a fault here must not take the brief down. */
+function chasesSoft() {
+  try { return reminders.chase() } catch (err) { console.warn('[day] chase list:', err.message); return [] }
+}
+/** The brief waits this long for the sheet, then goes on without it. */
+export const DRIFT_WAIT_MS = 3000
+/**
+ * The sheet drift for a month (roadmap 74), soft: never throws, never waits longer than `waitMs`. Returns
+ * { rows, days, reason }: the differing cells as drift.check gives them, how many days they fall on, and one
+ * plain sentence when the sheet was not read (no sign-in, too slow, an error), null when it was.
+ */
+export async function driftSoft(ym = dayKey().slice(0, 7), { check = drift.check, waitMs = DRIFT_WAIT_MS } = {}) {
+  let timer = null
+  const slow = new Promise(resolve => { timer = setTimeout(() => resolve({ ok: false, reason: 'slow' }), waitMs); timer.unref?.() })
+  try {
+    const r = await Promise.race([Promise.resolve().then(() => check(ym)), slow])
+    if (!r || !r.ok) {
+      const reason = r?.reason === 'needs-signin' ? 'Not signed in to Microsoft 365, so the sheet was not read.'
+        : r?.reason === 'slow' ? 'The sheet took too long to answer.' : (r?.reason || 'The sheet could not be read.')
+      return { rows: [], days: 0, reason }
+    }
+    const rows = Array.isArray(r.rows) ? r.rows : []
+    return { rows, days: new Set(rows.map(x => x.date)).size, reason: null }
+  } catch (err) { return { rows: [], days: 0, reason: err.message || 'The sheet could not be read.' } }
+  finally { clearTimeout(timer) }
+}
 
 export async function brief() {
   ensureDay()
   const tasks = store.allTasks()
   const brief = t => ({ id: t.id, title: t.title, project: t.project || null, source: t.source || 'local', tool: TOOL[t.source] || null, dueDate: t.dueDate || null, orderBy: t.orderBy || null, effortHours: t.effortHours ?? null })
   const snap = timeclock.snapshot()
+  const [meetings, driftNow] = await Promise.all([meetingsSoft(), driftSoft()])
   return {
     date: state.date,
     seen: state.seen,
@@ -225,8 +255,10 @@ export async function brief() {
     arrived: pickArrived(tasks, state.since).map(brief),
     due: pickDue(tasks, state.date).map(brief),
     orders: pickOrders(tasks).map(t => ({ ...brief(t), days: daysUntil(t.orderBy) })),
-    meetings: (await meetingsSoft()).map(m => ({ id: m.id, subject: m.subject, allDay: m.allDay, start: m.start, end: m.end, location: m.location || null })),
-    sheet: { pending: snap.pending || 0, unclosed: snap.unclosed || null }
+    meetings: meetings.map(m => ({ id: m.id, subject: m.subject, allDay: m.allDay, start: m.start, end: m.end, location: m.location || null })),
+    sheet: { pending: snap.pending || 0, unclosed: snap.unclosed || null },
+    chases: chasesSoft(),
+    drift: driftNow
   }
 }
 
@@ -326,7 +358,7 @@ export async function checkMeetings(now = new Date()) {
   for (const m of ended) {
     if (state.notified.ids.includes(m.id) || written.has(norm(m.subject))) continue
     state.notified.ids.push(m.id); save()
-    bridge.notify?.({ title: 'Write it down?', body: `${m.subject} just ended.`, route: `#/logbook?new=${encodeURIComponent(m.subject)}` })
+    notify({ title: 'Write it down?', body: `${m.subject} just ended.`, route: `#/logbook?new=${encodeURIComponent(m.subject)}` })
     fired.push(m.id)
   }
   return fired

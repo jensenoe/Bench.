@@ -32,6 +32,13 @@ const machines = await import('./machines.js')       // one page per machine (ro
 const core = await import('./core.js')               // lead times, chase, drift, health, history, backups (roadmap 70, 71, 74, 77, 78, 87, 96)
 const inbox = await import('./inbox.js')             // photographs from the phone (roadmap 85)
 const weather = await import('./weather.js')         // Open-Meteo for the lunch screen (roadmap 89)
+const notify = await import('./notify.js')           // notification history behind the bell (roadmap 107)
+const db = await import('./db.js')                   // storage engine, json or sqlite, and /api/storage (roadmap 109)
+const mcp = await import('./mcp.js')                 // the port file for the MCP server (roadmap 111)
+const mail = await import('./mail.js')               // order confirmations and delivery notes from Outlook (roadmap 113)
+const playbooks = await import('./playbooks.js')     // commissioning playbooks (roadmap 114)
+const cost = await import('./cost.js')               // cost per machine (roadmap 115)
+const phone = await import('./phone.js')             // the phone view on the workshop network (roadmap 116)
 
 const PORT = Number(process.env.PORT || 5178)
 const app = express()
@@ -195,6 +202,12 @@ machines.registerRoutes(app)
 core.registerRoutes(app)
 inbox.registerRoutes(app)
 weather.registerRoutes(app)
+notify.registerRoutes(app)
+db.registerRoutes(app)
+mail.registerRoutes(app)
+playbooks.registerRoutes(app)
+cost.registerRoutes(app)
+phone.registerRoutes(app)
 updates.registerRoutes(app)                          // /api/updates and the background download (roadmap 76)
 
 // Serve the built frontend when it exists (npm run build && npm start)
@@ -206,6 +219,7 @@ if (fs.existsSync(dist)) {
 
 // 127.0.0.1, never 0.0.0.0 - this must not be reachable from the network.
 export function listen(port = PORT) { return app.listen(port, '127.0.0.1', () => {
+  mcp.writePort(port)   // the MCP server and the phone view find the running Bench through this file
   console.log(`\n  Bench API       http://127.0.0.1:${port}`)
   console.log(`  Planner sync    ${auth.isConfigured() ? 'configured' : 'not configured (local-only mode)'}`)
   if (fs.existsSync(dist)) console.log(`  Dashboard       http://127.0.0.1:${port}\n`)
@@ -233,6 +247,8 @@ timeclock.startScheduler()
 day.start()
 core.start()
 inbox.start()
+mail.start()
+phone.start({ log: console.log })
 updates.start({ log: console.log })
 
 // Background poll while the app is running: every 2 minutes, connected tools only.

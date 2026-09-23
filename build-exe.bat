@@ -38,6 +38,11 @@ if defined PLAIN (
   echo   plain: skipping icon/version stamping, no winCodeSign download
   set EXTRA=--config.win.signAndEditExecutable=false
 )
+echo   better-sqlite3 for Electron (roadmap 109): the prebuilt binary for the app's Electron, no compiler needed.
+for /f "usebackq delims=" %%e in (`node -p "require('electron/package.json').version"`) do set ELECTRON_VER=%%e
+pushd node_modules\better-sqlite3
+call npx prebuild-install -r electron -t %ELECTRON_VER% --arch x64 || echo   (no Electron prebuild fetched; SQLite stays opt-in and unverified in this build)
+popd
 call npx electron-builder --win nsis portable --publish never %EXTRA%
 if not errorlevel 1 goto built
 if defined PLAIN goto fail
@@ -48,6 +53,10 @@ echo   Retrying without stamping...
 call npx electron-builder --win nsis portable --publish never --config.win.signAndEditExecutable=false || goto fail
 
 :built
+rem back to the Node binary, so npm test keeps working in this checkout
+pushd node_modules\better-sqlite3
+call npx prebuild-install -r node --arch x64 >nul 2>&1
+popd
 echo.
 for /f "usebackq delims=" %%v in (`node -p "require('./package.json').version"`) do set VER=%%v
 echo   Done:

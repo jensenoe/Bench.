@@ -70,3 +70,25 @@ describe('undo', () => {
     expect(history.list(5000).length).toBeLessThanOrEqual(2000)
   })
 })
+
+describe('size cap', () => {
+  it('keeps history.json under 1.5 MB by dropping the oldest entries, never the newest', () => {
+    expect(history.MAX_BYTES).toBe(1.5 * 1024 * 1024)
+    const file = path.join(dir, 'history.json')
+    const note = 'x'.repeat(30_000)   // a task with a long note makes a 60 KB entry (the snapshot and the change carry it)
+    const before = history.list(1)[0]
+    for (let i = 0; i < 40; i++) {
+      const t = { id: `big-${i}`, title: `Big ${i}`, lane: 'active', notes: note }
+      history.record('changed', t, { ...t, notes: note + i })
+    }
+    expect(fs.statSync(file).size).toBeLessThanOrEqual(history.MAX_BYTES)
+    const list = history.list(5000)
+    expect(list[0].title).toBe('Big 39')                                  // the newest is there
+    expect(list.some(e => e.title === 'Big 0')).toBe(false)               // the oldest big ones went
+    expect(list.some(e => e.id === before.id)).toBe(false)                // and everything older than them
+    expect(list.length).toBeGreaterThan(10)                               // but it did not throw the feed away
+    expect(list.length).toBeLessThan(40)
+    // a reload from disk sees the same trimmed feed
+    expect(history.reload().entries.length).toBe(list.length)
+  })
+})

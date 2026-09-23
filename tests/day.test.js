@@ -171,6 +171,28 @@ describe('buildReview and reviewText', () => {
   })
 })
 
+describe('driftSoft', () => {
+  it('says so when there is no sign-in, and never throws', async () => {
+    expect(await day.driftSoft('2026-09', { check: async () => ({ ok: false, rows: [], reason: 'needs-signin' }) })).toEqual({ rows: [], days: 0, reason: 'Not signed in to Microsoft 365, so the sheet was not read.' })
+    expect(await day.driftSoft('2026-09', { check: async () => ({ ok: false, rows: [], reason: 'Graph 429 asked us to slow down.' }) })).toEqual({ rows: [], days: 0, reason: 'Graph 429 asked us to slow down.' })
+    expect(await day.driftSoft('2026-09', { check: async () => { throw new Error('Graph 500') } })).toEqual({ rows: [], days: 0, reason: 'Graph 500' })
+  })
+  it('counts the days that differ, not the cells', async () => {
+    const rows = [
+      { date: '2026-09-21', field: 'in', bench: '08:00', sheet: '08:05' }, { date: '2026-09-21', field: 'out', bench: '17:00', sheet: '17:10' },
+      { date: '2026-09-22', field: 'in', bench: '08:00', sheet: '08:15' }
+    ]
+    expect(await day.driftSoft('2026-09', { check: async () => ({ ok: true, rows }) })).toEqual({ rows, days: 2, reason: null })
+    expect(await day.driftSoft('2026-09', { check: async () => ({ ok: true, rows: [] }) })).toEqual({ rows: [], days: 0, reason: null })
+  })
+  it('gives up after the wait instead of holding the brief', async () => {
+    const p = day.driftSoft('2026-09', { check: () => new Promise(() => {}), waitMs: 50 })
+    await vi.advanceTimersByTimeAsync(60)
+    expect(await p).toEqual({ rows: [], days: 0, reason: 'The sheet took too long to answer.' })
+    expect(day.DRIFT_WAIT_MS).toBe(3000)
+  })
+})
+
 describe('the brief and the close against the store', () => {
   it('freezes leftovers on the first look, applies choices, and records Today for tomorrow', async () => {
     day._reset()
@@ -185,6 +207,8 @@ describe('the brief and the close against the store', () => {
     expect(first.leftovers.map(t => t.id).sort()).toEqual([a.id, b.id].sort())
     expect(first.meetings).toEqual([])
     expect(first.sheet).toEqual({ pending: 0, unclosed: null })
+    expect(first.chases).toEqual([])
+    expect(first.drift).toEqual({ rows: [], days: 0, reason: 'Not signed in to Microsoft 365, so the sheet was not read.' })
 
     const r = day.applyBrief({ toActive: [b.id, fresh.id] })
     expect(r.moved).toBe(1)   // fresh was not a leftover, so it stays where it is
@@ -193,6 +217,15 @@ describe('the brief and the close against the store', () => {
     expect(second.seen).toBe(true)
     expect(second.leftovers.map(t => t.id)).toEqual([a.id])   // the one that stayed
     expect(JSON.parse(fs.readFileSync(path.join(dir, 'day.json'), 'utf8')).todayIds.sort()).toEqual([a.id, fresh.id].sort())
+  })
+
+  it('lists the parts to chase the way the reminder sees them', async () => {
+    const part = store.createTask({ title: 'Chase this rail', supplier: 'Igus', poNumber: 'PO-7', orderedOn: '2026-09-15', dueDate: '2026-09-25' })
+    const far = store.createTask({ title: 'Not yet', supplier: 'Igus', orderedOn: '2026-09-15', dueDate: '2026-11-25' })
+    const b = await day.brief()
+    expect(b.chases.map(c => c.id)).toContain(part.id)
+    expect(b.chases.map(c => c.id)).not.toContain(far.id)
+    expect(b.chases.find(c => c.id === part.id)).toMatchObject({ title: 'Chase this rail', supplier: 'Igus', poNumber: 'PO-7', dueDate: '2026-09-25', daysLeft: 2 })
   })
 
   it('closes the day: moves, writes one day note, updates it on a second close', async () => {

@@ -1,29 +1,16 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
 import * as api from './api.js'
-import { sceneFor, sceneAt, lunchScene, cockpitCover, setCollections, setCadence, nextChange, STATUS } from './scenes.js'
-import { SHEETS, cheer } from './copy.js'
+import { sceneFor, sceneAt, lunchScene, setCollections, setCadence, nextChange, STATUS } from './scenes.js'
+import { cheer } from './copy.js'
 import { daysUntil, daysSince } from './lanes.js'
 import Nav from './components/Nav.jsx'
 import Footer from './components/Footer.jsx'
-import Landing from './components/Landing.jsx'
-import TerrainHeader from './components/TerrainHeader.jsx'
-import Lane from './components/Lane.jsx'
-import LeadTime from './components/LeadTime.jsx'
-import BomParts from './components/BomParts.jsx'
-const Tools = lazy(() => import('./components/Tools.jsx'))
 import useClock from './hooks/useClock.js'
 import useTimeclock from './hooks/useTimeclock.js'
-const Lunch = lazy(() => import('./components/Lunch.jsx'))
-const Hours = lazy(() => import('./components/Hours.jsx'))
 import Settings from './components/Settings.jsx'
 import FirstRun from './components/FirstRun.jsx'
 import Toast from './components/Toast.jsx'
-import SourceFilter from './components/SourceFilter.jsx'
-import PeopleFilter, { isMine } from './components/PeopleFilter.jsx'
-const Logbook = lazy(() => import('./components/Logbook.jsx'))
-const Napkin = lazy(() => import('./components/Napkin.jsx'))
-import Coach, { COACH } from './components/Coach.jsx'
+import { isMine } from './components/PeopleFilter.jsx'
 import Search from './components/Search.jsx'
 import QuickAdd from './components/QuickAdd.jsx'
 import OpenDay from './components/OpenDay.jsx'
@@ -33,25 +20,16 @@ import PageSkeleton from './components/Skeleton.jsx'
 import MorningBrief from './components/MorningBrief.jsx'
 import EveningClose from './components/EveningClose.jsx'
 import * as dayApi from './api/day.js'
-const Review = lazy(() => import('./components/Review.jsx'))
-const Machines = lazy(() => import('./components/Machines.jsx'))
 import useBoardKeys from './hooks/useBoardKeys.js'
-const Changes = lazy(() => import('./components/Changes.jsx'))
+import { Routes, paletteActions } from './routes.jsx'
 const Wall = lazy(() => import('./components/Wall.jsx'))
-import Inbox from './components/Inbox.jsx'
 
 const route = () => location.hash.replace(/^#\/?/, '').split('?')[0]
-const Aside = ({ n, label, tone }) => (
-  <div className="panel off-photo px-6 py-4">
-    <span className="display tnum text-[32px] font-semibold leading-none" style={{ color: tone }}>{n}</span>
-    <span className="ml-2 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>{label}</span>
-  </div>
-)
-const EASE = [0.16, 1, 0.3, 1]
 const PAGE_KEYS = { 1: '', 2: 'board', 3: 'procurement', 4: 'tools', 5: 'logbook', 6: 'napkin', 7: 'hours', 8: 'review', 9: 'machines' }
 const SOURCE_LABEL = { planner: 'Phase Gate', issues: 'Issues', qms: 'QMS', bom: 'the BOM' }
 const inField = () => ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName) || document.activeElement?.isContentEditable
 
+/** State and wiring only: the pages live in routes.jsx, the components under src/components. */
 export default function App() {
   const [state, setState] = useState(null)
   const [error, setError] = useState(null)
@@ -69,6 +47,8 @@ export default function App() {
   const [peopleFilter, setPeopleFilter] = useState('everyone')
   const now = useClock()
   const timeclock = useTimeclock()
+  // The hook hands back a fresh object every render; effects and callbacks lean on its stable functions, never the object.
+  const refreshClock = timeclock.refresh, punchClock = timeclock.punch
   const onLunch = r === 'lunch'
   const settings = state?.settings || {}
   // settings drive the pictures and the theme; apply before computing the scene
@@ -109,7 +89,7 @@ export default function App() {
     }, 50)
     return () => clearInterval(id)
   }, [r])
-  // Keyboard: Ctrl-K or / for search, n for a new task, 1 to 7 for the pages, ? for the key sheet. Never while typing.
+  // Keyboard: Ctrl-K or / for search, n for a new task, 1 to 9 for the pages, ? for the key sheet. Never while typing.
   useEffect(() => {
     const onKey = e => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setSearchOpen(v => !v); return }
@@ -120,7 +100,7 @@ export default function App() {
       else if (PAGE_KEYS[e.key] !== undefined) { location.hash = `#/${PAGE_KEYS[e.key]}` }
     }
     addEventListener('keydown', onKey); return () => removeEventListener('keydown', onKey)
-  }, [searchOpen, quickOpen, settingsOpen])
+  }, [searchOpen, quickOpen, settingsOpen, keysOpen, briefOpen, closeOpen])
   // The next slot's pictures are fetched a little early, so the change at the boundary does not flash.
   useEffect(() => {
     const nx = nextChange(now)
@@ -132,7 +112,14 @@ export default function App() {
   // A clicked notification asks the window to jump somewhere (the lunch screen at noon).
   useEffect(() => window.bench?.onRoute?.(route => { location.hash = route }), [])
   const refresh = useCallback(async () => { try { setState(await api.getState()); setError(null) } catch (e) { setError(e.message) } }, [])
-  useEffect(() => { refresh(); const id = setInterval(refresh, 60_000); return () => clearInterval(id) }, [refresh])
+  // Every minute while the window shows; a hidden window (closed to the tray) does not poll, and catches up when it comes back (roadmap 102).
+  useEffect(() => {
+    refresh()
+    const id = setInterval(() => { if (!document.hidden) refresh() }, 60_000)
+    const onShow = () => { if (!document.hidden) refresh() }
+    document.addEventListener('visibilitychange', onShow)
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', onShow) }
+  }, [refresh])
 
   const toastTimer = useRef(null)
   const showToast = useCallback((item, ms = 6200) => {
@@ -194,9 +181,9 @@ export default function App() {
   const saveSettings = useCallback(async (patch) => {
     try { const s = await api.saveSettings(patch); setState(st => st ? { ...st, settings: s } : st) } catch (e) { setError(e.message) }
   }, [])
-  const closeDay = useCallback(async (time) => { try { await api.closeUnclosed(time); await timeclock.refresh(); showToast({ text: 'Closed.', by: 'The out punch is on its way to the sheet.', plain: true }) } catch (e) { setError(e.message) } }, [timeclock, showToast])
-  const dismissDay = useCallback(async () => { try { await api.dismissUnclosed(); await timeclock.refresh() } catch (e) { setError(e.message) } }, [timeclock])
-  const retry = useCallback(async () => { setRetrying(true); try { await refresh(); await timeclock.refresh() } finally { setRetrying(false) } }, [refresh, timeclock])
+  const closeDay = useCallback(async (time) => { try { await api.closeUnclosed(time); await refreshClock(); showToast({ text: 'Closed.', by: 'The out punch is on its way to the sheet.', plain: true }) } catch (e) { setError(e.message) } }, [refreshClock, showToast])
+  const dismissDay = useCallback(async () => { try { await api.dismissUnclosed(); await refreshClock() } catch (e) { setError(e.message) } }, [refreshClock])
+  const retry = useCallback(async () => { setRetrying(true); try { await refresh(); await refreshClock() } finally { setRetrying(false) } }, [refresh, refreshClock])
   // The brief opens once per start, when the setting is on and today's brief has not been seen.
   const briefChecked = useRef(false)
   useEffect(() => {
@@ -209,18 +196,18 @@ export default function App() {
   useEffect(() => window.bench?.onQuickAdd?.(() => setQuickOpen(true)), [])
   // A successful out punch opens the close. Nav, Lunch and the tray go through this wrapper.
   const punch = useCallback(async (kind) => {
-    const r = await timeclock.punch(kind)
+    const r = await punchClock(kind)
     if (r && kind === 'out' && settings.eveningClose !== false) setCloseOpen(true)
     return r
-  }, [timeclock, settings.eveningClose])
+  }, [punchClock, settings.eveningClose])
   const tc = { ...timeclock, punch }
   // Any component or hook can raise a toast or ask for fresh state without a prop chain.
   useEffect(() => {
     const onToast = e => { if (e.detail?.text) showToast({ plain: true, ...e.detail }, e.detail.ms || 6200) }
-    const onRefresh = () => { refresh(); timeclock.refresh() }
+    const onRefresh = () => { refresh(); refreshClock() }
     addEventListener('bench:toast', onToast); addEventListener('bench:refresh', onRefresh)
     return () => { removeEventListener('bench:toast', onToast); removeEventListener('bench:refresh', onRefresh) }
-  }, [showToast, refresh, timeclock])
+  }, [showToast, refresh, refreshClock])
 
   if (!state) return <PageSkeleton message={error ? `Server not reachable. ${error}` : null} />
 
@@ -228,6 +215,7 @@ export default function App() {
   // Wall mode: the board for a workshop screen, alone, no nav and no footer (roadmap 84). Escape leaves.
   if (r === 'wall') return <Suspense fallback={<PageSkeleton />}><Wall scene={scene} settings={settings} /></Suspense>
 
+  // What the pages read: the open tasks by lane and by filter, the order dates, the counts for the headers and the doors.
   const open = state.tasks.filter(t => !t.done)
   const bySource = t => sourceFilter === 'all' || (sourceFilter === 'local' ? (!t.source || t.source === 'local') : t.source === sourceFilter)
   const byPerson = t => peopleFilter === 'everyone' || (peopleFilter === 'mine' ? isMine(t.lead, settings.name) : t.lead === peopleFilter)
@@ -261,11 +249,9 @@ export default function App() {
   }
   // The Board wears a dawn picture a few slots along, so it never repeats the hero; in Alps slots it is your own ridge photo.
   const boardImage = scene.library === 'alps' ? { src: '/terrain/ridge.jpg', fallback: '/terrain/day.jpg' } : { src: sceneAt('dawn', now, 5).terrain, fallback: '/terrain/dawn.jpg' }
-  const page = (key, node) => (
-    <motion.div key={key} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: .4, ease: EASE }}>{node}</motion.div>
-  )
   const inner = r !== '' && !onLunch
   const errMsg = error || timeclock.error || null
+  const openSettings = () => setSettingsOpen(true)
 
   return (
     <div className="min-h-screen" style={{ background: (r === '' || onLunch) ? 'var(--bg)' : `radial-gradient(120% 60% at 50% 0%, ${scene.glow} 0%, var(--bg) 60%)` }}>
@@ -273,25 +259,8 @@ export default function App() {
         onSettings={() => setSettingsOpen(v => !v)} settingsOpen={settingsOpen} onSearch={() => setSearchOpen(true)} />
       <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} settings={settings} onSave={saveSettings} auth={state.auth} timeclock={timeclock} onRefresh={refresh} />
       <Toast item={toast} onDismiss={() => setToast(null)} />
-      <Search open={searchOpen} onClose={() => setSearchOpen(false)} tasks={state.tasks} actions={[
-        // the command palette (roadmap 86): typed with > or matched by label
-        { label: 'Clock in', hint: 'Start the day', run: () => punch('in') },
-        { label: 'Clock out', hint: 'End the day', run: () => punch('out') },
-        { label: 'Lunch', hint: 'Start the break', run: () => punch('lunchOut') },
-        { label: 'Back from lunch', hint: 'End the break', run: () => punch('lunchIn') },
-        { label: settings.theme === 'light' ? 'Dark theme' : 'Light theme', hint: 'Switch the theme', run: () => saveSettings({ theme: settings.theme === 'light' ? 'dark' : 'light' }) },
-        { label: settings.density === 'compact' ? 'Comfortable cards' : 'Compact cards', hint: 'Switch the density', run: () => saveSettings({ density: settings.density === 'compact' ? 'comfortable' : 'compact' }) },
-        { label: 'Open the data folder', hint: 'tasks.json and the backups', run: () => window.bench?.openDataFolder?.() },
-        { label: 'New task', hint: 'Quick add', run: () => setQuickOpen(true) },
-        { label: 'New Logbook entry', hint: 'A meeting or a note', run: () => { location.hash = '#/logbook?new=' } },
-        { label: 'Morning brief', hint: 'What the day holds', run: () => setBriefOpen(true) },
-        { label: 'Close the day', hint: 'Roll Today, write the day note', run: () => setCloseOpen(true) },
-        { label: 'Keys', hint: 'Every shortcut', run: () => setKeysOpen(true) },
-        { label: 'Wall mode', hint: 'The board for a big screen', run: () => { location.hash = '#/wall' } },
-        { label: 'Weekly review', hint: 'What moved and what did not', run: () => { location.hash = '#/review' } },
-        { label: 'Machines', hint: 'One page per machine', run: () => { location.hash = '#/machines' } },
-        { label: 'Check for updates', hint: 'Ask GitHub now', run: () => api.checkUpdates(true).then(u => showToast({ text: u.newer ? `Bench ${u.latest} is out.` : `Bench ${u.current} is the latest.`, plain: true })).catch(() => {}) }
-      ]} />
+      <Search open={searchOpen} onClose={() => setSearchOpen(false)} tasks={state.tasks}
+        actions={paletteActions({ settings, punch, saveSettings, openQuickAdd: () => setQuickOpen(true), openBrief: () => setBriefOpen(true), openClose: () => setCloseOpen(true), openKeys: () => setKeysOpen(true) })} />
       <Shortcuts open={keysOpen} onClose={() => setKeysOpen(false)} />
       <MorningBrief open={briefOpen} onClose={() => setBriefOpen(false)} onChanged={refresh} />
       <EveningClose open={closeOpen} onClose={() => setCloseOpen(false)} onChanged={refresh} />
@@ -300,86 +269,14 @@ export default function App() {
       {!onLunch && <OpenDay clock={timeclock.clock} onClose={closeDay} onDismiss={dismissDay} />}
 
       <Suspense fallback={<PageSkeleton />}>
-      <AnimatePresence mode="wait">
-        {r === '' && page('home', <Landing scene={scene} stats={stats} pressing={pressing} sheetState={sheetState} doorImages={{ board: boardImage, procurement: { src: sceneAt('dusk', now).terrain, fallback: '/terrain/dusk.jpg' }, tools: { src: sceneAt('night', now).terrain, fallback: '/terrain/night.jpg' }, cockpit: cockpitCover(now), logbook: { src: sceneAt('dusk', now, 3).terrain, fallback: '/terrain/dusk.jpg' }, napkin: { src: sceneAt('day', now, 3).terrain, fallback: '/terrain/day.jpg' } }} name={settings.name} late={workingLate} hoursIn={hoursIn} />)}
-
-        {onLunch && page('lunch', <Lunch clock={timeclock.clock} punch={punch} now={now} scene={scene} />)}
-
-        {r === 'machines' && page('machines', <>
-          <TerrainHeader compact scene={sceneAt('night', now, 2)} title="Machines" line="Everything that hangs on one machine: tasks, orders, tickets, notes and maps, in one place."
-            aside={<Aside n={machineCount} label={machineCount === 1 ? 'machine' : 'machines'} tone="var(--accent)" />} />
-          <div className="relative"><Machines tasks={state.tasks} onPatch={onPatch} onDelete={onDelete} /></div>
-        </>)}
-
-        {r === 'review' && page('review', <>
-          <TerrainHeader compact scene={sceneAt('day', now, 2)} title="Review" line="The week as short sentences: done, slipped, hours, what moved." />
-          <div className="relative"><Review /></div>
-        </>)}
-
-        {r === 'board' && page('board', <>
-          <TerrainHeader compact scene={{ ...scene, terrain: boardImage.src, fallback: boardImage.fallback }} title="Board" line={SHEETS[0].body}
-            aside={<Aside n={stats.today} label="of 5 on today" tone={stats.today > 5 ? STATUS.overdue : 'var(--accent)'} />} />
-          <div className="relative">
-          <Coach id="board" steps={COACH.board} />
-          <main className="mx-auto col px-6">
-            <SourceFilter tasks={state.tasks} value={sourceFilter} onChange={setSourceFilter} />
-            <PeopleFilter tasks={state.tasks} value={peopleFilter} onChange={setPeopleFilter} name={settings.name} />
-            <Inbox tasks={state.tasks} />
-            <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
-              <Lane laneKey="today" wide tasks={byLane('today')} onPatch={onPatch} onDelete={onDelete} onCreate={onCreate} />
-              {['innovation', 'waiting', 'active', 'parked'].map(k => <Lane key={k} laneKey={k} tasks={byLane(k)} onPatch={onPatch} onDelete={onDelete} onCreate={onCreate} />)}
-            </div>
-            <div className="mt-4"><Changes /></div>
-          </main>
-          </div>
-        </>)}
-
-        {r === 'procurement' && page('proc', <>
-          <TerrainHeader compact scene={sceneAt('dusk', now)} title="Procurement" line={SHEETS[1].body}
-            aside={<Aside n={pressing.length} label="order dates in 14 days" tone={late ? STATUS.overdue : pressing.length ? STATUS.caution : STATUS.done} />} />
-          <div className="relative">
-          <Coach id="procurement" steps={COACH.procurement} />
-          <main className="mx-auto col flex flex-col gap-4 px-6">
-            {pressing.length ? <LeadTime items={pressing} /> :
-              <section className="panel p-7"><h2 className="display text-[30px] font-semibold leading-none">Order dates.</h2>
-                <p className="mt-3 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>Nothing inside 14 days. Add an order-by date to any task with a lead time worth tracking; the supplier and the PO number go on the same card once it is ordered.</p></section>}
-            {later.length > 0 && <LeadTime items={later} compact title="Later, and ordered." span={`${later.length} more`} />}
-            <BomParts tasks={state.tasks} />
-          </main>
-          </div>
-        </>)}
-
-        {r === 'logbook' && page('logbook', <>
-          <TerrainHeader compact scene={sceneAt('dusk', now, 3)} title="Logbook" line={SHEETS[3].body}
-            aside={<Aside n={logCount} label={logCount === 1 ? 'entry' : 'entries'} tone="var(--accent)" />} />
-          <div className="relative">
-          <Coach id="logbook" steps={COACH.logbook} />
-          <Logbook onRefresh={refresh} />
-          </div>
-        </>)}
-
-        {r === 'napkin' && page('napkin', <>
-          <TerrainHeader compact scene={sceneAt('day', now, 3)} title="Napkin" line={SHEETS[4].body} />
-          <div className="relative">
-          <Coach id="napkin" steps={COACH.napkin} />
-          <Napkin />
-          </div>
-        </>)}
-
-        {r === 'tools' && page('tools', <>
-          <TerrainHeader compact scene={sceneAt('night', now)} title="Tools" line={SHEETS[2].body}
-            aside={<Aside n={open.filter(t => t.source && t.source !== 'local').length} label="assigned to you" tone="var(--accent)" />} />
-          <div className="relative"><Tools state={state} onPatch={onPatch} onDelete={onDelete} onRefresh={refresh} onConnect={() => setSettingsOpen(true)} /></div>
-        </>)}
-
-        {r === 'hours' && page('hours', <>
-          <TerrainHeader compact scene={sceneAt('dawn', now, 2)} title="Hours" line="The month as the Zeiterfassung sheet sees it, with what still waits to be written." />
-          <div className="relative"><Hours clock={timeclock.clock} /></div>
-        </>)}
-      </AnimatePresence>
+        <Routes r={r} onLunch={onLunch} now={now} scene={scene} boardImage={boardImage}
+          state={state} settings={settings} open={open} stats={stats} pressing={pressing} later={later} late={late} sheetState={sheetState} machineCount={machineCount} logCount={logCount} workingLate={workingLate} hoursIn={hoursIn}
+          sourceFilter={sourceFilter} setSourceFilter={setSourceFilter} peopleFilter={peopleFilter} setPeopleFilter={setPeopleFilter} byLane={byLane}
+          refresh={refresh} onPatch={onPatch} onDelete={onDelete} onCreate={onCreate} punch={punch} openSettings={openSettings}
+          timeclock={timeclock} />
       </Suspense>
 
-      <Footer compact={inner} name={settings.name} version={state.version} scene={scene} glow={light && scene.light ? scene.light.glow : scene.glow} now={now} onSettings={() => setSettingsOpen(true)} />
+      <Footer compact={inner} name={settings.name} version={state.version} scene={scene} glow={light && scene.light ? scene.light.glow : scene.glow} now={now} onSettings={openSettings} />
     </div>
   )
 }

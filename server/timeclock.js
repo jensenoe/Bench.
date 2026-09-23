@@ -20,7 +20,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { getTokenSilent } from './auth.js'
-import { bridge } from './bridge.js'
+import { notify } from './notify.js'
 import * as settings from './settings.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -356,7 +356,7 @@ async function tick() {
   const weekday = now.getDay() >= 1 && now.getDay() <= 5
   if (weekday && !state.notified.lunch && now >= lunch && now < end && !['lunch', 'out'].includes(state.status)) {
     state.notified.lunch = true; save()
-    bridge.notify?.({
+    notify({
       title: 'Lunch',
       body: state.status === 'in' ? 'It is twelve. Clock out for lunch and the break starts counting.' : 'It is twelve. You are not clocked in today.',
       route: '#/lunch'
@@ -368,7 +368,7 @@ async function tick() {
     state.notified.digest = state.date; save()
     try {
       const lines = digestSource()
-      if (lines.length) bridge.notify?.({ title: lines.length === 1 ? 'One thing for today' : `${lines.length} things for today`, body: lines.slice(0, 3).join('\n'), route: '#/' })
+      if (lines.length) notify({ title: lines.length === 1 ? 'One thing for today' : `${lines.length} things for today`, body: lines.slice(0, 3).join('\n'), route: '#/' })
     } catch (err) { console.warn('[digest]', err.message) }
   }
 
@@ -377,7 +377,7 @@ async function tick() {
     const started = state.events.filter(e => e.kind === 'lunchOut').at(-1)
     if (started && new Date(started.at) < end) {
       record('lunchIn', end, { auto: true })
-      bridge.notify?.({ title: 'Back', body: 'Lunch ended at 12:30. You are clocked in again.', route: '#/' })
+      notify({ title: 'Back', body: 'Lunch ended at 12:30. You are clocked in again.', route: '#/' })
     }
   }
 

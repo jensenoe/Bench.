@@ -13,7 +13,8 @@ const TOOLS = [
   { label: 'Cockpit', url: 'https://cockpit.tom.fit/dashboard' },
   { label: 'Issue tickets', url: 'https://issues.tom.fit/' },
   { label: 'QMS', url: 'https://tf-hw-qms.vercel.app/' },
-  { label: 'Structured BOM', url: 'https://oetwil-structured-bom.vercel.app/' }
+  { label: 'Structured BOM', url: 'https://oetwil-structured-bom.vercel.app/' },
+  { label: 'Innovation dashboard', url: 'https://innovation.tom.fit/dashboard.html' }
 ]
 const ver = v => v ? `v${String(v).replace(/-beta\.(\d+)/, ' beta $1')}` : ''
 
@@ -39,6 +40,7 @@ export default function Footer({ name, version, scene, glow, now = new Date(), o
           <a href="#/hours" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Hours</a>
           <a href="#/machines" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Machines</a>
           <a href="#/review" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Review</a>
+          <a href="#/playbooks" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Playbooks</a>
           <button onClick={onSettings} className="-my-1 inline-block py-1 hover:underline underline-offset-2">Settings</button>
         </nav>
         <span className="tnum flex flex-wrap gap-x-4"><span>{scene?.label || 'Day'} light</span><span>next picture {nextHour}</span>{version ? <span>{ver(version)}</span> : null}</span>
@@ -70,6 +72,7 @@ export default function Footer({ name, version, scene, glow, now = new Date(), o
               <li><a href="#/hours" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Hours</a></li>
               <li><a href="#/machines" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Machines</a></li>
               <li><a href="#/review" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Review</a></li>
+              <li><a href="#/playbooks" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Playbooks</a></li>
               <li><button onClick={onSettings} className="-my-1 inline-block py-1 hover:underline underline-offset-2" style={{ color: 'var(--ink-2)' }}>Settings</button></li>
             </Col>
             <Col title="Tools">

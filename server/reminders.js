@@ -12,7 +12,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { bridge } from './bridge.js'
+import { notify } from './notify.js'
 import * as store from './store.js'
 import * as leadtimes from './leadtimes.js'
 import * as drift from './drift.js'
@@ -89,7 +89,7 @@ function chaseTick(today) {
   let sent = 0
   for (const c of chase()) {
     if (m.chased[c.id] === date) continue
-    bridge.notify?.(chaseMessage(c))
+    notify(chaseMessage(c))
     m.chased[c.id] = date
     sent++
   }
@@ -110,7 +110,7 @@ async function driftTick(today) {
   const r = await drift.check(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`)
   if (!r.ok) return false                       // no token or a Graph error: try again next Monday tick
   m.drift = date; save()
-  if (r.rows.length) { bridge.notify?.(driftMessage(new Set(r.rows.map(x => x.date)).size)); return true }
+  if (r.rows.length) { notify(driftMessage(new Set(r.rows.map(x => x.date)).size)); return true }
   return false
 }
 

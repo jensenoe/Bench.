@@ -14,7 +14,7 @@ same page is the no-install version: keep it in any folder and run it from there
 
 ---
 
-**0.11, second beta (0.11.0-beta.2).** Everything here works on my machine and on the mocks; the
+**0.11, third beta (0.11.0-beta.3).** Everything here works on my machine and on the mocks; the
 Microsoft paths (Planner, the hours workbook, the issue list, the calendar) still want a
 first real run in the tom.fit tenant, and the issue list and calendar need a one-time admin
 approval, see below.
@@ -57,7 +57,7 @@ Administrator; `build-exe.bat plain` skips the icon stamping instead, and `build
 Bump `version` in `package.json`, commit, then tag and push:
 
 ```bash
-git tag v0.11.0-beta.3 && git push --tags
+git tag v0.11.0-beta.4 && git push --tags
 ```
 
 The *Release* workflow in `.github/workflows/release.yml` builds both exes on a Windows
@@ -84,7 +84,19 @@ without publishing and leaves the exes as a workflow artifact.
   that drops away queues the writes; backups list, restore and mirror to OneDrive; Settings > This
   machine shows the health checks with Copy diagnostics.
 - **Focus, review, wall.** Focus on a Today card runs a timer whose minutes land on the task. `#/review`
-  is the week as short sentences with a mail draft. `#/wall` is the board for a workshop screen.
+  is the week as short sentences with a mail draft and the hours per machine as a CSV. `#/wall` is the
+  board for a workshop screen.
+- **Bench speaks MCP.** `scripts/mcp.mjs` is a Model Context Protocol server: register it once with
+  `claude mcp add bench -- node <repo>\scripts\mcp.mjs` and Claude can read and write the board, the
+  Logbook, machines, hours and the review while Bench runs. Nothing leaves the machine. See `docs/mcp.md`.
+- **Playbooks, passport, suppliers.** `#/playbooks` applies a standard task set to a machine and makes a
+  template from a finished one. Each machine has a printable passport, its whole history on one page.
+  With mail reading on, order confirmations and delivery notes in Outlook set the order and delivery
+  dates by themselves, and Procurement shows the suppliers' lead times and hit rate.
+- **The phone.** Settings > Tools > Phone view with a PIN serves a small page on the workshop network:
+  the brief, Today ticks, the clock, quick add, and a camera button that drops a photo into the inbox.
+- **The bell.** Every notification Bench sent is in the bell in the nav, so nothing said once is lost.
+  Quiet hours in Settings > You keep the evening and the weekend silent.
 - **Drag and drop.** Cards move between lanes by dragging; the lane lights up when it will take the
   card, red when Today is full. The lane menu on the card still works.
 - **Today is a rule.** Five open tasks. The server refuses a sixth from you with "Today is full";

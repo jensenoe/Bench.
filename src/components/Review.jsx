@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CaretLeft, CaretRight, Copy, EnvelopeSimple } from '@phosphor-icons/react'
+import { CaretLeft, CaretRight, Copy, EnvelopeSimple, DownloadSimple } from '@phosphor-icons/react'
 import * as day from '../api/day.js'
 import { openExternal } from '../api.js'
 import { shortDate, fmtDate } from '../lanes.js'
@@ -82,7 +82,7 @@ export default function Review() {
           <Panel title="Logbook" n={r.logbook.length} empty="Nothing written this week.">
             {r.logbook.map(e => <li key={e.id} className="row flex items-baseline gap-3 px-3.5 py-2.5 text-[13.5px]">
               <span className="tnum shrink-0" style={{ color: 'var(--ink-3)' }}>{shortDate(new Date(e.date + 'T12:00:00')).slice(0, 3)}</span>
-              <a href={`#/logbook?entry=${e.id}`} className="min-w-0 flex-1 truncate underline-offset-2 hover:underline" title={e.title}>{e.title}</a>
+              <a href={`#/logbook?entry=${e.id}`} className="-my-[2px] min-w-0 flex-1 truncate py-[2px] underline-offset-2 hover:underline" title={e.title}>{e.title}</a>
             </li>)}
           </Panel>
         </div>
@@ -93,7 +93,84 @@ export default function Review() {
         <button onClick={mail} disabled={!r} className="pill flex items-center gap-1.5 px-4 py-2 text-[13.5px] font-medium disabled:opacity-50" style={{ background: 'var(--accent)', color: 'var(--accent-ink)' }}><EnvelopeSimple size={13} weight="bold" /> Draft a mail</button>
         <span className="text-[13px]" style={{ color: 'var(--ink-3)' }}>The mail opens in your mail app with the week as short sentences.</span>
       </div>
+
+      <Cost />
     </main>
+  )
+}
+
+// ── cost per machine (roadmap 115) ────────────────────────────────────
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const monthLabel = ym => `${MONTHS[Number(ym.slice(5, 7)) - 1]} ${ym.slice(2, 4)}`
+const h = n => n ? n.toLocaleString('de-CH', { maximumFractionDigits: 1 }) : ''
+const chf = n => n === null || n === undefined ? '' : n.toLocaleString('de-CH', { maximumFractionDigits: 0 })
+
+/** Hours per machine per month from the sizes of ticked tasks, a cost column when Settings has a rate, and the CSV. */
+function Cost() {
+  const [months, setMonths] = useState(3)
+  const [c, setC] = useState(null)
+  const [err, setErr] = useState(null)
+  useEffect(() => {
+    let on = true
+    const load = () => day.getCost(months).then(x => { if (on) { setC(x); setErr(null) } }).catch(e => on && setErr(e.message))
+    load()
+    addEventListener('bench:refresh', load)
+    return () => { on = false; removeEventListener('bench:refresh', load) }
+  }, [months])
+  const withCost = c && c.hourlyRate > 0
+  const cellCls = 'tnum px-3 py-2 text-right text-[13.5px]'
+  const headCls = 'px-3 py-2 text-right text-[13px] font-medium'
+  return (
+    <section className="panel mt-4 p-6 sm:p-7" aria-label="Cost">
+      <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+        <h3 className="display text-[22px] font-semibold leading-none">Cost.</h3>
+        <span className="flex items-center gap-2 text-[13px]" style={{ color: 'var(--ink-3)' }}>
+          {[3, 6, 12].map(n => <button key={n} onClick={() => setMonths(n)} aria-pressed={months === n} className="pill min-h-6 px-2.5 py-0.5 text-[13px]" style={months === n ? { background: 'var(--row)', border: '1px solid var(--line-2)', color: 'var(--ink)' } : { border: '1px solid transparent' }}>{n} months</button>)}
+        </span>
+      </header>
+      <p className="mt-1.5 max-w-[65ch] text-[13px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>
+        Hours are the sizes of the tasks ticked in each month, by machine. Focus time already sits in the size, so nothing is counted twice.
+        {withCost ? ` Cost at ${c.hourlyRate.toLocaleString('de-CH')} CHF an hour, the rate in Settings.` : ' Set an hourly rate in Settings > Hours and a cost column appears.'}
+      </p>
+      {err && <p role="alert" className="mt-3 text-[13.5px]" style={{ color: 'var(--late)' }}>{err}</p>}
+      {c && c.byMachine.length === 0 && <p className="mt-3 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>No sized tasks were ticked in these months. Give a task a size before you tick it and it counts here.</p>}
+      {c && c.byMachine.length > 0 && (
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full border-collapse text-left">
+            <thead>
+              <tr style={{ color: 'var(--ink-3)', borderBottom: '1px solid var(--line-2)' }}>
+                <th className="px-3 py-2 text-[13px] font-medium">Machine</th>
+                {c.months.map(m => <th key={m} className={headCls}>{monthLabel(m)}</th>)}
+                <th className={headCls}>Hours</th>
+                {withCost && <th className={headCls}>CHF</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {c.byMachine.map(r => (
+                <tr key={r.project} style={{ borderBottom: '1px solid var(--line)' }}>
+                  <td className="px-3 py-2 text-[14px]">{r.project}</td>
+                  {c.months.map(m => <td key={m} className={cellCls} style={{ color: r.hours[m] ? 'var(--ink)' : 'var(--ink-3)' }}>{h(r.hours[m]) || '·'}</td>)}
+                  <td className={`${cellCls} font-semibold`}>{h(r.total)}</td>
+                  {withCost && <td className={`${cellCls} font-semibold`}>{chf(r.cost)}</td>}
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr style={{ color: 'var(--ink-2)' }}>
+                <td className="px-3 py-2 text-[13.5px] font-medium">Total</td>
+                {c.months.map(m => <td key={m} className={cellCls}>{h(c.byMonth[m]) || '·'}</td>)}
+                <td className={`${cellCls} font-semibold`}>{h(c.totalHours)}</td>
+                {withCost && <td className={`${cellCls} font-semibold`}>{chf(c.totalCost)}</td>}
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <a href={day.costCsvUrl(months)} download className="pill inline-flex min-h-[32px] items-center gap-1.5 px-4 py-1.5 text-[13.5px] font-medium" style={{ border: '1px solid var(--line-2)' }}><DownloadSimple size={13} weight="bold" /> CSV for the controller</a>
+        <span className="text-[13px]" style={{ color: 'var(--ink-3)' }}>Semicolons and a decimal comma, so Excel opens it as a table.</span>
+      </div>
+    </section>
   )
 }
 

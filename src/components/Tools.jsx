@@ -4,7 +4,7 @@ import * as api from '../api.js'
 import TaskCard from './TaskCard.jsx'
 import { STATUS } from '../scenes.js'
 
-const ORDER = ['issues', 'qms', 'bom', 'planner']
+const ORDER = ['issues', 'qms', 'bom', 'planner', 'innovation']
 
 /**
  * The four tools as one status list, then what each one has assigned to you.

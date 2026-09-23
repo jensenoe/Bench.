@@ -19,7 +19,7 @@ const TENANT_ID = process.env.AZURE_TENANT_ID || DEFAULT_TENANT_ID
 // is asked for separately and its absence never blocks the sign-in itself.
 const g = s => s.startsWith('http') ? s : `https://graph.microsoft.com/${s}`
 const CORE = ['Tasks.ReadWrite', 'Files.ReadWrite'].map(g)
-const EXTRA = ['Sites.Read.All', 'Calendars.Read'].map(g)
+const EXTRA = ['Sites.Read.All', 'Calendars.Read', 'Mail.Read'].map(g)   // Mail.Read: order confirmations and delivery notes (roadmap 113)
 const ENV_EXTRA = (process.env.GRAPH_SCOPES || '').split(/[,\s]+/).filter(Boolean).map(g).filter(s => !CORE.includes(s))
 const SCOPES = [...new Set([...CORE, ...EXTRA, ...ENV_EXTRA])]
 const EXTRA_ALL = [...new Set([...EXTRA, ...ENV_EXTRA])]

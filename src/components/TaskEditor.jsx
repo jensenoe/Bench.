@@ -5,6 +5,7 @@ import DateField from './DateField.jsx'
 import { STATUS } from '../scenes.js'
 import { fmtDate } from '../lanes.js'
 import { suggestOrderBy } from '../api/leadtimes.js'
+import { getMachines } from '../api/machines.js'
 
 const L = ({ label, children, span }) => (
   <label className={`block text-[13px] ${span ? 'col-span-2' : ''}`} style={{ color: 'var(--ink-3)' }}>{label}{children}</label>
@@ -73,6 +74,16 @@ function LeadTimeHint({ task, onPatch }) {
  */
 export default function TaskEditor({ task, onPatch, onClose }) {
   const [f, setF] = useState(() => draft(task))
+  // Machine as a field (roadmap 105): the known machines feed the Project input's list; free text still goes.
+  const [machines, setMachines] = useState([])
+  const [machineOffered, setMachineOffered] = useState(true)
+  useEffect(() => {
+    let on = true
+    getMachines().then(ms => { if (on) setMachines((Array.isArray(ms) ? ms : []).map(m => m.name).filter(Boolean)) }).catch(() => { /* the field stays free text */ })
+    return () => { on = false }
+  }, [])
+  // A BOM task knows its machine; offer it once while the project is empty.
+  const useMachine = machineOffered && task.source === 'bom' && task.meta?.machine && !task.project ? task.meta.machine : null
   useEffect(() => { setF(draft(task)) }, [task.id, task.updatedAt])   // eslint-disable-line react-hooks/exhaustive-deps
   const set = (k, v) => setF(s => ({ ...s, [k]: v }))
   const commit = (k) => {
@@ -99,9 +110,18 @@ export default function TaskEditor({ task, onPatch, onClose }) {
         <L label="Lead">
           <input value={f.lead} placeholder="you, unless someone else carries it" onChange={e => set('lead', e.target.value)} onBlur={() => commit('lead')} onKeyDown={onKey('lead')} className={inp} />
         </L>
-        <L label="Project">
-          <input value={f.project} placeholder={task.meta?.machine || task.planTitle || 'machine, build, programme'} onChange={e => set('project', e.target.value)} onBlur={() => commit('project')} onKeyDown={onKey('project')} className={inp} />
-        </L>
+        <div>
+          <L label="Project">
+            <input list={`machines-${task.id}`} autoComplete="off" value={f.project} placeholder={task.meta?.machine || task.planTitle || 'machine, build, programme'}
+              onChange={e => { const v = e.target.value; set('project', v); if (machines.includes(v) && v !== (task.project || '')) onPatch(task.id, { project: v }) }}
+              onBlur={() => commit('project')} onKeyDown={onKey('project')} className={inp} />
+            <datalist id={`machines-${task.id}`}>{machines.map(m => <option key={m} value={m} />)}</datalist>
+          </L>
+          {useMachine && (
+            <button type="button" onClick={() => { onPatch(task.id, { project: useMachine }); setMachineOffered(false) }} aria-label={`Use ${useMachine} as the project`}
+              className="pill mt-1.5 inline-flex h-6 items-center px-2.5 text-[12.5px] font-medium" style={{ border: '1px solid var(--line-2)', color: 'var(--ink-2)' }}>Use {useMachine}</button>
+          )}
+        </div>
         <L label="Priority">
           <select value={f.priority ?? ''} onChange={e => { const v = e.target.value === '' ? null : Number(e.target.value); set('priority', v); onPatch(task.id, { priority: v }) }} className={inp + ' cursor-pointer'}>
             {PRIO.map(([v, l]) => <option key={String(v)} value={v ?? ''}>{l}</option>)}

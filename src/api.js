@@ -1,8 +1,4 @@
-const j = async (res) => {
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.statusText)
-  return res.json()
-}
-const H = { 'Content-Type': 'application/json' }
+import { j, H } from './api/http.js'
 export const getState = () => fetch('/api/state').then(j)
 export const createTask = (body) => fetch('/api/tasks', { method: 'POST', headers: H, body: JSON.stringify(body) }).then(j)
 export const patchTask = (id, body) => fetch(`/api/tasks/${id}`, { method: 'PATCH', headers: H, body: JSON.stringify(body) }).then(j)
@@ -25,7 +21,6 @@ export const dismissUnclosed = () => fetch('/api/timeclock/dismiss-unclosed', { 
 export const getMonth = (ym) => fetch(`/api/timeclock/month?ym=${encodeURIComponent(ym)}`).then(j)
 export const probeWorkbook = () => fetch('/api/timeclock/probe').then(j)
 export const checkUpdates = (force = false) => fetch(`/api/updates${force ? '?force=1' : ''}`).then(j)
-export const getSettings = () => fetch('/api/settings').then(j)
 export const saveSettings = (patch) => fetch('/api/settings', { method: 'PUT', headers: H, body: JSON.stringify(patch) }).then(j)
 /** A tom.fit tool in its own signed-in window under Electron; a tab otherwise. */
 export const openTool = (url) => window.bench?.openTool ? window.bench.openTool(url) : window.open(url, '_blank', 'noopener')

@@ -7,11 +7,13 @@ import { PanelSkeleton } from './Skeleton.jsx'
 /**
  * The morning brief (roadmap 68). One panel over the page on the first start of the day: what was
  * left on Today, what the tools brought overnight, what is due, which order dates are close, today's
- * meetings and the state of the time sheet. Each leftover is kept or sent back to Active; "Start the
+ * meetings, the parts to chase, the days the sheet differs (roadmap 108) and the state of the time sheet. Each leftover is kept or sent back to Active; "Start the
  * day." applies that and closes. "Later" (and Escape) only marks the brief seen.
  */
 const toast = (text, by) => window.dispatchEvent(new CustomEvent('bench:toast', { detail: { text, by, plain: true } }))
 const refresh = () => window.dispatchEvent(new Event('bench:refresh'))
+/** "3 days left", "needed today", "late by 2 days". */
+const daysLeft = n => n < 0 ? `late by ${-n === 1 ? 'a day' : `${-n} days`}` : n === 0 ? 'needed today' : n === 1 ? 'a day left' : `${n} days left`
 
 export default function MorningBrief({ open, onClose, onChanged }) {
   const [brief, setBrief] = useState(null)
@@ -52,7 +54,9 @@ export default function MorningBrief({ open, onClose, onChanged }) {
   const toggle = (id, toActive) => setBack(s => { const n = new Set(s); toActive ? n.add(id) : n.delete(id); return n })
 
   const b = brief
-  const empty = b && !b.leftovers.length && !b.arrived.length && !b.due.length && !b.orders.length && !b.meetings.length
+  const chases = b?.chases || []           // parts to chase and the sheet drift came with roadmap 108; an older server has neither
+  const driftDays = b?.drift?.days || 0
+  const empty = b && !b.leftovers.length && !b.arrived.length && !b.due.length && !b.orders.length && !b.meetings.length && !chases.length && !driftDays
   const sheet = b ? (b.sheet.unclosed ? `${fmtDate(b.sheet.unclosed.date)} was never clocked out.` : b.sheet.pending ? (b.sheet.pending === 1 ? 'One punch waiting for the sheet.' : `${b.sheet.pending} punches waiting for the sheet.`) : 'In order.') : ''
 
   return (
@@ -106,6 +110,19 @@ export default function MorningBrief({ open, onClose, onChanged }) {
             {b && b.meetings.length > 0 && (
               <Section title="Meetings" n={b.meetings.length}>
                 {b.meetings.map(m => <Row key={m.id} title={m.subject} lead={m.allDay ? 'all day' : m.start} meta={m.location} />)}
+              </Section>
+            )}
+            {b && chases.length > 0 && (
+              <Section title="To chase" n={chases.length}>
+                {chases.map(c => <Row key={c.id} title={c.title} lead={c.supplier || null} meta={`${c.poNumber ? `PO ${c.poNumber}, ` : ''}${daysLeft(c.daysLeft)}`} tone={c.daysLeft < 0 ? 'var(--late)' : 'var(--caution)'} />)}
+              </Section>
+            )}
+            {b && driftDays > 0 && (
+              <Section title="The sheet differs" n={driftDays}>
+                <li className="text-[13.5px]" style={{ color: 'var(--caution)' }}>
+                  The sheet and Bench disagree on {driftDays === 1 ? 'one day' : `${driftDays} days`}.{' '}
+                  <a href="#/hours" onClick={later} className="-my-1 inline-block py-1 underline underline-offset-2" style={{ color: 'var(--ink-2)' }}>The Hours page marks them</a>
+                </li>
               </Section>
             )}
             {b && !empty && (

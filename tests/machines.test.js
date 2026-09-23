@@ -193,3 +193,64 @@ describe('assign', () => {
     expect(m.list().find(x => x.key === 'presse 30')).toBeUndefined()
   })
 })
+
+describe('passportFrom', () => {
+  const data = () => ({
+    tasks: [
+      task({ id: 'p1', title: 'Order bearing', project: 'Machine 14', createdAt: '2026-09-01T08:00:00.000Z', supplier: 'SKF', poNumber: '4711', orderedOn: '2026-09-03', deliveredOn: '2026-09-12', done: true, completedAt: '2026-09-13T09:00:00.000Z' }),
+      task({ id: 'p2', title: 'Fit bearing', project: 'Machine 14', createdAt: '2026-09-10T08:00:00.000Z', effortHours: 2 }),
+      task({ id: 'p3', title: 'Spindle noise', source: 'issues', meta: { machine: 'Machine 14', priority: 'High' }, sourceStatus: 'Resolved', createdAt: '2026-09-05T08:00:00.000Z', done: true, completedAt: '2026-09-08T08:00:00.000Z' }),
+      task({ id: 'p4', title: 'Frame bolts', source: 'bom', meta: { machine: 'Machine 14', supplier: 'Bossard', orderNumber: 'B-9', orderedOn: '2026-09-06' }, createdAt: '2026-09-06T08:00:00.000Z' }),
+      task({ id: 'p5', title: 'Elsewhere', project: 'Machine 7', createdAt: '2026-09-20T08:00:00.000Z' })
+    ],
+    entries: [
+      { id: 'e1', title: 'Acceptance', date: '2026-09-11', project: 'Machine 14', attendees: ['Tom', 'Anna'], decisions: ['Ship on Friday', 'Keep the old guard'], updatedAt: '2026-09-11T12:00:00.000Z' },
+      { id: 'e2', title: 'Unrelated', date: '2026-09-11', project: 'Machine 7', decisions: ['x'], updatedAt: '2026-09-11T12:00:00.000Z' }
+    ],
+    maps: [{ id: 'n1', title: 'Machine 14 upgrade', updatedAt: '2026-09-15T10:00:00.000Z', nodes: { a: {}, b: {} } }, { id: 'n2', title: 'Holiday', updatedAt: '2026-09-16T10:00:00.000Z' }],
+    today: TODAY
+  })
+  it('merges tasks, tickets, orders, deliveries, entries, decisions and maps, newest first', () => {
+    const p = m.passportFrom('Machine 14', data())
+    expect(p.machine.key).toBe('machine 14')
+    expect(p.timeline.map(x => [x.at.slice(0, 10), x.kind, x.title])).toEqual([
+      ['2026-09-15', 'map', 'Machine 14 upgrade'],
+      ['2026-09-13', 'done', 'Order bearing'],
+      ['2026-09-12', 'delivery', 'Order bearing'],
+      ['2026-09-11', 'decision', 'Ship on Friday'],
+      ['2026-09-11', 'decision', 'Keep the old guard'],
+      ['2026-09-11', 'logbook', 'Acceptance'],
+      ['2026-09-10', 'task', 'Fit bearing'],
+      ['2026-09-08', 'issue', 'Spindle noise'],
+      ['2026-09-06', 'order', 'Frame bolts'],
+      ['2026-09-06', 'task', 'Frame bolts'],
+      ['2026-09-05', 'issue', 'Spindle noise'],
+      ['2026-09-03', 'order', 'Order bearing'],
+      ['2026-09-01', 'task', 'Order bearing']
+    ])
+    expect(p.timeline.every(x => x.ref && x.ref.page && x.ref.id)).toBe(true)
+  })
+  it('writes the detail lines and the refs the pages need', () => {
+    const p = m.passportFrom('machine 14', data())
+    const by = (kind, title) => p.timeline.find(x => x.kind === kind && x.title === title)
+    expect(by('order', 'Order bearing').detail).toBe('SKF, PO 4711')
+    expect(by('order', 'Frame bolts').detail).toBe('Bossard, PO B-9')
+    expect(by('delivery', 'Order bearing').ref).toEqual({ page: 'board', id: 'p1' })
+    const issue = p.timeline.filter(x => x.kind === 'issue')
+    expect(issue.map(x => x.detail)).toEqual(['closed, Resolved', 'opened, Resolved, priority High'])
+    expect(by('decision', 'Ship on Friday')).toMatchObject({ detail: 'Acceptance', ref: { page: 'logbook', id: 'e1' } })
+    expect(by('logbook', 'Acceptance').detail).toBe('Tom, Anna, Machine 14')
+    expect(by('task', 'Fit bearing').detail).toBe('created, active, 2 h')
+    expect(by('map', 'Machine 14 upgrade')).toMatchObject({ detail: '2 nodes', ref: { page: 'napkin', id: 'n1' } })
+  })
+  it('sums the summary', () => {
+    const p = m.passportFrom('machine 14', data())
+    expect(p.summary).toEqual({ firstSeen: '2026-09-01', lastActivity: '2026-09-15', open: 2, done: 2, orders: 2, deliveries: 1, entries: 1, decisions: 2, maps: 1 })
+  })
+  it('is null for a key nothing uses and empty for a machine with only a project', () => {
+    expect(m.passportFrom('nowhere', data())).toBeNull()
+    const p = m.passportFrom('machine 7', data())
+    expect(p.timeline.map(x => x.kind)).toEqual(['task', 'decision', 'logbook'])
+    expect(p.summary.open).toBe(1)
+  })
+})

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import { CaretLeft } from '@phosphor-icons/react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { CaretLeft, Printer } from '@phosphor-icons/react'
 import * as api from '../api/machines.js'
 import TaskCard from './TaskCard.jsx'
 import { PanelSkeleton } from './Skeleton.jsx'
@@ -15,6 +15,7 @@ import { LANES } from '../copy.js'
 const LANE_ORDER = ['today', 'active', 'waiting', 'innovation', 'parked']
 const SOURCE_LABEL = { local: 'Board', issues: 'Issues', qms: 'QMS', bom: 'BOM', planner: 'Planner' }
 const keyFromHash = () => new URLSearchParams(location.hash.split('?')[1] || '').get('m')
+const printFromHash = () => new URLSearchParams(location.hash.split('?')[1] || '').get('print') === '1'
 const toast = (text, by) => window.dispatchEvent(new CustomEvent('bench:toast', { detail: { text, by, plain: true } }))
 const plural = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`
 
@@ -87,6 +88,119 @@ const LinkRow = ({ href, title, meta }) => (
     {meta && <span className="tnum text-[13px]" style={{ color: 'var(--ink-3)' }}>{meta}</span>}
   </li>
 )
+
+// ── The passport (roadmap 112) ────────────────────────────────────────
+const KIND = {
+  task: { label: 'task', tone: 'var(--ink-3)' }, done: { label: 'done', tone: STATUS.done },
+  order: { label: 'ordered', tone: STATUS.held }, delivery: { label: 'delivered', tone: STATUS.done },
+  issue: { label: 'issue', tone: STATUS.caution }, qms: { label: 'QMS', tone: STATUS.caution },
+  logbook: { label: 'logbook', tone: 'var(--ink-2)' }, decision: { label: 'decision', tone: 'var(--ink-2)' }, map: { label: 'napkin', tone: 'var(--ink-3)' }
+}
+const refHref = ({ page, id }) => page === 'board' ? `#/board?task=${id}` : page === 'logbook' ? `#/logbook?entry=${id}` : `#/napkin?map=${id}`
+/** "first seen 1 Sep, 2 open, 2 done, 2 orders, 1 delivery, 1 entry": only what is there. */
+function summaryLine(s) {
+  const parts = []
+  if (s.firstSeen) parts.push(`first seen ${fmtDate(s.firstSeen)}`)
+  if (s.lastActivity) parts.push(`last activity ${fmtDate(s.lastActivity)}`)
+  parts.push(`${s.open} open`, `${s.done} done`)
+  if (s.orders) parts.push(plural(s.orders, 'order'))
+  if (s.deliveries) parts.push(plural(s.deliveries, 'delivery', 'deliveries'))
+  if (s.entries) parts.push(plural(s.entries, 'entry', 'entries'))
+  if (s.decisions) parts.push(plural(s.decisions, 'decision'))
+  return parts.join(', ')
+}
+
+/** One line of the timeline: the day, the kind as a small tag, the title, the detail. */
+function TimelineRow({ x, link = true }) {
+  const k = KIND[x.kind] || KIND.task
+  const title = link ? <a href={refHref(x.ref)} className="-my-[2px] min-w-0 flex-1 py-[2px] text-[14px] underline-offset-2 hover:underline">{x.title}</a> : <span className="min-w-0 flex-1 text-[14px]">{x.title}</span>
+  return (
+    <li className="passport-row flex flex-wrap items-baseline gap-x-4 gap-y-1 py-2.5" style={{ borderTop: '1px solid var(--line)' }}>
+      <span className="tnum w-[92px] shrink-0 text-[13px]" style={{ color: 'var(--ink-3)' }}>{fmtDate(x.at)}</span>
+      <span className="pill shrink-0 px-2 py-[1px] text-[12px] font-medium" style={{ color: k.tone, background: `color-mix(in srgb, ${k.tone} 14%, transparent)` }}>{k.label}</span>
+      {title}
+      {x.detail && <span className="text-[13px]" style={{ color: 'var(--ink-3)' }}>{x.detail}</span>}
+    </li>
+  )
+}
+
+function usePassport(machineKey, tasks) {
+  const [p, setP] = useState(null)
+  const [err, setErr] = useState(null)
+  useEffect(() => {
+    let on = true
+    const load = () => api.getPassport(machineKey).then(d => { if (on) { setP(d); setErr(null) } }).catch(e => on && setErr(e.message))
+    load()
+    addEventListener('bench:refresh', load)
+    return () => { on = false; removeEventListener('bench:refresh', load) }
+  }, [machineKey, tasks])
+  return [p, err]
+}
+
+/** The passport on the detail page: the summary, the timeline, and Print, which opens the print view. */
+function PassportPanel({ machineKey, tasks }) {
+  const [p, err] = usePassport(machineKey, tasks)
+  const [all, setAll] = useState(false)
+  if (err) return <Panel title="Passport."><p className="mt-3 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>{err}</p></Panel>
+  if (!p) return <PanelSkeleton rows={5} />
+  const rows = all ? p.timeline : p.timeline.slice(0, 30)
+  return (
+    <Panel title="Passport." aside={plural(p.timeline.length, 'line')}>
+      <p className="mt-1.5 text-[13px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>{summaryLine(p.summary)}.</p>
+      {p.timeline.length === 0 && <p className="mt-3 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>Nothing dated yet. Tasks, orders, deliveries, tickets and Logbook entries will line up here.</p>}
+      <ul className="mt-4 flex flex-col">{rows.map((x, i) => <TimelineRow key={`${x.kind}-${x.ref.id}-${x.at}-${i}`} x={x} />)}</ul>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <a href={`#/machines?m=${encodeURIComponent(machineKey)}&print=1`} className="pill inline-flex min-h-[32px] items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium" style={{ background: 'var(--row)', border: '1px solid var(--line)', color: 'var(--ink-2)' }}><Printer size={13} weight="bold" /> Print</a>
+        {p.timeline.length > 30 && <button onClick={() => setAll(a => !a)} className="min-h-6 text-[13px] underline-offset-2 hover:underline" style={{ color: 'var(--ink-3)' }}>{all ? 'Show the last 30' : `Show all ${p.timeline.length}`}</button>}
+      </div>
+    </Panel>
+  )
+}
+
+/**
+ * The print view (#/machines?m=<key>&print=1): headline, summary and the whole timeline, nothing else.
+ * The print stylesheet hides the rest of the page, sets black on white and page margins; the browser's
+ * print dialog opens once the data is there.
+ */
+const PRINT_CSS = `
+@media print {
+  @page { margin: 18mm 16mm; }
+  body * { visibility: hidden; }
+  .passport-print, .passport-print * { visibility: visible; }
+  .passport-print { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; color: black; background: white; }
+  .passport-print .pill { border: 1px solid black; background: none; color: black; }
+  .passport-print .passport-row { border-top-color: black; break-inside: avoid; }
+  .passport-print a { color: black; text-decoration: none; }
+  .passport-print .no-print, img, video, canvas { display: none; }
+}
+`
+function PassportPrint({ machineKey }) {
+  const [p, err] = usePassport(machineKey, null)
+  const printed = useRef(false)
+  useEffect(() => {
+    if (!p || printed.current) return
+    printed.current = true
+    const t = setTimeout(() => { try { window.print() } catch { /* headless or blocked */ } }, 250)
+    return () => clearTimeout(t)
+  }, [p])
+  const back = <a href={`#/machines?m=${encodeURIComponent(machineKey)}`} className="no-print inline-flex min-h-6 items-center gap-1 text-[13.5px] underline-offset-2 hover:underline" style={{ color: 'var(--ink-3)' }}><CaretLeft size={13} weight="bold" /> Back to the machine</a>
+  if (err) return <div className="flex flex-col gap-4">{back}<p className="text-[14px]" style={{ color: 'var(--ink-3)' }}>{err}</p></div>
+  if (!p) return <div className="flex flex-col gap-4">{back}<PanelSkeleton rows={6} /></div>
+  return (
+    <section className="passport-print panel p-6 sm:p-7">
+      <style>{PRINT_CSS}</style>
+      <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-3">
+        {back}
+        <button onClick={() => window.print()} className="pill inline-flex min-h-[32px] items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium" style={{ background: 'var(--accent)', color: 'var(--accent-ink)' }}><Printer size={13} weight="bold" /> Print</button>
+      </div>
+      <h2 className="display text-[30px] font-semibold leading-none">{p.machine.name}.</h2>
+      <p className="mt-2 text-[14px]" style={{ color: 'var(--ink-2)' }}>Passport, printed {fmtDate(new Date().toISOString())}.</p>
+      <p className="mt-1 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>{summaryLine(p.summary)}.</p>
+      <ul className="mt-5 flex flex-col">{p.timeline.map((x, i) => <TimelineRow key={`${x.kind}-${x.ref.id}-${x.at}-${i}`} x={x} link={false} />)}</ul>
+      {p.timeline.length === 0 && <p className="mt-3 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>Nothing dated yet.</p>}
+    </section>
+  )
+}
 
 /** The quiet last row: this is the same machine as another one, or it has a better name. */
 function Housekeeping({ machine, others, onChanged }) {
@@ -232,6 +346,8 @@ function Detail({ machineKey, machines, tasks, onPatch, onDelete }) {
         </Panel>
       )}
 
+      <PassportPanel machineKey={m.key} tasks={tasks} />
+
       <Housekeeping machine={m} others={others} onChanged={onChanged} />
     </div>
   )
@@ -240,8 +356,9 @@ function Detail({ machineKey, machines, tasks, onPatch, onDelete }) {
 export default function Machines({ tasks = [], onPatch, onDelete }) {
   const [machines, setMachines] = useState(null)
   const [key, setKey] = useState(keyFromHash)
+  const [print, setPrint] = useState(printFromHash)
   useEffect(() => {
-    const on = () => setKey(keyFromHash())
+    const on = () => { setKey(keyFromHash()); setPrint(printFromHash()) }
     addEventListener('hashchange', on); return () => removeEventListener('hashchange', on)
   }, [])
   useEffect(() => {
@@ -254,7 +371,9 @@ export default function Machines({ tasks = [], onPatch, onDelete }) {
 
   return (
     <main className="mx-auto col px-6">
-      {key
+      {key && print
+        ? <PassportPrint machineKey={key} />
+        : key
         ? <Detail machineKey={key} machines={machines || []} tasks={tasks} onPatch={onPatch} onDelete={onDelete} />
         : machines === null ? <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3"><PanelSkeleton rows={2} /><PanelSkeleton rows={2} /></div>
         : machines.length === 0

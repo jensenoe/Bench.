@@ -54,7 +54,7 @@ export default function Health({ compact = false }) {
           {copied === 'Copied.' ? <><Check size={12} weight="bold" /> Copied</> : <><Copy size={12} weight="bold" /> Copy diagnostics</>}
         </button>
         {copied && copied !== 'Copied.' && <span style={{ color: 'var(--caution)' }}>{copied}</span>}
-        {h?.at && <span className="tnum" style={{ color: 'var(--ink-3)' }}>Checked {new Date(h.at).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })}</span>}
+        {h?.at && <span className="tnum" data-volatile style={{ color: 'var(--ink-3)' }}>Checked {new Date(h.at).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })}</span>}
       </div>
     </div>
   )

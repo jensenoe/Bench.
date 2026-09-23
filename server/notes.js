@@ -10,6 +10,7 @@ import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { backupOnce } from './backup.js'
 import { isUnreachable, RETRY_MS } from './store.js'
+import * as db from './db.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DATA_DIR = process.env.BENCH_DATA_DIR || path.join(__dirname, '..', 'data')
@@ -17,20 +18,20 @@ const now = () => new Date().toISOString()
 
 const files = []
 function file(name) {
-  const p = path.join(DATA_DIR, name)
+  const col = db.collection(name, DATA_DIR)   // the <name>.json file by default, a table when BENCH_STORAGE is sqlite (db.js)
   let cache = null
   let offline = null   // { since, error, pending } while the folder is away
   const load = () => {
     if (cache) return cache
-    try { cache = JSON.parse(fs.readFileSync(p, 'utf8')) } catch { cache = { items: [] } }
+    try { cache = col.exists() ? col.read() : { items: [] } } catch { cache = { items: [] } }
     if (!Array.isArray(cache.items)) cache.items = []
     return cache
   }
   const save = () => {
     try {
       fs.mkdirSync(DATA_DIR, { recursive: true })
-      backupOnce(p)
-      fs.writeFileSync(p + '.tmp', JSON.stringify(cache, null, 2)); fs.renameSync(p + '.tmp', p)
+      if (col.file) backupOnce(col.file)
+      col.write(cache)
       if (offline) { console.warn(`[notes] folder is back after ${offline.pending} held write(s) to ${name}`); offline = null }
     } catch (err) {
       if (!isUnreachable(err, DATA_DIR)) throw err
@@ -69,7 +70,7 @@ export function retryWrite() { files.forEach(f => f.retry()); return !status().o
 export function reload() { files.forEach(f => f.reload()) }
 
 // ── Logbook ───────────────────────────────────────────────────────────
-const logbook = file('logbook.json')
+const logbook = file('logbook')
 const ENTRY_FIELDS = ['title', 'date', 'attendees', 'project', 'notes', 'decisions', 'actions', 'tags', 'links']
 /** Files and pages that belong to a meeting: a path on the share, a SharePoint link, a drawing. */
 const cleanLinks = (v) => Array.isArray(v) ? v.map(l => typeof l === 'string' ? { href: l } : l).map(l => {
@@ -110,7 +111,7 @@ export function updateEntry(id, patch = {}) {
 export function deleteEntry(id) { const db = logbook.load(); const i = db.items.findIndex(x => x.id === id); if (i < 0) return false; db.items.splice(i, 1); logbook.save(); return true }
 
 // ── Napkin ────────────────────────────────────────────────────────────
-const napkin = file('napkin.json')
+const napkin = file('napkin')
 const COLORS = ['accent', 'rose', 'amber', 'mint', 'sky', 'plum']
 function cleanNodes(nodes, root) {
   const out = {}

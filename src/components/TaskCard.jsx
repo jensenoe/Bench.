@@ -23,6 +23,30 @@ function Tag({ children, color, title }) {
 
 const PRIO_COLOR = { 1: STATUS.overdue, 2: STATUS.caution, 3: STATUS.muted }
 
+// Size the day (roadmap 106): the four sizes a task can take from the card, in hours.
+const SIZES = [0.5, 1, 2, 4]
+const sizeLabel = h => h === 0.5 ? '½h' : `${h}h`
+const sizeWords = h => h === 0.5 ? 'half an hour' : h === 1 ? 'one hour' : h === 2 ? 'two hours' : h === 4 ? 'four hours' : `${h} hours`
+/** After ½, 1, 2 and 4 comes clear; a size typed by hand steps up to the next one, or clears when past 4. */
+export const nextSize = h => SIZES.find(s => s > h) ?? null
+
+/** Four quiet chips on an unsized open task; on a sized one a single chip that cycles ½, 1, 2, 4, clear. */
+function SizeChips({ task, onPatch }) {
+  const chip = 'tag inline-flex h-6 min-w-6 items-center justify-center rounded-md px-1.5 text-[12px] font-medium tracking-wide'
+  const style = { color: STATUS.muted, background: `color-mix(in srgb, ${STATUS.muted} 14%, transparent)` }
+  const h = Number(task.effortHours) || 0
+  if (!h) {
+    return SIZES.map(s => (
+      <button key={s} onClick={() => onPatch(task.id, { effortHours: s })} aria-label={`Size: ${sizeWords(s)}`} title={`Size: ${sizeWords(s)}`} className={chip} style={style}>{sizeLabel(s)}</button>
+    ))
+  }
+  const next = nextSize(h)
+  return (
+    <button onClick={() => onPatch(task.id, { effortHours: next })} className={chip} style={style}
+      aria-label={`Size: ${sizeWords(h)}. Next: ${next ? sizeWords(next) : 'no size'}`} title={next ? `Size: ${sizeWords(h)}, click for ${sizeWords(next)}` : `Size: ${sizeWords(h)}, click to clear`}>{sizeLabel(h)}</button>
+  )
+}
+
 /**
  * Card ageing (roadmap 90): the hairline follows how long since the task was touched. Two days is the
  * plain line; by day 14 it carries 45 percent caution; from day 30 it is 45 percent late. Tokens only.
@@ -176,6 +200,7 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true, fo
           <button onClick={startFocus} aria-label={`Focus on ${task.title}`} title={`Focus, ${focusMinutes(focusProp)} minutes`}
             className="pill inline-flex h-6 items-center gap-1 px-2 text-[12px] font-medium" style={{ border: '1px solid var(--line-2)', color: 'var(--ink-2)' }}><Timer size={12} weight="bold" />Focus</button>
         )}
+        {!task.done && <SizeChips task={task} onPatch={onPatch} />}
         {task.url && <button onClick={() => openExternal(task.url)} aria-label="Open in the tool" title="Open in the tool"
           className="grid h-6 w-6 place-items-center rounded-md" style={{ color: 'var(--ink-3)' }}><ArrowSquareOut size={12} weight="bold" /></button>}
         <select aria-label="Move to lane" value={task.lane}

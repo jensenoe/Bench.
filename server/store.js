@@ -4,12 +4,14 @@ import { fileURLToPath } from 'node:url'
 import crypto from 'node:crypto'
 import { backupOnce } from './backup.js'
 import * as history from './history.js'
+import * as db from './db.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // Electron sets BENCH_DATA_DIR to a folder next to the executable, so a copy in a
 // shared folder is read by whoever opens it. Plain `npm start` keeps ./data.
 const DATA_DIR = process.env.BENCH_DATA_DIR || path.join(__dirname, '..', 'data')
-const DB_FILE = path.join(DATA_DIR, 'tasks.json')
+/** The tasks collection through the engine in use (db.js): the tasks.json file unless BENCH_STORAGE says sqlite. */
+const col = db.collection('tasks', DATA_DIR)
 
 export const LANES = ['today', 'innovation', 'active', 'waiting', 'parked']
 /** Today holds this many open tasks. A sixth has to wait for one to leave. */
@@ -55,9 +57,9 @@ function scheduleRetry() {
   retryTimer.unref?.()
 }
 
-const mtimeOf = () => { try { return fs.statSync(DB_FILE).mtimeMs } catch { return 0 } }
+const mtimeOf = () => col.mtime()
 function readDisk() {
-  const raw = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'))
+  const raw = col.read()
   if (!raw || typeof raw !== 'object') throw new Error('not an object')
   if (!Array.isArray(raw.tasks)) raw.tasks = []
   if (!raw.meta) raw.meta = structuredClone(EMPTY.meta)
@@ -71,7 +73,7 @@ export function load() {
   if (cache && mtimeOf() !== diskMtime) reconcile()
   if (cache) return cache
   ensureDir()
-  if (!fs.existsSync(DB_FILE)) {
+  if (!col.exists()) {
     cache = structuredClone(EMPTY)
     save()
     return cache
@@ -81,9 +83,9 @@ export function load() {
     remember(cache)
   } catch (err) {
     // Never lose data to a parse error - move it aside and start clean.
-    const bak = DB_FILE + '.corrupt-' + Date.now()
-    fs.copyFileSync(DB_FILE, bak)
-    console.error(`[store] tasks.json unreadable, backed up to ${bak}`)
+    let bak = null
+    try { bak = col.moveAside() } catch (e) { console.error('[store] could not move the unreadable store aside:', e.message) }
+    console.error(`[store] ${col.name} unreadable${bak ? `, backed up to ${bak}` : ''}`)
     cache = structuredClone(EMPTY)
     remember(cache)
   }
@@ -130,10 +132,8 @@ export function save() {
   if (cache && mtimeOf() !== diskMtime) reconcile()   // returns quietly when the disk cannot be read
   try {
     ensureDir()
-    backupOnce(DB_FILE)   // yesterday's state, once a day, before the first write
-    const tmp = DB_FILE + '.tmp'
-    fs.writeFileSync(tmp, JSON.stringify(cache, null, 2), 'utf8')
-    fs.renameSync(tmp, DB_FILE)
+    if (col.file) backupOnce(col.file)   // yesterday's state, once a day, before the first write (the JSON files; sqlite is one file)
+    col.write(cache)                      // temp file and rename on json, one transaction on sqlite
     remember(cache)
     if (offline) { console.warn(`[store] folder is back after ${offline.pending} held write(s)`); offline = null }
   } catch (err) {

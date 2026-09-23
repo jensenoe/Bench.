@@ -128,7 +128,7 @@ export default function Wall({ scene, settings }) {
           {ORDER.map(k => <Column key={k} laneKey={k} tasks={byLane(k)} />)}
         </main>
 
-        <p className="mt-8 text-[16px]" style={{ color: 'var(--ink-3)', textShadow: 'var(--shadow-text-soft)' }}>Read only. Escape goes back to the board. Refreshes every minute.</p>
+        <footer className="mt-8 text-[16px]" style={{ color: 'var(--ink-3)', textShadow: 'var(--shadow-text-soft)' }}>Read only. Escape goes back to the board. Refreshes every minute.</footer>
       </div>
     </div>
   )

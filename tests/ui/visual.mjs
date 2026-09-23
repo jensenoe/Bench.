@@ -1,10 +1,12 @@
 /**
- * Visual regression (roadmap 93). Like the smoke test: the server on a free port with scratch data,
- * the same seed, headless Chromium. Every page at 1440x900 and 2560x1440 in dark and light (28 shots,
- * viewport only) is compared pixel by pixel with tests/ui/baseline/<platform>/<name>.png. A pixel counts as
+ * Visual regression (roadmap 93, 99). Like the smoke test: the server on a free port with scratch data,
+ * the same seed, headless Chromium. Every page at 1440x900 and 2560x1440 in dark and light (40 shots,
+ * viewport only) plus two dialogs at 1440 in both themes (the morning brief, Settings on This machine), 44
+ * shots in all, compared pixel by pixel with tests/ui/baseline/<platform>/<name>.png. A pixel counts as
  * changed when any channel moves more than 24; a shot fails when more than 0.6 percent of its pixels
  * changed. The photographs are hidden before each shot (they change with the slot), the browser clock
- * is fixed and Math.random is seeded, so only the interface is compared.
+ * is fixed and Math.random is seeded, so only the interface is compared. Stamps the server writes with
+ * the real time (backup times, the health check's time) carry data-volatile and are hidden the same way.
  *
  *   npm run test:visual                        compare
  *   UPDATE_BASELINE=1 node tests/ui/visual.mjs rewrite the baselines
@@ -29,13 +31,15 @@ const HAS = fs.existsSync(BASELINE) && fs.readdirSync(BASELINE).some(f => f.ends
 const UPDATE = process.env.UPDATE_BASELINE === '1' || !HAS
 if (!HAS) console.log(`no baselines for ${process.platform} in ${path.relative(root, BASELINE)}: recording them this run`)
 fs.mkdirSync(BASELINE, { recursive: true })
-const PAGES = [['home', ''], ['board', 'board'], ['procurement', 'procurement'], ['tools', 'tools'], ['logbook', 'logbook'], ['napkin', 'napkin'], ['hours', 'hours']]
+// [name, hash route]. The wall has no nav and its heading is not a page title, so it waits for its board instead.
+const PAGES = [['home', ''], ['board', 'board'], ['procurement', 'procurement'], ['tools', 'tools'], ['logbook', 'logbook'], ['napkin', 'napkin'], ['hours', 'hours'], ['review', 'review'], ['machines', 'machines'], ['wall', 'wall']]
+const DIALOGS = ['brief', 'settings-machine']   // at 1440 only, both themes
 const VIEWPORTS = [[1440, 900], [2560, 1440]]
 const THEMES = ['dark', 'light']
 const CHANNEL = 24          // a channel has to move more than this for the pixel to count
 const MAX_RATIO = 0.006     // 0.6 percent of the pixels may differ
 const FROZEN = new Date(2026, 8, 23, 10, 30, 0)   // a Wednesday in September, mid-morning, so the greeting and the scene hold still
-const MASK = '.photo, .grade, .grain { visibility: hidden !important; }'
+const MASK = '.photo, .grade, .grain, [data-volatile] { visibility: hidden !important; }'
 
 if (!fs.existsSync(path.join(root, 'dist', 'index.html'))) { console.error('dist/ missing: run npm run build first'); process.exit(2) }
 const port = await new Promise(r => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)) }) })
@@ -97,6 +101,32 @@ try {
   let written = 0, outWritten = false
   const writeOut = (name, buf) => { if (!outWritten) { fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT, { recursive: true }); outWritten = true } fs.writeFileSync(path.join(OUT, name), buf) }
 
+  /** Take the shot and compare it with (or write) the baseline of that name. */
+  const shoot = async (page, shot) => {
+    await page.addStyleTag({ content: MASK })
+    await page.evaluate(() => document.fonts.ready)
+    await page.waitForTimeout(900)
+    await page.evaluate(() => window.scrollTo(0, 0))
+    const png = await page.screenshot({ fullPage: false, animations: 'disabled', caret: 'hide' })
+    const file = path.join(BASELINE, `${shot}.png`)
+    if (UPDATE) { fs.writeFileSync(file, png); written++; say(true, shot, `${(png.length / 1024).toFixed(0)} KB written`); return }
+    if (!fs.existsSync(file)) { failures.push(shot); say(false, shot, 'no baseline; run UPDATE_BASELINE=1 node tests/ui/visual.mjs'); writeOut(`${shot}.png`, png); return }
+    const res = await judge.evaluate(compareInPage, { a: toDataUrl(fs.readFileSync(file)), b: toDataUrl(png), channel: CHANNEL })
+    if (res.size) { failures.push(shot); say(false, shot, `size differs: ${res.size}`); writeOut(`${shot}.png`, png); return }
+    const ratio = res.count / res.total
+    const ok = ratio <= MAX_RATIO
+    say(ok, shot, `${(ratio * 100).toFixed(2)} percent of pixels changed`)
+    if (!ok) { failures.push(shot); writeOut(`${shot}.png`, png); writeOut(`${shot}.diff.png`, fromDataUrl(res.diff)) }
+  }
+  /** A fresh load of a route: a hash change would be a same-document navigation, with the previous page's exit in the way and the theme read only once. */
+  const open = async (page, r) => {
+    await page.goto('about:blank')
+    await page.goto(`${BASE}/#/${r}`, { waitUntil: 'networkidle' })
+    if (r === 'wall') await page.waitForSelector('main[aria-label="Board"] h2', { timeout: 15000 }).catch(() => {})
+    else await page.waitForSelector('main h1, header h1, h1', { timeout: 15000 }).catch(() => {})
+    await page.waitForFunction(() => !document.querySelector('.skel'), null, { timeout: 15000 }).catch(() => {})
+  }
+
   for (const [w, h] of VIEWPORTS) {
     const context = await browser.newContext({ viewport: { width: w, height: h }, reducedMotion: 'reduce', deviceScaleFactor: 1 })
     // Deterministic randomness: the greeting picks a line at random, so give it the same dice every run.
@@ -109,27 +139,30 @@ try {
       await api('PUT', '/api/settings', { theme })
       await page.goto('about:blank')   // a hash change is a same-document navigation; the theme needs a fresh load
       for (const [name, r] of PAGES) {
-        const shot = `${name}-${w}x${h}-${theme}`
-        // a fresh load for every shot: a hash change would be a same-document navigation, with the previous page's
-        // exit in the way and the theme read only once. Then wait for the page's heading and the skeleton to go.
-        await page.goto('about:blank')
-        await page.goto(`${BASE}/#/${r}`, { waitUntil: 'networkidle' })
-        await page.waitForSelector('main h1, header h1, h1', { timeout: 15000 }).catch(() => {})
-        await page.waitForFunction(() => !document.querySelector('.skel'), null, { timeout: 15000 }).catch(() => {})
-        await page.addStyleTag({ content: MASK })
-        await page.evaluate(() => document.fonts.ready)
-        await page.waitForTimeout(900)
-        await page.evaluate(() => window.scrollTo(0, 0))
-        const png = await page.screenshot({ fullPage: false, animations: 'disabled', caret: 'hide' })
-        const file = path.join(BASELINE, `${shot}.png`)
-        if (UPDATE) { fs.writeFileSync(file, png); written++; say(true, shot, `${(png.length / 1024).toFixed(0)} KB written`); continue }
-        if (!fs.existsSync(file)) { failures.push(shot); say(false, shot, 'no baseline; run UPDATE_BASELINE=1 node tests/ui/visual.mjs'); writeOut(`${shot}.png`, png); continue }
-        const res = await judge.evaluate(compareInPage, { a: toDataUrl(fs.readFileSync(file)), b: toDataUrl(png), channel: CHANNEL })
-        if (res.size) { failures.push(shot); say(false, shot, `size differs: ${res.size}`); writeOut(`${shot}.png`, png); continue }
-        const ratio = res.count / res.total
-        const ok = ratio <= MAX_RATIO
-        say(ok, shot, `${(ratio * 100).toFixed(2)} percent of pixels changed`)
-        if (!ok) { failures.push(shot); writeOut(`${shot}.png`, png); writeOut(`${shot}.diff.png`, fromDataUrl(res.diff)) }
+        await open(page, r)
+        await shoot(page, `${name}-${w}x${h}-${theme}`)
+      }
+      if (w !== 1440) continue
+      // the two dialogs (roadmap 99): the morning brief over the Board, and Settings open on This machine
+      for (const d of DIALOGS) {
+        if (d === 'brief') {
+          await api('PUT', '/api/settings', { morningBrief: true })
+          await open(page, 'board')
+          const brief = page.getByRole('dialog', { name: /Morning/ })
+          await brief.waitFor({ state: 'visible', timeout: 8000 }).catch(() => {})
+          await brief.getByRole('button', { name: /Start the day/ }).waitFor({ state: 'visible', timeout: 8000 }).catch(() => {})
+          await shoot(page, `dialog-brief-${w}x${h}-${theme}`)
+          await api('PUT', '/api/settings', { morningBrief: false })   // off again; never mark it seen, the light run needs it too
+        } else {
+          await open(page, 'board')
+          await page.getByRole('button', { name: 'Settings' }).first().click()
+          const dialog = page.getByRole('dialog', { name: 'Settings' })
+          await dialog.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {})
+          await page.getByRole('tab', { name: 'This machine' }).click()
+          await dialog.getByRole('button', { name: 'Restore' }).first().waitFor({ state: 'visible', timeout: 5000 }).catch(() => {})
+          await dialog.getByRole('button', { name: 'Check again' }).waitFor({ state: 'visible', timeout: 5000 }).catch(() => {})
+          await shoot(page, `dialog-settings-machine-${w}x${h}-${theme}`)
+        }
       }
     }
     await context.close()

@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld('bench', {
   /** open a tom.fit tool in its own window on the shared, signed-in session */
   openTool: (url) => ipcRenderer.invoke('bench:open-tool', url),
   chooseDataFolder: () => ipcRenderer.invoke('bench:choose-data-folder'),
+  /** any folder (Settings > Tools, the camera roll); resolves to { path } or { path: null } */
+  chooseFolder: (defaultPath) => ipcRenderer.invoke('bench:choose-folder', defaultPath),
   relaunch: () => ipcRenderer.invoke('bench:relaunch'),
   /** append a line to bench.log in the profile; open the folder that holds it */
   log: (line) => ipcRenderer.invoke('bench:log', line),

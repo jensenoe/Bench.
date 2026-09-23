@@ -53,6 +53,10 @@ describe('tick', () => {
     expect(r1.chase).toBe(1)
     expect(sent[0].title).toBe('Chase it.')
     expect(sent[0].body).toMatch(/Chase me: Bosch, PO PO-9/)
+    // the same notification is in the history the Bell reads (roadmap 107)
+    const history = JSON.parse(fs.readFileSync(path.join(dir, 'notifications.json'), 'utf8')).items
+    expect(history[0]).toMatchObject({ title: 'Chase it.', route: '#/procurement', read: false })
+    expect(history[0].body).toMatch(/Chase me: Bosch, PO PO-9/)
     const r2 = await rem.tick(new Date())
     expect(r2.chase).toBe(0)
     const d = new Date()

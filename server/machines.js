@@ -157,6 +157,69 @@ export function detailFrom(key, data = {}) {
   return { machine: publicMachine(m), tasks: grouped, bySource, procurement, entries: ownEntries, maps: ownMaps, mentions }
 }
 
+// ── The passport (roadmap 112) ────────────────────────────────────────
+/** Which tools count as a ticket rather than a task. */
+const TICKET_KIND = { issues: 'issue', qms: 'qms' }
+const at = v => (typeof v === 'string' && v.length >= 10) ? v : null
+const words = (...parts) => parts.filter(Boolean).join(', ')
+
+/**
+ * One timeline per machine, merged from everything that names it: tasks (created, completed, ordered,
+ * delivered), Issues and QMS tickets (opened, closed), Logbook entries with each decision as its own line,
+ * napkin maps. Newest first. Pure like detailFrom; null when the key names nothing.
+ *   timeline  [{ at, kind, title, detail, ref: { page, id } }]
+ *   summary   { firstSeen, lastActivity, open, done, orders, deliveries, entries, decisions, maps }
+ */
+export function passportFrom(key, data = {}) {
+  const { tasks = [], entries = [], maps = [], aliases = {} } = data
+  const k = resolveKey(key, aliases)
+  const m = machinesFrom(data).find(x => x.key === k)
+  if (!m) return null
+  const mine = new Set(m.tasks)
+  const line = (when, kind, title, detail, ref) => ({ at: when, kind, title, detail: detail || null, ref })
+  const timeline = []
+  for (const t of tasks) {
+    if (!mine.has(t.id)) continue
+    const ref = { page: 'board', id: t.id }
+    const ticket = TICKET_KIND[t.source] || null
+    const created = at(t.createdAt)
+    if (created) timeline.push(line(created, ticket || 'task', t.title, ticket ? words('opened', t.sourceStatus, t.meta?.priority && `priority ${t.meta.priority}`) : words('created', t.lane, t.effortHours ? `${t.effortHours} h` : null), ref))
+    const doneAt = t.done ? at(t.completedAt || t.updatedAt) : null
+    if (doneAt) timeline.push(line(doneAt, ticket || 'done', t.title, ticket ? words('closed', t.sourceStatus) : 'done', ref))
+    const ordered = at(t.orderedOn || t.meta?.orderedOn)
+    const supplier = t.supplier || t.meta?.supplier || null, po = t.poNumber || t.meta?.orderNumber || null
+    if (ordered) timeline.push(line(ordered, 'order', t.title, words(supplier, po && `PO ${po}`) || 'ordered', ref))
+    const delivered = at(t.deliveredOn || t.meta?.deliveredOn)
+    if (delivered) timeline.push(line(delivered, 'delivery', t.title, words(supplier, po && `PO ${po}`) || 'delivered', ref))
+  }
+  const entryIds = new Set(m.entryIds)
+  for (const e of entries) {
+    if (!entryIds.has(e.id) || !at(e.date)) continue
+    const ref = { page: 'logbook', id: e.id }
+    timeline.push(line(e.date, 'logbook', e.title, words((e.attendees || []).slice(0, 4).join(', '), e.project) || null, ref))
+    for (const d of e.decisions || []) timeline.push(line(e.date, 'decision', d, e.title, ref))
+  }
+  const mapIds = new Set(m.mapIds)
+  for (const x of maps) if (mapIds.has(x.id) && at(x.updatedAt || x.createdAt)) timeline.push(line(x.updatedAt || x.createdAt, 'map', x.title, Object.keys(x.nodes || {}).length ? `${Object.keys(x.nodes).length} nodes` : null, { page: 'napkin', id: x.id }))
+
+  // Newest day first; inside a day a task's creation sits under what happened to it later, then the clock decides.
+  const RANK = { task: 0, issue: 0, qms: 0, logbook: 1, map: 1, decision: 2, order: 3, delivery: 4, done: 5 }
+  timeline.sort((a, b) => b.at.slice(0, 10).localeCompare(a.at.slice(0, 10)) || (RANK[b.kind] ?? 0) - (RANK[a.kind] ?? 0) || b.at.localeCompare(a.at))
+  const own = tasks.filter(t => mine.has(t.id))
+  const summary = {
+    firstSeen: timeline.length ? timeline.at(-1).at.slice(0, 10) : null,
+    lastActivity: timeline.length ? timeline[0].at.slice(0, 10) : null,
+    open: own.filter(t => !t.done).length,
+    done: own.filter(t => t.done).length,
+    orders: timeline.filter(x => x.kind === 'order').length,
+    deliveries: timeline.filter(x => x.kind === 'delivery').length,
+    entries: m.entryIds.length,
+    decisions: timeline.filter(x => x.kind === 'decision').length,
+    maps: m.mapIds.length
+  }
+  return { machine: publicMachine(m), timeline, summary }
+}
+
 // ── The alias file ────────────────────────────────────────────────────
 const EMPTY = { aliases: {}, names: {} }
 export function readAliases() {
@@ -176,6 +239,7 @@ function writeAliases(data) {
 const liveData = () => ({ tasks: allTasks(), entries: listEntries(), maps: listMaps(), ...readAliases() })
 export const list = () => machinesFrom(liveData()).map(publicMachine)
 export const detail = (key) => detailFrom(key, liveData())
+export const passport = (key) => passportFrom(key, liveData())
 
 /** Key a counts under key b from now on. Anything that pointed at a follows, so the map stays one hop deep. */
 function mergeInto(data, a, b) {
@@ -235,6 +299,10 @@ export function registerRoutes(app) {
   app.get('/api/machines/:key', wrap((req, res) => {
     const d = detail(req.params.key)
     d ? res.json(d) : res.status(404).json({ error: 'That machine is not on the list.' })
+  }))
+  app.get('/api/machines/:key/passport', wrap((req, res) => {
+    const p = passport(req.params.key)
+    p ? res.json(p) : res.status(404).json({ error: 'That machine is not on the list.' })
   }))
   app.post('/api/machines/alias', wrap((req, res) => res.json(alias(req.body?.from, req.body?.to))))
   app.post('/api/machines/rename', wrap((req, res) => res.json(rename(req.body?.key, req.body?.name))))

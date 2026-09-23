@@ -5,6 +5,7 @@ import { getAccount } from '../auth.js'
 import { fetchQms, ORIGIN as QMS } from './qms.js'
 import { fetchBom, ORIGIN as BOM } from './bom.js'
 import { fetchIssues, ORIGIN as ISSUES } from './issues.js'
+import { fetchInnovation, ORIGIN as INNOVATION, PROBE as INNOVATION_PROBE } from './innovation.js'
 
 /** Evaluated inside the sign-in window: true once the tool is usable on this session. */
 const PROBES = {
@@ -17,10 +18,12 @@ export const SOURCES = {
   planner: { label: 'Phase Gate (Planner)', origin: 'https://innovation.tom.fit', kind: 'graph' },
   issues:  { label: 'Issue tickets',        origin: ISSUES, kind: 'graph' },
   qms:     { label: 'QMS',                  origin: QMS,    kind: 'site', probe: PROBES.qms },
-  bom:     { label: 'Structured BOM',       origin: BOM,    kind: 'site', probe: PROBES.bom }
+  bom:     { label: 'Structured BOM',       origin: BOM,    kind: 'site', probe: PROBES.bom },
+  // the dashboard page on the same origin as Phase Gate; shape discovered on the first sync (roadmap 117)
+  innovation: { label: 'Innovation dashboard', origin: INNOVATION, kind: 'site', probe: INNOVATION_PROBE }
 }
 
-const FETCH = { issues: fetchIssues, qms: fetchQms, bom: fetchBom }
+const FETCH = { issues: fetchIssues, qms: fetchQms, bom: fetchBom, innovation: fetchInnovation }
 
 export async function syncSource(key) {
   if (key === 'planner') return syncFromPlanner()
@@ -33,7 +36,7 @@ export async function syncSource(key) {
     }
     const merged = mergeSource(key, r.items)
     // A successful read is the only reliable sign-in test: MSAL-in-page tools keep no cookie we can see.
-    patchSource(key, { signedIn: true, total: r.total ?? null, stale: !!r.stale, error: null, ...(r.keys ? { keys: r.keys } : {}) })
+    patchSource(key, { signedIn: true, total: r.total ?? null, stale: !!r.stale, error: null, ...(r.keys ? { keys: r.keys } : {}), ...(r.endpoints ? { endpoints: r.endpoints, via: r.via || null } : {}) })
     return { ok: true, fetched: r.items.length, total: r.total ?? null, ...merged }
   } catch (err) {
     noteSourceError(key, err.message)

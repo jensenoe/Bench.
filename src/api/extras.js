@@ -1,9 +1,5 @@
 /** Fetch helpers for the later additions: the phone inbox, the weather, health, backups and the update download. */
-const j = async (res) => {
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.statusText)
-  return res.json()
-}
-const H = { 'Content-Type': 'application/json' }
+import { j, H } from './http.js'
 
 export const getInbox = () => fetch('/api/inbox').then(j)
 export const attachInbox = (name, taskId, label) => fetch('/api/inbox/attach', { method: 'POST', headers: H, body: JSON.stringify({ name, taskId, label }) }).then(j)

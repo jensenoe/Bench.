@@ -1,8 +1,8 @@
 /**
  * Change feed (roadmap 87). Every create, edit, delete and every task a sync adds or closes lands here
  * as one entry, newest first, with the task as it was before, so an edit or a delete can be undone.
- * One JSON file in the shared data folder, capped at 2000 entries, written like the store: temp file
- * plus rename. The store calls record(); nothing here calls the store at import time, so the two
+ * One JSON file in the shared data folder, capped at 2000 entries and 1.5 MB (the oldest go first),
+ * written like the store: temp file plus rename. The store calls record(); nothing here calls the store at import time, so the two
  * modules can lean on each other without a cycle.
  */
 import fs from 'node:fs'
@@ -15,6 +15,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DATA_DIR = process.env.BENCH_DATA_DIR || path.join(__dirname, '..', 'data')
 const FILE = path.join(DATA_DIR, 'history.json')
 export const CAP = 2000
+export const MAX_BYTES = 1.5 * 1024 * 1024
 const now = () => new Date().toISOString()
 
 /** Fields that change on their own with every save, or that only mean "reordered": not worth an entry. */
@@ -28,10 +29,27 @@ function load() {
   if (!Array.isArray(cache.entries)) cache.entries = []
   return cache
 }
+/**
+ * The feed as it goes to disk, cut to the caps: at most CAP entries and at most MAX_BYTES of JSON, dropping
+ * the oldest entries until it fits. A task with a long note makes a large entry, so the count alone is
+ * not enough (roadmap 102). Returns the text to write; the cache is trimmed in place.
+ */
+function trimmed(db) {
+  if (db.entries.length > CAP) db.entries.length = CAP
+  let text = JSON.stringify(db, null, 2)
+  while (Buffer.byteLength(text) > MAX_BYTES && db.entries.length > 1) {
+    const bytes = Buffer.byteLength(text)
+    const drop = Math.max(1, Math.ceil((bytes - MAX_BYTES) / (bytes / db.entries.length)))   // about as many as the overshoot is worth
+    db.entries.length = Math.max(1, db.entries.length - drop)
+    text = JSON.stringify(db, null, 2)
+  }
+  return text
+}
 function save() {
+  const text = trimmed(cache)
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true })
-    fs.writeFileSync(FILE + '.tmp', JSON.stringify(cache, null, 2))
+    fs.writeFileSync(FILE + '.tmp', text)
     fs.renameSync(FILE + '.tmp', FILE)
   } catch (err) { console.warn('[history] not written, kept in memory:', err.message) }   // the folder is away; the next record tries again
 }
@@ -70,7 +88,6 @@ export function record(kind, before, after, { who = null } = {}) {
   }
   const db = load()
   db.entries.unshift(entry)
-  if (db.entries.length > CAP) db.entries.length = CAP
   save()
   return entry
 }

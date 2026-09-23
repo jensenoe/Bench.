@@ -44,6 +44,8 @@ fs.mkdirSync(DATA_DIR, { recursive: true }); fs.mkdirSync(SECRETS_DIR, { recursi
 process.env.BENCH_DATA_DIR = DATA_DIR
 process.env.BENCH_SECRETS_DIR = SECRETS_DIR
 process.env.BENCH_USER_DIR = USER_DIR
+// Storage engine (roadmap 109): json by default; { "storage": "sqlite" } in the machine config opts in.
+process.env.BENCH_STORAGE = readMachineCfg().storage === 'sqlite' ? 'sqlite' : 'json'
 app.setAppUserModelId('fit.tom.bench')   // Windows needs this for toast notifications to carry the app name
 process.env.BENCH_EMBEDDED = '1'
 
@@ -158,8 +160,24 @@ function openSignIn(origin, probeJs) {
 }
 
 // ── notifications ────────────────────────────────────────────────────
-function notify({ title, body, route }) {
+// Quiet hours (roadmap 101): the server's settings.json in the user folder is the one source. It is read at
+// most once a minute, so a change in Settings lands within a minute and a burst of notifications never
+// hits the disk in a loop. Missing keys take the server's defaults (19:00 to 07:00, weekends quiet).
+const { isQuiet } = require('./quiet.cjs')
+const QUIET_DEFAULTS = { quietFrom: '19:00', quietTo: '07:00', quietWeekends: true }
+let quietCache = { at: 0, settings: QUIET_DEFAULTS }
+function quietSettings() {
+  if (Date.now() - quietCache.at < 60_000) return quietCache.settings
+  let file = {}
+  try { file = JSON.parse(fs.readFileSync(path.join(USER_DIR, 'settings.json'), 'utf8')) } catch { /* no settings yet: the defaults stand */ }
+  quietCache = { at: Date.now(), settings: { ...QUIET_DEFAULTS, ...(file && typeof file === 'object' ? file : {}) } }
+  return quietCache.settings
+}
+/** One toast. `force: true` gets through quiet hours; nothing from the server sets it, and that is intended. */
+function notify(payload) {
+  const { title, body, route, force } = payload && typeof payload === 'object' ? payload : {}
   try {
+    if (force !== true && isQuiet(new Date(), quietSettings())) return log(`[notify] quiet hours, dropped: ${title}`)
     if (!Notification.isSupported()) return log('[notify] not supported on this system')
     const n = new Notification({ title, body, silent: false })
     n.on('click', () => {
@@ -209,25 +227,27 @@ function showMain() {
   mainWin.show(); mainWin.focus()
 }
 // The tray has a pulse (roadmap 81): the menu says how Today stands and whether you are clocked in, and
-// offers the punches that are valid right now. Data comes from the local server every 30 s and right
-// before the menu opens, so it is never a stale snapshot from the morning.
+// offers the punches that are valid right now. Data comes from one light GET (/api/counts, roadmap 102)
+// every 30 s while the window is hidden, every 2 min while it shows (the page has the same numbers), and
+// right before the menu opens, so it is never a stale snapshot from the morning.
 let serverPort = null, trayMenu = null, trayData = { clock: null, today: 0, at: 0 }
-const TRAY_CAP = 5
+let TRAY_CAP = 5
+const TRAY_HIDDEN_MS = 30_000, TRAY_VISIBLE_MS = 120_000
 const PUNCH = { in: { label: 'Clock in', from: ['off', 'out'] }, lunchOut: { label: 'Lunch', from: ['in'] }, lunchIn: { label: 'Back', from: ['lunch'] }, out: { label: 'Clock out', from: ['in', 'lunch'] } }
 const api = (p, init) => fetch(`http://127.0.0.1:${serverPort}${p}`, init).then(r => { if (!r.ok) throw new Error(`${p} ${r.status}`); return r.json() })
-const lastPunch = (clock, kind) => clock?.events?.filter(e => e.kind === kind).at(-1)?.label || null
+// clock is /api/counts' { status, in, since }: since is the time of the punch that set the status.
 function trayHeader() {
   const { clock, today } = trayData
   const board = `${today} of ${TRAY_CAP} on Today`
   if (!clock) return board
-  if (clock.status === 'in') return `${board}, in since ${lastPunch(clock, 'in')}`
-  if (clock.status === 'lunch') return `${board}, on lunch since ${lastPunch(clock, 'lunchOut')}`
-  if (clock.status === 'out') return `${board}, out since ${lastPunch(clock, 'out')}`
+  if (clock.status === 'in') return `${board}, in since ${clock.since || clock.in}`
+  if (clock.status === 'lunch') return `${board}, on lunch since ${clock.since}`
+  if (clock.status === 'out') return `${board}, out since ${clock.since}`
   return `${board}. Not clocked in`
 }
 function trayTooltip() {
   const { clock, today } = trayData
-  const state = !clock || clock.status === 'off' ? 'Not clocked in.' : clock.status === 'in' ? `Clocked in ${lastPunch(clock, 'in')}.` : clock.status === 'lunch' ? `On lunch since ${lastPunch(clock, 'lunchOut')}.` : `Clocked out ${lastPunch(clock, 'out')}.`
+  const state = !clock || clock.status === 'off' ? 'Not clocked in.' : clock.status === 'in' ? `Clocked in ${clock.since || clock.in}.` : clock.status === 'lunch' ? `On lunch since ${clock.since}.` : `Clocked out ${clock.since}.`
   return `Bench. ${today} of ${TRAY_CAP} on Today. ${state}`
 }
 async function punchFromTray(kind) {
@@ -250,14 +270,22 @@ function buildTrayMenu() {
   ])
   try { tray.setToolTip(trayTooltip()) } catch { /* tray gone */ }
 }
-/** Fetch the time clock and the board, rebuild the menu. Cheap: two local GETs, no rendering. */
+/** Fetch the counts, rebuild the menu. Cheap: one local GET of a few numbers, no rendering. */
 async function refreshTray() {
   if (!tray || !serverPort) return
   try {
-    const [clock, state] = await Promise.all([api('/api/timeclock'), api('/api/state')])
-    trayData = { clock, today: (state.tasks || []).filter(t => !t.done && t.lane === 'today').length, at: Date.now() }
+    const c = await api('/api/counts')
+    if (c.todayCap) TRAY_CAP = c.todayCap
+    trayData = { clock: c.clock || null, today: c.today || 0, at: Date.now() }
   } catch (err) { log('[tray] refresh', err) }
   buildTrayMenu()
+}
+const windowShowing = () => Boolean(mainWin && !mainWin.isDestroyed() && mainWin.isVisible() && !mainWin.isMinimized())
+/** The 30 s tick: refresh when hidden, only every 2 min while the window shows the same numbers itself. */
+function trayTick() {
+  const every = windowShowing() ? TRAY_VISIBLE_MS : TRAY_HIDDEN_MS
+  if (Date.now() - trayData.at < every - 1_000) return
+  refreshTray()
 }
 function makeTray() {
   try {
@@ -274,7 +302,7 @@ function makeTray() {
     })
     tray.on('click', showMain)
     tray.on('double-click', showMain)
-    const iv = setInterval(refreshTray, 30_000); iv.unref?.()
+    const iv = setInterval(trayTick, TRAY_HIDDEN_MS); iv.unref?.()
     refreshTray()
   } catch (err) { log('[tray]', err) }
 }
@@ -393,6 +421,7 @@ async function start() {
   mainWin.webContents.on('console-message', (_e, level, message, line, source) => { if (level >= 3) log('[renderer] error', `${message} (${source}:${line})`) })
   // The close button hides the window; Quit in the tray menu (or a real quit) ends the app.
   mainWin.on('close', e => { if (!quitting && closeToTray() && app.isPackaged) { e.preventDefault(); mainWin.hide() } })
+  mainWin.on('hide', () => { refreshTray() })
   if (app.isPackaged) makeTray()
   await mainWin.loadURL(`http://127.0.0.1:${port}/`)
   const watchdog = setInterval(watchdogTick, WATCH_EVERY); watchdog.unref?.()
@@ -405,7 +434,7 @@ async function start() {
 app.on('before-quit', () => { quitting = true; runPendingInstaller() })
 app.on('will-quit', () => { try { globalShortcut.unregisterAll() } catch { /* already gone */ } })
 
-ipcMain.handle('bench:info', () => ({ dataDir: DATA_DIR, secretsDir: SECRETS_DIR, logFile: LOG_FILE, version: app.getVersion(), portable: PORTABLE, machineCfg: MACHINE_CFG }))
+ipcMain.handle('bench:info', () => ({ dataDir: DATA_DIR, secretsDir: SECRETS_DIR, logFile: LOG_FILE, version: app.getVersion(), portable: PORTABLE, machineCfg: MACHINE_CFG, chooseFolder: true }))
 ipcMain.handle('bench:open-external', (_e, url) => { if (/^https?:/.test(url)) shell.openExternal(url) })
 /** A file or folder from a logbook link: the share, a drawing, a PDF. Returns '' on success or the OS's reason. */
 ipcMain.handle('bench:open-path', (_e, p) => (typeof p === 'string' && p.trim() && !/^https?:/i.test(p)) ? shell.openPath(p.trim()) : 'not a path')
@@ -430,9 +459,15 @@ ipcMain.handle('bench:choose-data-folder', async () => {
   return { changed: true, dataDir: r.filePaths[0] }
 })
 ipcMain.handle('bench:relaunch', () => { app.relaunch(); app.exit(0) })
+/** Any folder, for Settings > Tools (the phone's camera roll). { path } or { path: null } when cancelled. */
+ipcMain.handle('bench:choose-folder', async (_e, defaultPath) => {
+  const r = await dialog.showOpenDialog(mainWin, { title: 'Choose a folder', defaultPath: typeof defaultPath === 'string' && defaultPath ? defaultPath : app.getPath('pictures'), properties: ['openDirectory'] })
+  return { path: r.canceled ? null : (r.filePaths[0] || null) }
+})
 
 ipcMain.handle('bench:startup', (_e, on) => on === undefined ? startupEnabled() : setStartup(on))
-ipcMain.handle('bench:notify', (_e, payload) => notify(payload || {}))
+/** The renderer's notifications (the focus timer) go through the same quiet-hours gate as the server's. */
+ipcMain.handle('bench:notify', (_e, payload) => notify(payload && typeof payload === 'object' ? { title: String(payload.title || ''), body: String(payload.body || ''), route: typeof payload.route === 'string' ? payload.route : undefined, force: payload.force === true } : {}))
 ipcMain.handle('bench:log', (_e, line) => log('[app]', String(line).slice(0, 4000)))
 ipcMain.handle('bench:open-log', () => shell.showItemInFolder(LOG_FILE))
 /** Remember a downloaded installer; it runs silently when Bench quits. Only an .exe from %TEMP%\bench-updates. */

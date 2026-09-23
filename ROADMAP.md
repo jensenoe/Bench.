@@ -146,5 +146,36 @@ Design and infrastructure:
 - [x] 93 [M] Visual regression: npm run test:visual takes 28 shots (seven pages, 1440 and 2560, both themes, photographs masked, clock frozen) and compares them with tests/ui/baseline at 0.6 percent; CI runs it after the smoke test and keeps the diffs as an artifact when it fails.
 - [x] 94 [S] Installer smoke test in the Release workflow: silent install into the runner's profile, start, expect the user folder, stop, silent uninstall, expect the folder gone.
 - [x] 95 [S] Release notes from the roadmap: the Release workflow lists the items ticked since the previous release, by number, above GitHub's generated notes.
-- [x] 97 [S] Visual baselines per platform: CI compares Linux shots with Linux baselines (the Visual baselines workflow records and commits them), the local run compares Windows with Windows; a platform without baselines records them and passes. The first CI run after 93 failed on this.
 - [x] 96 [S] Backups you can see: Settings > This machine lists tasks, logbook and napkin copies with date and size, Back up now, Restore with a copy of the current file kept, and a daily mirror to OneDrive under Apps/Bench/backups when signed in.
+- [x] 97 [S] Visual baselines per platform: CI compares Linux shots with Linux baselines (the Visual baselines workflow records and commits them), the local run compares Windows with Windows; a platform without baselines records them and passes. The first CI run after 93 failed on this.
+## Eighth batch, 23 Sep 2026: hardening, improvements, integrations
+
+Hardening (98 and 104 are Noël's: a real-tenant day and the CI and release pages):
+
+- [ ] 98 [M] A real-tenant day with the packaged exe: the brief's meetings, capacity, the meeting-ended toast, the sheet read-back, the OneDrive mirror, the update download, the BOM key discovery, the tray, Ctrl Alt B, the focus timer, wall mode on the real monitor. Then Copy diagnostics.
+- [x] 99 [S] Light theme and axe on the new pages: Machines, Review, wall, the brief and every Settings tab are in the axe sweep and the 24 px sweep; the visual test has 44 shots including the two dialogs. Found and fixed on the way: Settings used a dialog role on an aside, seven links under 24 px, a footer line on the wall outside any landmark, a 20 px link on Review.
+- [x] 100 [S] End-to-end checks for the day flows in the smoke test: clock out opens the evening close and writes the Day note, a real leftover goes Back to Active from the brief, a change appears in the feed and Undo puts the title back, a backup lists and shows Restore.
+- [x] 101 [S] Quiet hours: the desktop drops notifications between Quiet from and Quiet to and at the weekend (Settings > You); the range may cross midnight; force bypasses it.
+- [x] 102 [S] Idle cost: the tray reads a light /api/counts (no account call) every 30 seconds while hidden and every two minutes while the window shows; the app poll pauses while the tab is hidden; history.json is capped at 1.5 MB. Measured: the server idles at about 0.1 percent of a core and 64 MB.
+- [x] 103 [M] Consolidation: one fetch helper in src/api/http.js, the routes and the palette in src/routes.jsx so App.jsx is state and wiring, dead exports removed, the refresh listener keyed on the function not the object, and the phone folder picker wired for real.
+- [ ] 104 [S] CI green (run the Visual baselines workflow once) and the release page checked.
+
+Improvements:
+
+- [x] 105 [M] Machine as a field: the Project input in the editor is a combobox over the known machines, free text still allowed; a BOM task with a machine and no project offers Use <machine> once.
+- [x] 106 [S] Size the day: open cards without effort get four quiet chips (half an hour to four hours) on the hover toolbar; a sized card shows its value and cycles through the sizes on click.
+- [x] 107 [S] Notification history: every server notification lands in a per-user history; the bell in the nav shows the unread dot and the last twenty, each opening what it referred to, with Mark all read.
+- [x] 108 [S] The brief knows about chases and drift: To chase and The sheet differs sections, the drift check raced against three seconds so the brief never waits.
+- [x] 109 [L] SQLite behind the store as an opt-in engine: server/db.js chooses json (default) or sqlite from BENCH_STORAGE, which the desktop sets from machine.json storage; a migrate command copies either way; better-sqlite3 pinned to the 12 line because 13 crashes Electron 33's Node, and the build fetches the Electron prebuild before packaging. Verified under Node, still to be verified inside the packaged app.
+
+Integrations:
+
+- [-] 110 [L] The team's bench. Skipped on 23 Sep 2026 until a second person joins the share.
+- [x] 111 [M] Bench speaks MCP: scripts/mcp.mjs is a Model Context Protocol server over stdio, written by hand without an SDK, with twelve read and write tools (tasks, Logbook, machines, review, hours, brief, search) and no delete; it finds the running Bench through the port file in the user folder. docs/mcp.md has the Claude Code and Claude Desktop setup. Data stays on the machine.
+- [x] 112 [L] Machine passport: GET /api/machines/:key/passport merges tasks, orders, deliveries, Issues and QMS tickets, Logbook entries and decisions and maps into one timeline; the detail page shows it and #/machines?m=<key>&print=1 renders a printable black-on-white version.
+- [x] 113 [M] Procurement that reads the mail: with Mail.Read (admin consent once more) and the switch in Settings > Tools, order confirmations and delivery notes in Outlook set ordered-on and delivered-on for tasks with a supplier and a PO; a Suppliers panel on Procurement shows open POs, median lead time and on-time rate.
+- [x] 114 [M] Commissioning playbooks at #/playbooks: templates create the standard task set for a machine (Today cap respected), a starter template ships, and a finished machine becomes a template with New from machine.
+- [x] 115 [S] Cost per machine on Review: hours by machine and month over 3, 6 or 12 months, CHF when the hourly rate in Settings > Hours is set, and a semicolon CSV for the controller.
+- [x] 116 [M] A phone view on the workshop network: with Phone access and a PIN in Settings > Tools, a second server on port 5199 serves the brief, Today ticks, the valid punches, quick add and a camera input that drops photos into the inbox; ten wrong PINs lock the address for five minutes.
+- [x] 117 [M] The Innovation dashboard as a connected tool: sign-in like QMS and the BOM, then a two-stage discovery on the first sync, the page's own API calls first and a reading of the page as fallback, with the field names and endpoints seen stored on the source status. The mapping is a guess until the real page has been synced once.
+

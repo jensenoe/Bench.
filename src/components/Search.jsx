@@ -11,7 +11,7 @@ import * as api from '../api.js'
  * rest; a query that starts with ">" shows actions only.
  */
 const KINDS = { action: 'Action', task: 'Task', entry: 'Logbook', node: 'Napkin', page: 'Page' }
-const PAGES = [['', 'Home'], ['board', 'Board'], ['procurement', 'Procurement'], ['tools', 'Tools'], ['logbook', 'Logbook'], ['napkin', 'Napkin'], ['hours', 'Hours'], ['review', 'Review'], ['machines', 'Machines'], ['wall', 'Wall mode']]
+const PAGES = [['', 'Home'], ['board', 'Board'], ['procurement', 'Procurement'], ['tools', 'Tools'], ['logbook', 'Logbook'], ['napkin', 'Napkin'], ['hours', 'Hours'], ['review', 'Review'], ['machines', 'Machines'], ['playbooks', 'Playbooks'], ['wall', 'Wall mode']]
 const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
 export default function Search({ open, onClose, tasks = [], actions = [] }) {
