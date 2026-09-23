@@ -69,3 +69,8 @@ No horizontal scroll, no unlabelled control, no console error anywhere. What did
 - [x] 47 [S] Dead files removed (greetings.js, scenes.json); the last lint warnings that were real (refs read during render in the Napkin, a variable used before its declaration) fixed.
 
 Looked at and left alone, on purpose: the Home hero at 3440 (the photograph carries it), the nav at 1024 (date hidden, everything fits), the 12 px chips (raised earlier, readable at 2560), the footer ghost name at ultrawide (aligned to the column). Not testable here: how 3200 px pictures look on the real monitor at its scaling; if it is 4K at 150 percent, 3840 wide is the next step, at roughly 440 MB for the installer.
+
+## Fourth batch, 23 Sep 2026
+
+- [x] 48 [M] The Release workflow failed on GitHub: the repository name ends in a period, Windows folders cannot, so the runner's workspace did not exist and every JavaScript action died before starting. The job now uses only shell steps in its own folder (git clone, npm, electron-builder, gh release), all preinstalled on the runner.
+- [x] 49 [S] Installer finish page: "Add a shortcut to the desktop" tick box (on by default) next to "Open the bench now". The automatic desktop shortcut is off, so unticking really means none; uninstall removes it. The welcome, licence and finish texts and the dark colours now actually apply: electron-builder inserts the pages before customHeader, so they moved into customWelcomePage and customFinishPage.

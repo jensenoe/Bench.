@@ -66,6 +66,7 @@ BOM data shape) and 23 (the noon log) landed. What to know when touching them:
 - `npm run test:ui` (tests/ui/smoke.mjs) starts the server on a scratch folder and drives the built interface in
   headless Chromium: pages, the cap, quick add, drag and drop, the time clock panel, hours, logbook links, settings
   export. CI runs it after the build. Needs `npm run build` and Playwright's Chromium.
+- Installer texts and colours live in `build/installer.nsh` under `customWelcomePage` and `customFinishPage`; `customHeader` runs after the pages exist and cannot change them. The release workflow avoids marketplace actions because of the trailing period in the repo name (roadmap 48).
 - Roadmap second batch (33 to 37): the nav's mask used to clip the time clock panel and the reminder (backdrop is
   its own layer now); the BOM adapter reads procurement fields under guessed German and English names and
   Procurement shows a "From the BOM" section, still to be checked against the real tool; settings export and

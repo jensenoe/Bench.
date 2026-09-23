@@ -1,10 +1,15 @@
 # Builds the Windows installer and the portable exe on a GitHub runner and attaches both to a
 # release, so colleagues can download a finished installer instead of building one.
 #
-#   git tag v0.9.0-beta.2 && git push --tags     -> release with both exes
-#   Actions > Release > Run workflow             -> build only, exes as a workflow artifact
+#   git tag v0.9.0-beta.5 && git push --tags     -> release with both exes
+#   Actions > Release > Run workflow             -> build only, nothing published
 #
 # The version in package.json must match the tag (electron-builder names the files after it).
+#
+# Why this job uses no marketplace actions: the repository is called "Bench." and Windows folders
+# cannot end in a period. The runner creates D:\a\Bench\Bench but then refers to D:\a\Bench.\Bench.,
+# which does not exist, and every JavaScript action (checkout, setup-node, upload, release) fails to
+# start. Shell steps with their own working folder are fine, and git, node, npm and gh are preinstalled.
 name: Release
 
 on:
@@ -18,24 +23,32 @@ permissions:
 jobs:
   windows:
     runs-on: windows-latest
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v4
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: D:\a\src
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
+    steps:
+      - name: Clone the tag
+        working-directory: D:\a
+        run: |
+          git clone --depth 1 --branch "${{ github.ref_name }}" "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" src
+
+      - name: Toolchain
+        run: |
+          node -v
+          npm -v
+          gh --version
 
       - name: Install dependencies
         run: npm ci --no-fund --no-audit
 
       - name: Check the tag matches package.json
         if: startsWith(github.ref, 'refs/tags/v')
-        shell: bash
         run: |
-          v="v$(node -p "require('./package.json').version")"
-          [ "$v" = "${GITHUB_REF_NAME}" ] || { echo "package.json is $v, tag is ${GITHUB_REF_NAME}"; exit 1; }
+          $v = "v$(node -p "require('./package.json').version")"
+          if ($v -ne "${{ github.ref_name }}") { throw "package.json is $v, tag is ${{ github.ref_name }}" }
 
       - name: Fetch photographs
         shell: cmd
@@ -52,32 +65,36 @@ jobs:
       - name: Package installer and portable exe
         run: npx electron-builder --win nsis portable --publish never
 
-      - name: Keep the exes as a workflow artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Bench-${{ github.ref_name }}
-          path: |
-            release/*.exe
-          if-no-files-found: error
-
-      - name: Attach to the release
+      - name: Publish the release
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          name: Bench. ${{ github.ref_name }}
-          files: release/*.exe
-          generate_release_notes: true
-          prerelease: ${{ contains(github.ref_name, '-') }}
-          body: |
-            ## Install
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          $setup = "Bench-Setup-$($env:TAG.TrimStart('v')).exe"
+          @"
+          ## Install
 
-            1. Under **Assets** below, download **Bench-Setup-${{ github.ref_name }}.exe** (drop the `v` from the file name if it does not match exactly; take the file that starts with `Bench-Setup`).
-            2. Run it. Windows will say *Windows protected your PC* because the installer is not signed: click **More info**, then **Run anyway**.
-            3. Next, Next, Install. No admin rights are needed; it installs into your own profile.
-            4. First start asks for your name and work email, then offers the Microsoft 365 sign-in.
+          1. Under **Assets** below, download **$setup**.
+          2. Run it. Windows says *Windows protected your PC* because the installer is not signed: click **More info**, then **Run anyway**.
+          3. Next, Next, Install. No admin rights are needed; it installs into your own profile. The last page offers a desktop shortcut and opens the bench.
+          4. First start asks for your name and work email, then offers the Microsoft 365 sign-in.
 
-            **Bench-portable** is the same app without an installer: keep it in any folder and run it from there.
+          **Bench-portable** is the same app without an installer: keep it in any folder and run it from there.
 
-            Already have Bench.? Install over the old one; your board, hours and settings stay.
+          Already have Bench.? Install over the old one; your board, hours and settings stay.
 
-            ## What changed
+          ## What changed
+          "@ | Set-Content -Encoding UTF8 notes.md
+
+          $files = Get-ChildItem release\*.exe | ForEach-Object { $_.FullName }
+          $args = @("release", "create", $env:TAG) + $files + @("--repo", $env:REPO, "--title", "Bench. $env:TAG", "--notes-file", "notes.md", "--generate-notes")
+          if ($env:TAG -match "-") { $args += "--prerelease" }
+          $exists = $true
+          try { gh release view $env:TAG --repo $env:REPO *> $null; if ($LASTEXITCODE -ne 0) { $exists = $false } } catch { $exists = $false }
+          if ($exists) {
+            gh release upload $env:TAG @files --repo $env:REPO --clobber
+          } else {
+            gh @args
+          }

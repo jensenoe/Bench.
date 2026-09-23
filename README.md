@@ -6,7 +6,7 @@
 
 1. On that page, open **Assets** and click **Bench-Setup-…exe**.
 2. Run it. Windows says *Windows protected your PC* because the installer is not signed: click **More info**, then **Run anyway**.
-3. Next, Next, Install. No admin rights; it installs into your own profile.
+3. Next, Next, Install. No admin rights; it installs into your own profile. The last page offers a desktop shortcut and opens the bench.
 4. First start asks for your name and work email, then offers the Microsoft 365 sign-in.
 
 Installing over an older Bench keeps your board, hours and settings. `Bench-portable-…exe` on the
@@ -14,7 +14,7 @@ same page is the no-install version: keep it in any folder and run it from there
 
 ---
 
-**Beta 4 (0.9.0-beta.4).** Everything here works on my machine and on the mocks; the
+**Beta 5 (0.9.0-beta.5).** Everything here works on my machine and on the mocks; the
 Microsoft paths (Planner, the hours workbook, the issue list, the calendar) still want a
 first real run in the tom.fit tenant, and the issue list and calendar need a one-time admin
 approval, see below.
@@ -57,7 +57,7 @@ Administrator; `build-exe.bat plain` skips the icon stamping instead, and `build
 Bump `version` in `package.json`, commit, then tag and push:
 
 ```bash
-git tag v0.9.0-beta.5 && git push --tags
+git tag v0.9.0-beta.6 && git push --tags
 ```
 
 The *Release* workflow in `.github/workflows/release.yml` builds both exes on a Windows
