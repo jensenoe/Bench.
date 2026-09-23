@@ -21,6 +21,8 @@ export const DEFAULTS = {
   sceneOverride: null,      // null follows the clock; dawn | day | dusk | night pins it
   collections: ['alps', 'tropics', 'urban', 'mono', 'pnw', 'desert', 'brutalist', 'italy', 'canada', 'autumn', 'gothic'],
   pictureMinutes: 20,
+  pictureMode: 'daily',     // with more than one library: daily (one library a day) | random (a library per picture slot)
+  libraryShift: 0,          // "Next theme" adds one; the daily library is picked from the day plus this
   // {year} and {name} are filled in; name is the full name with diacritics stripped (Noel Jensen)
   timesheetPath: 'Documents/TomFit_Zeiterfassung_{year}_{name}.xlsx',
   timesheetUrl: '',         // a OneDrive sharing link wins over the path when set
@@ -65,6 +67,8 @@ export function update(patch = {}) {
     if (k === 'collections') v = Array.isArray(v) ? v.filter(x => typeof x === 'string') : cur.collections
     if (k === 'roundMinutes') v = Math.max(1, Math.min(30, Number(v) || 5))
     if (k === 'pictureMinutes') v = [10, 20, 30, 60].includes(Number(v)) ? Number(v) : 20
+    if (k === 'pictureMode') v = v === 'random' ? 'random' : 'daily'
+    if (k === 'libraryShift') v = Math.max(0, Math.floor(Number(v) || 0)) % 100000
     if (k === 'theme') v = v === 'light' ? 'light' : 'dark'
     if (k === 'density') v = v === 'compact' ? 'compact' : 'comfortable'
     if (k === 'focusMinutes') v = [15, 25, 50, 90].includes(Number(v)) ? Number(v) : 25

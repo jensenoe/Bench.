@@ -14,7 +14,7 @@ same page is the no-install version: keep it in any folder and run it from there
 
 ---
 
-**0.11, third beta (0.11.0-beta.3).** Everything here works on my machine and on the mocks; the
+**0.11, fourth beta (0.11.0-beta.4).** Everything here works on my machine and on the mocks; the
 Microsoft paths (Planner, the hours workbook, the issue list, the calendar) still want a
 first real run in the tom.fit tenant, and the issue list and calendar need a one-time admin
 approval, see below.
@@ -27,8 +27,9 @@ its data in a plain file you can drop on a shared drive. Built at TomFit for my 
 first; if it helps yours too, good.
 
 The pictures follow the sky: dawn, day, dusk and night are set by the real sunrise and
-sunset in Oetwil am See, and the photograph changes every twenty minutes, from whichever
-libraries you switch on.
+sunset in Oetwil am See, and the photograph changes every twenty minutes. With several
+libraries on, one library holds for the whole day and the next one takes over tomorrow
+("Next theme" in Settings skips ahead); Random mixes them picture by picture instead.
 
 ---
 
@@ -57,7 +58,7 @@ Administrator; `build-exe.bat plain` skips the icon stamping instead, and `build
 Bump `version` in `package.json`, commit, then tag and push:
 
 ```bash
-git tag v0.11.0-beta.4 && git push --tags
+git tag v0.11.0-beta.5 && git push --tags
 ```
 
 The *Release* workflow in `.github/workflows/release.yml` builds both exes on a Windows

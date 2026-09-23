@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { sunTimes, keyFor, isDark, setCadence, getCadence, nextChange, setCollections, getCollections, libraryFor, imageFor, sceneFor, sceneAt, lunchScene, cockpitCover, credits, COLLECTIONS, DEFAULT_COLLECTIONS } from '../src/scenes.js'
+import { sunTimes, keyFor, isDark, setCadence, getCadence, nextChange, setCollections, getCollections, libraryFor, imageFor, sceneFor, sceneAt, lunchScene, cockpitCover, credits, COLLECTIONS, DEFAULT_COLLECTIONS, setPictureMode, setLibraryShift, nextLibrary } from '../src/scenes.js'
 
 // vitest.config.js pins TZ to Europe/Zurich; these are local wall-clock times in Oetwil am See.
 const local = (y, m, d, h = 12, min = 0) => new Date(y, m - 1, d, h, min, 0, 0)
@@ -103,6 +103,24 @@ describe('slots', () => {
     setCollections(['alps'])
     const d = local(2026, 9, 22, 10, 0)
     expect(sceneAt('dusk', d, 3).terrain).not.toBe(sceneAt('dusk', d).terrain)
+  })
+  it('one library a day: the same library all day, the next one tomorrow, Next theme skips ahead', () => {
+    setCollections(DEFAULT_COLLECTIONS); setPictureMode('daily'); setLibraryShift(0)
+    const morning = libraryFor(local(2026, 9, 22, 8, 0)), evening = libraryFor(local(2026, 9, 22, 21, 0), 5)
+    expect(evening).toBe(morning)
+    const tomorrow = libraryFor(local(2026, 9, 23, 8, 0))
+    expect(tomorrow).not.toBe(morning)
+    expect(nextLibrary(local(2026, 9, 22, 8, 0))).toBe(tomorrow)
+    setLibraryShift(1)
+    expect(libraryFor(local(2026, 9, 22, 8, 0))).toBe(tomorrow)
+    setLibraryShift(0)
+  })
+  it('random: the library changes with the slot', () => {
+    setCollections(DEFAULT_COLLECTIONS); setPictureMode('random')
+    const d = local(2026, 9, 22, 14, 0)
+    const libs = new Set(Array.from({ length: 12 }, (_, shift) => libraryFor(d, shift)))
+    expect(libs.size).toBeGreaterThan(1)
+    setPictureMode('daily')
   })
   it('every slot picture belongs to the slot library', () => {
     const d = local(2026, 9, 22, 14, 0)

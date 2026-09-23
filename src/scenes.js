@@ -85,6 +85,18 @@ export function setCollections(keys) {
   enabled = ok.length ? ok : DEFAULT_COLLECTIONS
 }
 export const getCollections = () => enabled
+/**
+ * How the libraries take turns when more than one is on. "daily" is one library for the whole day, every
+ * picture on every page from it, the next library tomorrow; "Next theme" in Settings moves the shift along
+ * so today's library skips ahead. "random" is the old way: a library per picture slot, mixed all over.
+ */
+export const PICTURE_MODES = ['daily', 'random']
+let pictureMode = 'daily'
+let libraryShift = 0
+export function setPictureMode(m) { pictureMode = PICTURE_MODES.includes(m) ? m : 'daily' }
+export const getPictureMode = () => pictureMode
+export function setLibraryShift(n) { libraryShift = Math.max(0, Math.floor(Number(n) || 0)) }
+export const getLibraryShift = () => libraryShift
 
 /** How often the picture changes, in minutes. Settings picks 10, 20, 30 or 60. */
 export const CADENCES = [10, 20, 30, 60]
@@ -101,14 +113,19 @@ export function nextChange(d = new Date()) {
 }
 
 /**
- * One library per slot. Every photograph on screen in that slot (hero, doors, page headers)
- * comes from the same library, so a Pacific Northwest morning is Pacific Northwest all the
- * way down. The library changes with the picture when more than one is enabled.
+ * The library for a moment. Every photograph on screen (hero, doors, page headers) comes from the same
+ * library, so a Pacific Northwest morning is Pacific Northwest all the way down. In daily mode that
+ * library holds for the day (the day of the year plus the "Next theme" shift walks the list); in random
+ * mode it changes with the picture slot, and the slot shift lets two headers differ.
  */
 export function libraryFor(d = new Date(), shift = 0) {
-  if (enabled.length === 1) return enabled[0]
-  return enabled[((slotOf(d, shift) % enabled.length) + enabled.length) % enabled.length]
+  const n = enabled.length
+  if (n === 1) return enabled[0]
+  if (pictureMode === 'random') return enabled[((slotOf(d, shift) % n) + n) % n]
+  return enabled[(((dayOfYear(d) + libraryShift) % n) + n) % n]
 }
+/** The library after today's, for the "Next theme" line in Settings. */
+export const nextLibrary = (d = new Date()) => { const n = enabled.length; return n === 1 ? enabled[0] : enabled[(((dayOfYear(d) + libraryShift + 1) % n) + n) % n] }
 export const libraryLabel = (key) => library[key]?.label || key
 
 export function imageFor(scene, d = new Date(), shift = 0) {

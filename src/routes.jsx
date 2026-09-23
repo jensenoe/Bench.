@@ -48,7 +48,7 @@ const page = (key, node) => (
  *   clock       timeclock (the hook's object: clock, error, punch, reset, refresh)
  */
 export function Routes({
-  r, onLunch, now, scene, boardImage,
+  r, onLunch, now, scene, timeKey, boardImage,   // timeKey: the time of day every page picture follows (override or clock)
   state, settings, open, stats, pressing, later, late, sheetState, machineCount, logCount, workingLate, hoursIn,
   sourceFilter, setSourceFilter, peopleFilter, setPeopleFilter, byLane,
   refresh, onPatch, onDelete, onCreate, punch, openSettings,
@@ -56,23 +56,26 @@ export function Routes({
 }) {
   return (
     <AnimatePresence mode="wait">
-      {r === '' && page('home', <Landing scene={scene} stats={stats} pressing={pressing} sheetState={sheetState} doorImages={{ board: boardImage, procurement: { src: sceneAt('dusk', now).terrain, fallback: '/terrain/dusk.jpg' }, tools: { src: sceneAt('night', now).terrain, fallback: '/terrain/night.jpg' }, cockpit: cockpitCover(now), logbook: { src: sceneAt('dusk', now, 3).terrain, fallback: '/terrain/dusk.jpg' }, napkin: { src: sceneAt('day', now, 3).terrain, fallback: '/terrain/day.jpg' } }} name={settings.name} late={workingLate} hoursIn={hoursIn} />)}
+      {r === '' && page('home', <Landing scene={scene} stats={stats} pressing={pressing} sheetState={sheetState} doorImages={{ board: boardImage, procurement: { src: sceneAt(timeKey, now, 2).terrain, fallback: `/terrain/${timeKey}.jpg` }, tools: { src: sceneAt(timeKey, now, 3).terrain, fallback: `/terrain/${timeKey}.jpg` }, cockpit: cockpitCover(now), logbook: { src: sceneAt(timeKey, now, 4).terrain, fallback: `/terrain/${timeKey}.jpg` }, napkin: { src: sceneAt(timeKey, now, 6).terrain, fallback: `/terrain/${timeKey}.jpg` } }} name={settings.name} late={workingLate} hoursIn={hoursIn} />)}
 
       {onLunch && page('lunch', <Lunch clock={timeclock.clock} punch={punch} now={now} scene={scene} />)}
 
       {r === 'machines' && page('machines', <>
-        <TerrainHeader compact scene={sceneAt('night', now, 2)} title="Machines" line="Everything that hangs on one machine: tasks, orders, tickets, notes and maps, in one place."
+        <TerrainHeader compact scene={sceneAt(timeKey, now, 9)} title="Machines" line="Everything that hangs on one machine: tasks, orders, tickets, notes and maps, in one place."
           aside={<Aside n={machineCount} label={machineCount === 1 ? 'machine' : 'machines'} tone="var(--accent)" />} />
-        <div className="relative"><Machines tasks={state.tasks} onPatch={onPatch} onDelete={onDelete} /></div>
+        <div className="relative">
+          <Coach id="machines" steps={COACH.machines} />
+          <Machines tasks={state.tasks} onPatch={onPatch} onDelete={onDelete} />
+        </div>
       </>)}
 
       {r === 'playbooks' && page('playbooks', <>
-        <TerrainHeader compact scene={sceneAt('day', now, 4)} title="Playbooks" line="The standard task set for a machine, applied in one go, and a template made from a finished one." />
+        <TerrainHeader compact scene={sceneAt(timeKey, now, 10)} title="Playbooks" line="The standard task set for a machine, applied in one go, and a template made from a finished one." />
         <div className="relative"><Playbooks /></div>
       </>)}
 
       {r === 'review' && page('review', <>
-        <TerrainHeader compact scene={sceneAt('day', now, 2)} title="Review" line="The week as short sentences: done, slipped, hours, what moved." />
+        <TerrainHeader compact scene={sceneAt(timeKey, now, 1)} title="Review" line="The week as short sentences: done, slipped, hours, what moved." />
         <div className="relative"><Review /></div>
       </>)}
 
@@ -95,7 +98,7 @@ export function Routes({
       </>)}
 
       {r === 'procurement' && page('proc', <>
-        <TerrainHeader compact scene={sceneAt('dusk', now)} title="Procurement" line={SHEETS[1].body}
+        <TerrainHeader compact scene={sceneAt(timeKey, now, 2)} title="Procurement" line={SHEETS[1].body}
           aside={<Aside n={pressing.length} label="order dates in 14 days" tone={late ? STATUS.overdue : pressing.length ? STATUS.caution : STATUS.done} />} />
         <div className="relative">
           <Coach id="procurement" steps={COACH.procurement} />
@@ -111,7 +114,7 @@ export function Routes({
       </>)}
 
       {r === 'logbook' && page('logbook', <>
-        <TerrainHeader compact scene={sceneAt('dusk', now, 3)} title="Logbook" line={SHEETS[3].body}
+        <TerrainHeader compact scene={sceneAt(timeKey, now, 4)} title="Logbook" line={SHEETS[3].body}
           aside={<Aside n={logCount} label={logCount === 1 ? 'entry' : 'entries'} tone="var(--accent)" />} />
         <div className="relative">
           <Coach id="logbook" steps={COACH.logbook} />
@@ -120,7 +123,7 @@ export function Routes({
       </>)}
 
       {r === 'napkin' && page('napkin', <>
-        <TerrainHeader compact scene={sceneAt('day', now, 3)} title="Napkin" line={SHEETS[4].body} />
+        <TerrainHeader compact scene={sceneAt(timeKey, now, 6)} title="Napkin" line={SHEETS[4].body} />
         <div className="relative">
           <Coach id="napkin" steps={COACH.napkin} />
           <Napkin />
@@ -128,13 +131,13 @@ export function Routes({
       </>)}
 
       {r === 'tools' && page('tools', <>
-        <TerrainHeader compact scene={sceneAt('night', now)} title="Tools" line={SHEETS[2].body}
+        <TerrainHeader compact scene={sceneAt(timeKey, now, 3)} title="Tools" line={SHEETS[2].body}
           aside={<Aside n={open.filter(t => t.source && t.source !== 'local').length} label="assigned to you" tone="var(--accent)" />} />
         <div className="relative"><Tools state={state} onPatch={onPatch} onDelete={onDelete} onRefresh={refresh} onConnect={openSettings} /></div>
       </>)}
 
       {r === 'hours' && page('hours', <>
-        <TerrainHeader compact scene={sceneAt('dawn', now, 2)} title="Hours" line="The month as the Zeiterfassung sheet sees it, with what still waits to be written." />
+        <TerrainHeader compact scene={sceneAt(timeKey, now, 7)} title="Hours" line="The month as the Zeiterfassung sheet sees it, with what still waits to be written." />
         <div className="relative"><Hours clock={timeclock.clock} /></div>
       </>)}
     </AnimatePresence>
@@ -165,6 +168,7 @@ export function paletteActions({ settings, punch, saveSettings, openQuickAdd, op
     { label: 'Weekly review', hint: 'What moved and what did not', run: () => { location.hash = '#/review' } },
     { label: 'Machines', hint: 'One page per machine', run: () => { location.hash = '#/machines' } },
     { label: 'Playbooks', hint: 'Standard task sets per machine', run: () => { location.hash = '#/playbooks' } },
+    { label: 'Next theme', hint: 'Skip to the next picture library today', run: () => saveSettings({ libraryShift: (Number(settings.libraryShift) || 0) + 1 }) },
     { label: 'Check for updates', hint: 'Ask GitHub now', run: () => api.checkUpdates(true).then(u => toast(u.newer ? `Bench ${u.latest} is out.` : `Bench ${u.current} is the latest.`)).catch(() => {}) }
   ]
 }

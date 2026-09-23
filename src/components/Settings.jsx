@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { X, Copy, Check, ArrowSquareOut } from '@phosphor-icons/react'
 import * as api from '../api.js'
 import { getBackups, backupNow, restoreBackup, downloadUpdate, toast, refresh as askRefresh } from '../api/extras.js'
-import { ALL_SCENES, COLLECTIONS, CADENCES, credits, libraryFor, libraryLabel } from '../scenes.js'
+import { ALL_SCENES, COLLECTIONS, CADENCES, credits, libraryFor, libraryLabel, nextLibrary } from '../scenes.js'
 import { ABOUT } from '../copy.js'
 import { fmtDate } from '../lanes.js'
 import Connect from './Connect.jsx'
@@ -193,9 +193,21 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
                 <div className="mt-1.5"><Chips items={[{ key: null, label: 'Follow the clock' }, ...ALL_SCENES.map(s => ({ key: s.key, label: s.label }))]} value={draft.sceneOverride ?? null} onPick={v => saveNow({ sceneOverride: v })} /></div>
               </div>
               <div>
-                <Note>Pictures. One library, or everything. Shift-click to mix. Every picture on screen follows one library at a time; right now <span style={{ color: 'var(--ink-2)' }}>{libraryLabel(libraryFor())}</span>.</Note>
+                <Note>Pictures. Everything, or one library; shift-click to mix a few.</Note>
                 <div className="mt-1.5"><Chips multi items={[{ key: 'all', label: 'Everything' }, ...COLLECTIONS]} value={collValue === 'all' ? ['all'] : collValue} onPick={pickColl} /></div>
               </div>
+              {(draft.collections || []).length !== 1 && (
+                <div>
+                  <Note>How the libraries take turns. One a day keeps every picture on every page in one library and moves on tomorrow; Random mixes them picture by picture.</Note>
+                  <div className="mt-1.5"><Chips items={[{ key: 'daily', label: 'One library a day' }, { key: 'random', label: 'Random' }]} value={draft.pictureMode === 'random' ? 'random' : 'daily'} onPick={v => saveNow({ pictureMode: v })} /></div>
+                  {draft.pictureMode !== 'random' && (
+                    <div className="mt-2 flex flex-wrap items-center gap-3 text-[13px]">
+                      <span style={{ color: 'var(--ink-2)' }}>Today: {libraryLabel(libraryFor())}. Tomorrow: {libraryLabel(nextLibrary())}.</span>
+                      <button onClick={() => { saveNow({ libraryShift: (Number(draft.libraryShift) || 0) + 1 }); toast(`Now: ${libraryLabel(nextLibrary())}.`, 'Every picture follows it until tomorrow.') }} className="pill px-3 py-1.5 text-[13px] font-medium" style={{ border: '1px solid var(--line-2)' }}>Next theme</button>
+                    </div>
+                  )}
+                </div>
+              )}
               <div>
                 <Note>New picture every</Note>
                 <div className="mt-1.5"><Chips items={CADENCES.map(m => ({ key: m, label: m === 60 ? 'hour' : `${m} min` }))} value={draft.pictureMinutes || 20} onPick={v => saveNow({ pictureMinutes: v })} /></div>

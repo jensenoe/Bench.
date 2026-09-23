@@ -56,6 +56,11 @@ export const COACH = {
     { title: 'Decisions and actions apart.', body: 'Decisions are one per line. Actions have an owner and a tick box; the arrow sends one to the board as a task that remembers which meeting it came from.' },
     { title: 'Search finds the sentence.', body: 'The search box looks through titles, notes, names and projects. Everything is saved to the shared folder as you type.' }
   ],
+  machines: [
+    { title: 'One page per machine.', body: 'Nothing is typed here. A machine appears as soon as a task carries its name as the project, the BOM lists parts for it, or a Logbook entry is filed under it. Everything that hangs on it is gathered: open work by lane, orders, tickets from the tools, entries, maps.' },
+    { title: 'Spellings and mentions.', body: '"M14" and "Machine 14" are two machines until you merge them with "Same machine as" at the bottom of the detail page; Rename sets the name everyone sees. Mentions are tasks that name the machine in their title but carry no project yet; Assign puts them on it.' },
+    { title: 'The passport.', body: 'The Passport panel is the machine\'s history on one timeline: created, ordered, delivered, ticket opened and closed, meetings and their decisions. Print gives a black-on-white page for the QMS or the customer. Playbooks apply a standard task set to a new machine in one go.' }
+  ],
   napkin: [
     { title: 'A napkin, not a diagram tool.', body: 'One idea in the middle. Tab makes a child, Enter a sibling, double-click edits. The map lays itself out, but you can drag any node where you want it and its branch follows. Drop it on another node to move it under that one. Tidy puts everything back on the grid.' },
     { title: 'Fold, colour, export.', body: 'Space folds a branch, C cycles a colour through the branch, T turns the selected node into a task on the board. Export saves the map as a picture. Drag the background to pan, scroll to zoom.' }

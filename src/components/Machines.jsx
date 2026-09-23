@@ -33,7 +33,7 @@ const Dot = ({ tone, title }) => <span aria-hidden="true" title={title} classNam
 
 function Card({ m }) {
   return (
-    <a href={`#/machines?m=${encodeURIComponent(m.key)}`} className="panel flex flex-col gap-3 p-6 transition-transform hover:-translate-y-[2px]">
+    <a href={`#/machines?m=${encodeURIComponent(m.key)}`} title="Open the machine: its open work, orders, tool items, Logbook entries and maps in one place" className="panel flex flex-col gap-3 p-6 transition-transform hover:-translate-y-[2px]">
       <h2 className="display text-[24px] font-semibold leading-none">{m.name}.</h2>
       <p className="flex items-center gap-2 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>
         <span>{countsLine(m)}</span>
@@ -150,7 +150,7 @@ function PassportPanel({ machineKey, tasks }) {
       {p.timeline.length === 0 && <p className="mt-3 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>Nothing dated yet. Tasks, orders, deliveries, tickets and Logbook entries will line up here.</p>}
       <ul className="mt-4 flex flex-col">{rows.map((x, i) => <TimelineRow key={`${x.kind}-${x.ref.id}-${x.at}-${i}`} x={x} />)}</ul>
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <a href={`#/machines?m=${encodeURIComponent(machineKey)}&print=1`} className="pill inline-flex min-h-[32px] items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium" style={{ background: 'var(--row)', border: '1px solid var(--line)', color: 'var(--ink-2)' }}><Printer size={13} weight="bold" /> Print</a>
+        <a href={`#/machines?m=${encodeURIComponent(machineKey)}&print=1`} title="Everything that happened to this machine on one printable black-on-white page" className="pill inline-flex min-h-[32px] items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium" style={{ background: 'var(--row)', border: '1px solid var(--line)', color: 'var(--ink-2)' }}><Printer size={13} weight="bold" /> Print</a>
         {p.timeline.length > 30 && <button onClick={() => setAll(a => !a)} className="min-h-6 text-[13px] underline-offset-2 hover:underline" style={{ color: 'var(--ink-3)' }}>{all ? 'Show the last 30' : `Show all ${p.timeline.length}`}</button>}
       </div>
     </Panel>
@@ -229,7 +229,7 @@ function Housekeeping({ machine, others, onChanged }) {
       {others.length > 0 && (
         <label className="flex flex-col gap-1.5">
           <span>Same machine as…</span>
-          <select aria-label={`${machine.name} is the same machine as`} value="" disabled={busy} onChange={e => merge(e.target.value)} className="field min-h-[32px] px-2.5 py-1.5 text-[13px]">
+          <select aria-label={`${machine.name} is the same machine as`} title="The same machine spelled differently? Pick the other name and the two merge; tasks and entries then count under one machine" value="" disabled={busy} onChange={e => merge(e.target.value)} className="field min-h-[32px] px-2.5 py-1.5 text-[13px]">
             <option value="">pick one</option>
             {others.map(o => <option key={o.key} value={o.key}>{o.name}</option>)}
           </select>
@@ -238,7 +238,7 @@ function Housekeeping({ machine, others, onChanged }) {
       <form onSubmit={rename} className="flex items-end gap-2">
         <label className="flex flex-col gap-1.5">
           <span>Called</span>
-          <input value={name} onChange={e => setName(e.target.value)} disabled={busy} aria-label="Machine name" className="field min-h-[32px] w-[220px] px-2.5 py-1.5 text-[13px]" />
+          <input value={name} onChange={e => setName(e.target.value)} disabled={busy} aria-label="Machine name" title="The name shown everywhere for this machine; the tasks keep their own project text and still count here" className="field min-h-[32px] w-[220px] px-2.5 py-1.5 text-[13px]" />
         </label>
         <button type="submit" disabled={busy || !name.trim() || name.trim() === machine.name} className="pill min-h-[32px] px-3.5 py-1.5 text-[13px] font-medium disabled:opacity-40" style={{ background: 'var(--row)', border: '1px solid var(--line)', color: 'var(--ink-2)' }}>Rename</button>
       </form>

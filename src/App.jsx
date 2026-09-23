@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import * as api from './api.js'
-import { sceneFor, sceneAt, lunchScene, setCollections, setCadence, nextChange, STATUS } from './scenes.js'
+import { sceneFor, sceneAt, lunchScene, setCollections, setCadence, setPictureMode, setLibraryShift, nextChange, STATUS } from './scenes.js'
 import { cheer } from './copy.js'
 import { daysUntil, daysSince } from './lanes.js'
 import Nav from './components/Nav.jsx'
@@ -54,8 +54,12 @@ export default function App() {
   // settings drive the pictures and the theme; apply before computing the scene
   setCollections(settings.collections)
   setCadence(settings.pictureMinutes)
+  setPictureMode(settings.pictureMode)
+  setLibraryShift(settings.libraryShift)
   const sceneKey = settings.sceneOverride || null
   const scene = onLunch ? lunchScene(now) : sceneKey ? sceneAt(sceneKey, now) : sceneFor(now)
+  // Every page picture follows this time of day, override or clock; the pages differ by slot, not by scene (Noël, 23 Sep).
+  const timeKey = sceneKey || sceneFor(now).key
   useEffect(() => { document.documentElement.dataset.theme = settings.theme === 'light' ? 'light' : 'dark' }, [settings.theme])
   // Density and the focus timer's default ride on the root element, so Lane and TaskCard need no extra props.
   useEffect(() => {
@@ -106,7 +110,7 @@ export default function App() {
     const nx = nextChange(now)
     if (nx.getTime() - now.getTime() > 75_000 || now.getSeconds() % 15 !== 0) return
     const key = settings.sceneOverride || sceneFor(nx).key
-    const urls = new Set([sceneAt(key, nx).terrain, sceneAt('dawn', nx, 5).terrain, sceneAt('dusk', nx).terrain, sceneAt('night', nx).terrain, sceneAt('dusk', nx, 3).terrain, sceneAt('day', nx, 3).terrain])
+    const urls = new Set([sceneAt(key, nx).terrain, ...[1, 2, 3, 4, 5, 6, 7].map(s => sceneAt(key, nx, s).terrain)])
     for (const u of urls) { const img = new Image(); img.decoding = 'async'; img.src = u }
   }, [now, settings.sceneOverride])
   // A clicked notification asks the window to jump somewhere (the lunch screen at noon).
@@ -248,7 +252,7 @@ export default function App() {
     })()
   }
   // The Board wears a dawn picture a few slots along, so it never repeats the hero; in Alps slots it is your own ridge photo.
-  const boardImage = scene.library === 'alps' ? { src: '/terrain/ridge.jpg', fallback: '/terrain/day.jpg' } : { src: sceneAt('dawn', now, 5).terrain, fallback: '/terrain/dawn.jpg' }
+  const boardImage = scene.library === 'alps' ? { src: '/terrain/ridge.jpg', fallback: '/terrain/day.jpg' } : { src: sceneAt(timeKey, now, 5).terrain, fallback: '/terrain/dawn.jpg' }
   const inner = r !== '' && !onLunch
   const errMsg = error || timeclock.error || null
   const openSettings = () => setSettingsOpen(true)
@@ -269,7 +273,7 @@ export default function App() {
       {!onLunch && <OpenDay clock={timeclock.clock} onClose={closeDay} onDismiss={dismissDay} />}
 
       <Suspense fallback={<PageSkeleton />}>
-        <Routes r={r} onLunch={onLunch} now={now} scene={scene} boardImage={boardImage}
+        <Routes r={r} onLunch={onLunch} now={now} scene={scene} timeKey={timeKey} boardImage={boardImage}
           state={state} settings={settings} open={open} stats={stats} pressing={pressing} later={later} late={late} sheetState={sheetState} machineCount={machineCount} logCount={logCount} workingLate={workingLate} hoursIn={hoursIn}
           sourceFilter={sourceFilter} setSourceFilter={setSourceFilter} peopleFilter={peopleFilter} setPeopleFilter={setPeopleFilter} byLane={byLane}
           refresh={refresh} onPatch={onPatch} onDelete={onDelete} onCreate={onCreate} punch={punch} openSettings={openSettings}
