@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { PanelSkeleton } from './Skeleton.jsx'
 import { Plus, X, ArrowsOut, Export, ArrowRight } from '@phosphor-icons/react'
 import * as api from '../api.js'
 
@@ -259,7 +260,7 @@ export default function Napkin() {
   const rename = async (title) => { if (!map || title === map.title) return; const m = await api.patchMap(map.id, { title }); setMaps(list => list.map(x => x.id === m.id ? m : x)) }
   const removeMap = async () => { if (!map || !confirm(`Delete "${map.title}"?`)) return; await api.removeMap(map.id); const list = await load(); list.length ? open(list[0]) : (setSel(null), setNodes(null)) }
 
-  if (!maps) return <main className="mx-auto col px-6 py-10 text-[13px]" style={{ color: 'var(--ink-3)' }}>Loading</main>
+  if (!maps) return <main className="mx-auto col px-6"><PanelSkeleton rows={3} /></main>
 
   return (
     <main className="mx-auto col px-6">
@@ -276,7 +277,7 @@ export default function Napkin() {
           <div className="absolute left-4 top-4 z-10 flex items-center gap-3">
             <input key={map.id} aria-label="Map title" defaultValue={map.title} onBlur={e => rename(e.target.value.trim() || map.title)} onKeyDown={e => e.key === 'Enter' && e.target.blur()}
               className="display bg-transparent text-[20px] font-semibold tracking-tight outline-none" />
-            <span className="tnum text-[13px]" style={{ color: 'var(--ink-3)' }}>{Object.keys(nodes).length} nodes{dirty ? ' · saving' : ''}</span>
+            <span className="tnum text-[13px]" style={{ color: 'var(--ink-3)' }}>{Object.keys(nodes).length} nodes{dirty ? ', saving' : ''}</span>
             {note && <span className="text-[13.5px]" style={{ color: 'var(--accent)' }}>{note}</span>}
           </div>
           <div className="absolute right-4 top-4 z-10 flex items-center gap-1">
@@ -289,12 +290,12 @@ export default function Napkin() {
                 {nodes[active].taskId ? 'On the board' : 'To the board'} <ArrowRight size={11} weight="bold" />
               </button>
             )}
-            <button onClick={() => exportMap('png')} title="Save as PNG" className="pill flex items-center gap-1.5 px-2.5 py-1 text-[13px]" style={{ color: 'var(--ink-3)', border: '1px solid var(--line)' }}><Export size={12} /> PNG</button>
+            <button onClick={() => exportMap('png')} title="Save as PNG" className="pill flex items-center gap-1.5 px-2.5 py-1 text-[13px]" style={{ color: 'var(--ink-3)', border: '1px solid var(--line)' }}><Export size={12} weight="bold" /> PNG</button>
             <button onClick={() => exportMap('svg')} title="Save as SVG" className="pill px-2.5 py-1 text-[13px]" style={{ color: 'var(--ink-3)', border: '1px solid var(--line)' }}>SVG</button>
-            <button onClick={fit} title="Reset view" className="grid h-7 w-7 place-items-center rounded-md" style={{ color: 'var(--ink-3)' }}><ArrowsOut size={14} /></button>
+            <button onClick={fit} title="Reset view" className="grid h-7 w-7 place-items-center rounded-md" style={{ color: 'var(--ink-3)' }}><ArrowsOut size={14} weight="bold" /></button>
             <button onClick={removeMap} title="Delete map" className="grid h-7 w-7 place-items-center rounded-md" style={{ color: 'var(--ink-3)' }}><X size={13} weight="bold" /></button>
           </div>
-          <p className="pointer-events-none absolute bottom-3 left-4 z-10 text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Tab child · Enter sibling · double-click edit · Delete branch · Space fold · C colour · T to the board · drag a node anywhere, onto another to move it under it · drag the background to pan, wheel to zoom</p>
+          <p className="pointer-events-none absolute bottom-3 left-4 z-10 text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Tab for a child, Enter for a sibling, double-click to edit. Drag a node to move it, the background to pan, wheel to zoom. Press ? for every key.</p>
 
           <svg ref={svgRef} className={`h-full w-full select-none ${ghost ? 'cursor-grabbing' : 'cursor-grab active:cursor-grabbing'}`} onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp} onWheel={onWheel}>
             <rect data-bg="1" width="100%" height="100%" fill="transparent" />

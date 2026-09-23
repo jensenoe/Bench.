@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { PanelSkeleton } from './Skeleton.jsx'
 import { motion, AnimatePresence } from 'motion/react'
 import { Plus, X, ArrowRight, Check, MagnifyingGlass, CalendarBlank, Copy } from '@phosphor-icons/react'
 import DateField from './DateField.jsx'
@@ -64,14 +65,14 @@ export default function Logbook({ onRefresh }) {
   }, [filtered])
   const monthLabel = (k) => k ? new Date(k + '-01T12:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : 'Undated'
 
-  if (!entries) return <main className="mx-auto col px-6 py-10 text-[13px]" style={{ color: 'var(--ink-3)' }}>Loading</main>
+  if (!entries) return <main className="mx-auto col px-6"><PanelSkeleton rows={4} /></main>
 
   return (
     <main className="mx-auto col px-6">
       <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
         <aside className="panel flex max-h-[78vh] flex-col overflow-hidden">
           <div className="flex items-center gap-2 p-3" style={{ borderBottom: '1px solid var(--line)' }}>
-            <div className="field flex flex-1 items-center gap-2 px-2.5 py-1.5"><MagnifyingGlass size={13} style={{ color: 'var(--ink-3)' }} />
+            <div className="field flex flex-1 items-center gap-2 px-2.5 py-1.5"><MagnifyingGlass size={13} weight="bold" style={{ color: 'var(--ink-3)' }} />
               <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search notes" className="w-full bg-transparent text-[13.5px] outline-none" /></div>
             <button onClick={fromCalendar} aria-label="From today's meetings" title="Start from today's meetings" className="pill grid h-8 w-8 place-items-center" style={{ border: '1px solid var(--line-2)', color: meetings ? 'var(--ink)' : 'var(--ink-3)' }}><CalendarBlank size={13} weight="bold" /></button>
             <button onClick={add} aria-label="New entry" className="pill grid h-8 w-8 place-items-center" style={{ background: 'var(--ink)', color: 'var(--bg)' }}><Plus size={13} weight="bold" /></button>
@@ -102,8 +103,9 @@ export default function Logbook({ onRefresh }) {
                         <span className="truncate text-[13px]">{e.title}</span>
                         <span className="tnum shrink-0 text-[12.5px]" style={{ color: 'var(--ink-3)' }}>{fmt(e.date)}</span>
                       </div>
-                      <div className="mt-0.5 truncate text-[13px]" style={{ color: 'var(--ink-3)' }}>
-                        {[e.project, (e.attendees || []).slice(0, 3).join(', '), openActions ? `${openActions} open` : null].filter(Boolean).join(' · ') || 'No details yet'}
+                      <div className="mt-0.5 flex gap-x-3 text-[13px]" style={{ color: 'var(--ink-3)' }}>
+                        <span className="truncate">{[e.project, (e.attendees || []).slice(0, 3).join(', ')].filter(Boolean).join(' · ') || 'No details yet'}</span>
+                        {openActions ? <span className="shrink-0">{openActions} open</span> : null}
                       </div>
                     </button>
                   )
@@ -153,7 +155,7 @@ function Entry({ entry, save, remove, template, onRefresh, setEntries }) {
         <input value={f.title} onChange={e => set('title', e.target.value)} onBlur={() => commit('title')} onKeyDown={e => e.key === 'Enter' && e.target.blur()}
           className="display w-full max-w-[640px] bg-transparent text-[30px] font-semibold leading-none tracking-tight outline-none sm:text-[36px]" placeholder="Meeting" />
         <div className="flex items-center gap-1">
-          <button onClick={template} title="New entry like this one, dated today" className="pill flex items-center gap-1.5 px-3 py-1.5 text-[13.5px]" style={{ border: '1px solid var(--line-2)', color: 'var(--ink-2)' }}><Copy size={12} /> Again today</button>
+          <button onClick={template} title="New entry like this one, dated today" className="pill flex items-center gap-1.5 px-3 py-1.5 text-[13.5px]" style={{ border: '1px solid var(--line-2)', color: 'var(--ink-2)' }}><Copy size={12} weight="bold" /> Again today</button>
           <button onClick={remove} aria-label="Delete entry" className="grid h-7 w-7 place-items-center rounded-md" style={{ color: 'var(--ink-3)' }}><X size={13} weight="bold" /></button>
         </div>
       </div>

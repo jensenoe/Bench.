@@ -39,10 +39,10 @@ export default function BomParts({ tasks }) {
               return (
                 <li key={p.id} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-2.5" style={{ borderTop: '1px solid var(--line)' }}>
                   <button onClick={() => p.url && openExternal(p.url)} className="min-w-[220px] flex-1 text-left text-[14px] underline-offset-2 hover:underline">
-                    {p.title}{p.url && <ArrowSquareOut size={11} className="ml-1.5 inline" style={{ color: 'var(--ink-3)' }} />}
+                    {p.title}{p.url && <ArrowSquareOut size={11} weight="bold" className="ml-1.5 inline" style={{ color: 'var(--ink-3)' }} />}
                   </button>
-                  <span className="tnum text-[13px]" style={{ color: 'var(--ink-3)' }}>
-                    {[m.supplier, m.leadTimeDays ? `${m.leadTimeDays}d lead` : null, m.orderNumber ? `PO ${m.orderNumber}` : null, m.orderedOn ? `ordered ${fmtDate(m.orderedOn)}` : null].filter(Boolean).join(' · ')}
+                  <span className="tnum flex flex-wrap gap-x-3 text-[13px]" style={{ color: 'var(--ink-3)' }}>
+                    {[m.supplier, m.leadTimeDays ? `${m.leadTimeDays}d lead` : null, m.orderNumber ? `PO ${m.orderNumber}` : null, m.orderedOn ? `ordered ${fmtDate(m.orderedOn)}` : null].filter(Boolean).map(x => <span key={x}>{x}</span>)}
                   </span>
                   {m.deliveryDate && <span className="tnum text-[13px]" style={{ color: eta !== null && eta < 0 ? STATUS.overdue : 'var(--ink-2)' }}>due {fmtDate(m.deliveryDate)}</span>}
                   <span className="tnum min-w-[110px] text-right text-[13.5px] font-semibold" style={{ color: tone(p) }}>{m.procurement || (m.critical ? 'critical' : '')}</span>

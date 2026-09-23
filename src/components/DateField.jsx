@@ -13,7 +13,7 @@ export default function DateField({ value, onChange, placeholder = 'Pick a day',
   return (
     <span className={`relative flex items-stretch ${className}`}>
       <button type="button" onClick={open} autoFocus={autoFocus} className="field flex flex-1 items-center gap-2 px-2.5 py-1.5 text-left text-[13px]" style={{ color: label ? 'var(--ink)' : 'var(--ink-3)' }}>
-        <CalendarBlank size={13} style={{ color: 'var(--ink-3)' }} />
+        <CalendarBlank size={13} weight="bold" style={{ color: 'var(--ink-3)' }} />
         <span className="tnum flex-1 truncate">{label || placeholder}</span>
         {clearable && value && <span role="button" tabIndex={0} aria-label="Clear date" onClick={e => { e.stopPropagation(); onChange('') }} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onChange('') } }}
           className="grid h-4 w-4 place-items-center rounded" style={{ color: 'var(--ink-3)' }}><X size={10} weight="bold" /></span>}

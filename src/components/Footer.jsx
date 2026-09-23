@@ -39,7 +39,7 @@ export default function Footer({ name, version, scene, glow, now = new Date(), o
           <a href="#/hours" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Hours</a>
           <button onClick={onSettings} className="-my-1 inline-block py-1 hover:underline underline-offset-2">Settings</button>
         </nav>
-        <span className="tnum">{scene?.label || 'Day'} light · next picture <span>{nextHour}</span>{version ? ` · ${ver(version)}` : ''}</span>
+        <span className="tnum flex flex-wrap gap-x-4"><span>{scene?.label || 'Day'} light</span><span>next picture {nextHour}</span>{version ? <span>{ver(version)}</span> : null}</span>
       </div>
     </footer>
   )
@@ -69,7 +69,7 @@ export default function Footer({ name, version, scene, glow, now = new Date(), o
               <li><button onClick={onSettings} className="-my-1 inline-block py-1 hover:underline underline-offset-2" style={{ color: 'var(--ink-2)' }}>Settings</button></li>
             </Col>
             <Col title="Tools">
-              {TOOLS.map(t => <li key={t.label}><a href={t.url} onClick={e => { e.preventDefault(); openTool(t.url) }} className="-my-1 inline-flex items-center gap-1 py-1 hover:underline underline-offset-2">{t.label} <ArrowSquareOut size={11} /></a></li>)}
+              {TOOLS.map(t => <li key={t.label}><a href={t.url} onClick={e => { e.preventDefault(); openTool(t.url) }} className="-my-1 inline-flex items-center gap-1 py-1 hover:underline underline-offset-2">{t.label} <ArrowSquareOut size={11} weight="bold" /></a></li>)}
             </Col>
             <Col title="Right now">
               <li style={{ color: 'var(--ink-2)' }}>{scene?.label || 'Day'} light</li>
@@ -82,7 +82,7 @@ export default function Footer({ name, version, scene, glow, now = new Date(), o
 
         <div className="relative flex flex-wrap items-center justify-between gap-3 py-6 text-[13px]" style={{ borderTop: '1px solid var(--line)', color: 'var(--ink-3)' }}>
           <span>Made at TomFit by Noël, for his own bench first.</span>
-          <span className="tnum">Photographs from Pexels and Unsplash{version ? ` · ${ver(version)}` : ''}</span>
+          <span className="tnum flex flex-wrap gap-x-4"><span>Photographs from Pexels and Unsplash</span>{version ? <span>{ver(version)}</span> : null}</span>
         </div>
       </div>
     </footer>

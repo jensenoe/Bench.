@@ -57,7 +57,7 @@ export default function Connect({ auth, onRefresh, tier = 'core', label = 'Conne
         <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1" style={{ color: 'var(--ink-3)' }}>
           <span>Send this to whoever administers tom.fit:</span>
           <button onClick={() => copy(auth.adminConsentUrl, setLinkCopied)} className="inline-flex items-center gap-1 underline underline-offset-2" style={{ color: 'var(--ink-2)' }}>
-            {linkCopied ? <Check size={11} weight="bold" /> : <Copy size={11} />} {linkCopied ? 'Copied' : 'Copy the approval link'}
+            {linkCopied ? <Check size={11} weight="bold" /> : <Copy size={11} weight="bold" />} {linkCopied ? 'Copied' : 'Copy the approval link'}
           </button>
         </p>
       )}

@@ -186,7 +186,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
                     <p className="leading-relaxed">The issue-ticket list and today's meetings need a one-time approval from a tom.fit admin. Send them the link, and once they have clicked it press Grant.</p>
                     <div className="mt-3 flex flex-wrap items-center gap-3">
                       <button onClick={() => copyLink(auth.adminConsentUrl)} className="pill inline-flex items-center gap-1.5 px-3.5 py-2 text-[13.5px]" style={{ border: '1px solid var(--line-2)' }}>
-                        {linkCopied ? <><Check size={12} weight="bold" /> Copied</> : <><Copy size={12} /> Copy the approval link</>}
+                        {linkCopied ? <><Check size={12} weight="bold" /> Copied</> : <><Copy size={12} weight="bold" /> Copy the approval link</>}
                       </button>
                       <Connect auth={auth} onRefresh={onRefresh} tier="extra" label="Grant" quiet className="inline-block" />
                     </div>
@@ -211,7 +211,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
             <div className="row p-4 text-[13.5px]">
               <div className="flex flex-wrap items-center gap-3">
                 <button onClick={checkUpdates} disabled={upd?.busy} className="pill px-3.5 py-1.5 text-[13.5px] font-medium disabled:opacity-50" style={{ background: 'var(--ink)', color: 'var(--bg)' }}>{upd?.busy ? 'Asking GitHub' : 'Check for updates'}</button>
-                <button onClick={() => api.openExternal(upd?.url || 'https://github.com/jensenoe/Bench./releases')} className="inline-flex items-center gap-1 underline underline-offset-2" style={{ color: 'var(--ink-3)' }}>Releases page <ArrowSquareOut size={11} /></button>
+                <button onClick={() => api.openExternal(upd?.url || 'https://github.com/jensenoe/Bench./releases')} className="inline-flex items-center gap-1 underline underline-offset-2" style={{ color: 'var(--ink-3)' }}>Releases page <ArrowSquareOut size={11} weight="bold" /></button>
               </div>
               {upd && !upd.busy && (
                 <p className="mt-2 leading-relaxed" style={{ color: upd.newer ? 'var(--accent)' : 'var(--ink-3)' }}>

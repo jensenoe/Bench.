@@ -105,7 +105,9 @@ Never lower the resolution; the reference monitor is wide.
 Panels 20 px, rows and cards 12 px, fields 10 px, buttons and nav items full pill, checkboxes and keycaps 4 px.
 Nothing else. Borders are hairlines from `--line`; a panel never has both a border and a shadow
 in the dark theme. Shadows: `--shadow-panel` for floating panels (search, time clock, toasts),
-nothing on resting panels.
+nothing on resting panels. Shadows are never black: they are the scene's night glow (`--glow-dark`)
+at 72 percent in the dark theme, 24 percent on paper, so a dusk panel throws a plum shadow and a
+day panel a blue one.
 
 ## 6. Components
 
@@ -122,7 +124,9 @@ nothing on resting panels.
   broke." with the message, Retry and Dismiss, role alert, stays until dealt with. Never a bare pill.
 - Key sheet: `?` lists every shortcut; Escape closes it and gives focus back.
 - Empty state: one sentence that says what to do next, in `--ink-3`, never "No data".
-- Icons: Phosphor, one weight per row; `bold` at 10 to 15 px inside chips, `regular` elsewhere.
+- Loading: a skeleton in the shape of what is coming (`Skeleton.jsx`: page, panel, ledger). Never
+  the word "Loading", never a spinner.
+- Icons: Phosphor. `bold` up to 15 px, `regular` from 16 px, so a row never mixes weights.
 
 ## 7. Layout
 
@@ -144,13 +148,15 @@ No horizontal scroll at any width; no element that only exists on hover takes la
 Plain, first person where the author speaks (About, footer, coach). No em dashes anywhere, not in
 copy, docs or comments. Dates through `shortDate` and `fmtDate` ("Tue 22 Sep"), times `de-CH` 24 h.
 Errors say what happened and what to do, in one sentence each. No exclamation marks, no "Oops".
+The middle dot joins at most two things on a line. Three or more become separate spans with a gap,
+or a comma list.
 
 ## 10. Never
 
 - Raw hex or rgb in a component. Pure black or pure white as a surface.
 - A second accent, or the accent used to mean a status.
 - Cards with a border and a drop shadow; nested cards; a fourth radius.
-- Circular spinners; "Loading..." as the only content; "No data".
+- Circular spinners; "Loading" as the only content; "No data"; black shadows; three items on one dot.
 - Eyebrow labels, gradient text, glows, bento grids, marketing heroes. The hero is the sky.
 - Font size under 12 px. Contrast under 4.5:1 for text, 3:1 for icons and hairlines that matter.
 - Controls that only exist on hover with no keyboard route. Anything without a visible focus ring.

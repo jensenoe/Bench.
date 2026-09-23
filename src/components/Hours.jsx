@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { CaretLeft, CaretRight } from '@phosphor-icons/react'
 import * as api from '../api.js'
 import { shortDate } from '../lanes.js'
+import { LedgerSkeleton } from './Skeleton.jsx'
 
 /**
  * The month, the way the Zeiterfassung sheet has it: one row per day, in, out, break, worked.
@@ -67,6 +68,7 @@ export default function Hours({ clock }) {
           <p className="px-6 py-3 text-[13px]" style={{ borderTop: '1px solid var(--line)', color: 'var(--caution)' }}>{failed[0].failed}</p>
         )}
 
+        {!data && !err && <LedgerSkeleton />}
         {data && (
           <table className="ledger mono w-full text-[13px]" style={{ borderCollapse: 'collapse' }}>
             <thead>

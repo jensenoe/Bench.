@@ -47,7 +47,7 @@ export default function Tools({ state, onPatch, onDelete, onRefresh, onConnect }
     else if (adminWait) { status = 'Needs a one-time admin approval'; tone = STATUS.caution }
     else if (expired) { status = 'Microsoft 365 sign-in has expired'; tone = STATUS.caution }
     else if (needsSignIn) { status = s.kind === 'graph' ? 'Not connected' : 'Not signed in'; tone = STATUS.caution }
-    else if (last) { status = `${open.length} assigned to ${who}${s.total != null ? ` of ${s.total}` : ''} · synced ${last}${s.stale ? ' · cached copy' : ''}`; tone = 'var(--ink-2)' }
+    else if (last) { status = `${open.length} assigned to ${who}${s.total != null ? ` of ${s.total}` : ''} · synced ${last}${s.stale ? ', cached copy' : ''}`; tone = 'var(--ink-2)' }
     else status = 'Connected, not synced yet'
     return { key, s, mine, open, needsSignIn, expired, adminWait, problem, status, tone }
   }).filter(Boolean)
@@ -69,7 +69,7 @@ export default function Tools({ state, onPatch, onDelete, onRefresh, onConnect }
             <div className="min-w-[200px]">
               <div className="display text-[18px] font-semibold leading-none">{s.label}.</div>
               <a href={s.origin} onClick={e => { e.preventDefault(); api.openExternal(s.origin) }} className="-mb-[2px] mt-1 inline-flex items-center gap-1 py-[2px] text-[13.5px] hover:underline" style={{ color: 'var(--ink-3)' }}>
-                {s.origin.replace('https://', '')} <ArrowSquareOut size={11} />
+                {s.origin.replace('https://', '')} <ArrowSquareOut size={11} weight="bold" />
               </a>
             </div>
             <div className="min-w-0 flex-1 text-[13.5px]" style={{ color: tone }}>

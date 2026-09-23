@@ -29,6 +29,7 @@ import QuickAdd from './components/QuickAdd.jsx'
 import OpenDay from './components/OpenDay.jsx'
 import Shortcuts from './components/Shortcuts.jsx'
 import ErrorToast from './components/ErrorToast.jsx'
+import PageSkeleton from './components/Skeleton.jsx'
 
 const route = () => location.hash.replace(/^#\/?/, '').split('?')[0]
 const Aside = ({ n, label, tone }) => (
@@ -71,7 +72,7 @@ export default function App() {
     const el = document.documentElement.style
     const t = light && scene.light ? scene.light : scene
     el.setProperty('--glow', t.glow); el.setProperty('--accent', t.accent); el.setProperty('--accent-ink', t.accentInk)
-    el.setProperty('--photo-filter', scene.filter); el.setProperty('--grade', scene.grade)
+    el.setProperty('--photo-filter', scene.filter); el.setProperty('--grade', scene.grade); el.setProperty('--glow-dark', scene.glow)
   }, [scene, light])
   useEffect(() => {
     const on = () => { setR(route()); window.scrollTo({ top: 0 }) }
@@ -136,7 +137,7 @@ export default function App() {
     seenSync.current = b.at
     if (first || (!b.added && !b.closed)) return
     const parts = Object.entries(b.sources || {}).filter(([, v]) => v.added || v.closed).map(([k, v]) => `${[v.added ? `${v.added} new` : null, v.closed ? `${v.closed} closed` : null].filter(Boolean).join(', ')} from ${SOURCE_LABEL[k] || k}`)
-    showToast({ text: b.added ? `${b.added} new from the tools.` : `${b.closed} closed upstream.`, by: parts.join(' · '), plain: true }, 7000)
+    showToast({ text: b.added ? `${b.added} new from the tools.` : `${b.closed} closed upstream.`, by: parts.join(', '), plain: true }, 7000)
   }, [state?.background, showToast])
   // Once per start: is there a newer Bench? Quiet unless there is.
   useEffect(() => {
@@ -176,13 +177,7 @@ export default function App() {
   const dismissDay = useCallback(async () => { try { await api.dismissUnclosed(); await timeclock.refresh() } catch (e) { setError(e.message) } }, [timeclock])
   const retry = useCallback(async () => { setRetrying(true); try { await refresh(); await timeclock.refresh() } finally { setRetrying(false) } }, [refresh, timeclock])
 
-  if (!state) return (
-    <div className="grid min-h-screen place-items-center">
-      <motion.p animate={{ opacity: [.35, 1, .35] }} transition={{ repeat: Infinity, duration: 1.8 }} className="text-[13.5px]" style={{ color: 'var(--ink-3)' }}>
-        {error ? `Server not reachable. ${error}` : 'Loading…'}
-      </motion.p>
-    </div>
-  )
+  if (!state) return <PageSkeleton message={error ? `Server not reachable. ${error}` : null} />
 
   if (!settings.setupDone) return <FirstRun scene={scene} auth={state.auth} onSave={saveSettings} onRefresh={refresh} />
 
@@ -236,7 +231,7 @@ export default function App() {
       <ErrorToast message={errMsg && errMsg !== dismissedError ? errMsg : null} busy={retrying} onRetry={retry} onDismiss={() => setDismissedError(errMsg)} />
       {!onLunch && <OpenDay clock={timeclock.clock} onClose={closeDay} onDismiss={dismissDay} />}
 
-      <Suspense fallback={null}>
+      <Suspense fallback={<PageSkeleton />}>
       <AnimatePresence mode="wait">
         {r === '' && page('home', <Landing scene={scene} stats={stats} pressing={pressing} sheetState={sheetState} doorImages={{ board: boardImage, procurement: { src: sceneAt('dusk', now).terrain, fallback: '/terrain/dusk.jpg' }, tools: { src: sceneAt('night', now).terrain, fallback: '/terrain/night.jpg' }, cockpit: cockpitCover(now), logbook: { src: sceneAt('dusk', now, 3).terrain, fallback: '/terrain/dusk.jpg' }, napkin: { src: sceneAt('day', now, 3).terrain, fallback: '/terrain/day.jpg' } }} name={settings.name} late={workingLate} hoursIn={hoursIn} />)}
 

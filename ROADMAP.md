@@ -92,12 +92,12 @@ proposal, in the order it will be built:
 - [x] 57 [S] Chips stay on one line and trim at 220 px; the whole text shows while the card is hovered or holds focus, and as a title.
 - [x] 58 [S] One colour grade across the 302 photographs: each scene sets the picture filter (warm for dawn and dusk, cool for day and night) and a soft-light colour layer (.grade, strength in --grade-a). App.jsx writes both with the accent.
 - [x] 59 [S] Film grain on every photograph (.grain): a still noise tile at .07 in overlay, hides banding in the fades.
-- [ ] 60 [S] Shadows tinted to the scene instead of pure black.
-- [ ] 61 [S] Skeletons shaped like the final layout instead of the word "Loading".
-- [ ] 62 [S] `text-wrap: balance` on headlines.
-- [ ] 63 [S] One Phosphor icon weight per row.
-- [ ] 64 [S] Ration the middle dot in footer and meta lines.
-- [ ] 65 [M] App and tray icon from the design skill's icon generator (needs a Gemini key; the current icon is fine).
+- [x] 60 [S] Shadows tinted to the scene: --glow-dark follows the scene in both themes and --shadow-panel (and the drag shadow) mix it instead of black.
+- [x] 61 [S] Skeletons (Skeleton.jsx): a page skeleton for the first load and lazy chunks, a panel skeleton for Logbook and Napkin, ledger rows for Hours. "Loading" is gone.
+- [x] 62 [S] `text-wrap: balance` on h1 to h3.
+- [x] 63 [S] One icon weight per size: bold up to 15 px, regular from 16 px (17 small icons that were regular are bold now).
+- [x] 64 [S] The middle dot joins at most two things: footer, BOM parts and quick add use spaced spans, lists use commas, the napkin hint points at the key sheet.
+- [ ] 65 [M] App and tray icon from the design skill's icon generator. Prepared: google-genai is installed for Python 3.12 and the generator reads GEMINI_API_KEY from `%USERPROFILE%\.claude\.env` (one line, outside the repo, never committed). Then, from `C:\Users\Noel\.claude\skills\design`: `python scripts\icon\generate.py --name bench --style glyph --sizes 16,32,48,256 --output-dir <repo>\build\icon-candidates --prompt "app icon for Bench., a personal project board: a bold rounded letter B with a period, on an off-black #15161C rounded square, ink #F3F3F1, the period in sky blue #8CC4F5"`. The SVGs still need rasterising to build/icon.png (256 px) and build/icon.ico; the current icon stays until one is better.
 - [x] 66 [M] Hours page as telemetry: JetBrains Mono figures, a one-pixel ledger grid, a strip of cells for month, sheet and figures instead of a card, today marked with the accent. The one deliberate exception, written into DESIGN.md.
 
 Not adopted, on purpose: landing-page heroes, bento grids and scroll effects (the hero is the sky); the

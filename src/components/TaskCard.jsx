@@ -124,11 +124,11 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true }) 
       <div className="absolute right-3 top-2.5 flex items-center gap-0.5">
         <button onClick={() => setEditing(v => !v)} aria-label="Edit details" title="Details" aria-expanded={editing}
           className="grid h-6 w-6 place-items-center rounded-md transition-opacity" style={{ color: editing ? 'var(--ink)' : 'var(--ink-3)', opacity: editing ? 1 : .7 }}><SlidersHorizontal size={13} weight="bold" /></button>
-        {canDrag && <span aria-hidden="true" className="hidden opacity-0 transition-opacity group-hover:opacity-60 sm:block" style={{ color: 'var(--ink-3)' }}><DotsSixVertical size={13} /></span>}
+        {canDrag && <span aria-hidden="true" className="hidden opacity-0 transition-opacity group-hover:opacity-60 sm:block" style={{ color: 'var(--ink-3)' }}><DotsSixVertical size={13} weight="bold" /></span>}
       </div>
       {/* On hover, on focus, while editing: the rest, as a small toolbar riding the card's top edge so it covers neither title nor chips. */}
       <div className={`row absolute -top-4 right-10 z-10 items-center gap-1 px-1.5 py-1 ${editing ? 'flex' : 'hidden group-hover:flex group-focus-within:flex'}`}
-        style={{ borderColor: 'var(--line-2)', boxShadow: '0 8px 24px rgba(0,0,0,.22)' }}>
+        style={{ borderColor: 'var(--line-2)', boxShadow: '0 8px 24px color-mix(in srgb, var(--glow-dark) 60%, transparent)' }}>
         {!task.done && task.lane !== 'today' && (
           <button onClick={() => onPatch(task.id, { lane: 'today' })} aria-label="Pull to Today" title="Pull to Today"
             className="pill px-2 py-0.5 text-[12px] font-medium" style={{ border: '1px solid var(--line-2)', color: 'var(--ink-2)' }}>Today</button>

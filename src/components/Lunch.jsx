@@ -69,7 +69,7 @@ export default function Lunch({ clock, punch, now, scene }) {
             <li key={i} className="tnum">
               {{ in: 'In', lunchOut: 'Lunch', lunchIn: 'Back', out: 'Out' }[e.kind]} {e.label}
               <span className="ml-1.5" style={{ color: e.error ? 'var(--late)' : e.written ? 'var(--ink-3)' : 'var(--caution)' }}>
-                {e.error ? '· not written' : e.written ? '· in the sheet' : '· waiting'}{e.auto ? ' · auto' : ''}
+                {e.error ? 'not written' : e.written ? 'in the sheet' : 'waiting'}{e.auto ? ', auto' : ''}
               </span>
             </li>
           ))}

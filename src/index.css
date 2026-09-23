@@ -30,7 +30,8 @@
   --shadow-text: 0 2px 8px rgba(0,0,0,.4), 0 10px 50px rgba(0,0,0,.4);
   --shadow-text-soft: 0 1px 4px rgba(0,0,0,.5);
   --photo-filter: saturate(.88) contrast(1.04);
-  --shadow-panel: 0 30px 80px rgba(0,0,0,.45);
+  --glow-dark: #1B2A3C;           /* the scene's night glow, in both themes, for shadows (App.jsx writes it) */
+  --shadow-panel: 0 30px 80px color-mix(in srgb, var(--glow-dark) 72%, transparent), 0 2px 12px rgba(0,0,0,.28);
 
   --page-bg: var(--bg); --page-veil: var(--veil); --page-ink: var(--ink); --page-ink-rgb: var(--ink-rgb);   /* the page behind a photo, unaffected by .on-photo */
 
@@ -70,7 +71,7 @@
   --shadow-text: none;
   --shadow-text-soft: none;
   --photo-filter: saturate(.92) contrast(1.02);
-  --shadow-panel: 0 20px 50px rgba(22,22,26,.14), 0 1px 0 rgba(22,22,26,.06);
+  --shadow-panel: 0 20px 50px color-mix(in srgb, var(--glow-dark) 24%, transparent), 0 1px 0 rgba(22,22,26,.06);
   --page-bg: #F3F1EC; --page-veil: 243,241,236; --page-ink: #16161A; --page-ink-rgb: 22,22,26;
   /* the same four meanings, dark enough to read as type on paper */
   --late:     #B9432F;
@@ -111,6 +112,11 @@ body {
 }
 
 .display { font-family: var(--font-display); letter-spacing: -0.025em; }
+h1, h2, h3 { text-wrap: balance; }
+
+/* Skeletons: the shape of what is coming, never the word "Loading" (roadmap 61). */
+@keyframes skel { from { background-position: 200% 0 } to { background-position: -200% 0 } }
+.skel { background: linear-gradient(90deg, rgba(var(--ink-rgb),.06) 0%, rgba(var(--ink-rgb),.12) 50%, rgba(var(--ink-rgb),.06) 100%); background-size: 200% 100%; animation: skel 1.8s ease-in-out infinite; }
 .tnum { font-variant-numeric: tabular-nums; }
 /* Telemetry register: the Hours page only (DESIGN.md, section 4). */
 .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
@@ -186,6 +192,6 @@ button:active, a.pill:active { transform: translateY(1px); }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .drift-a, .drift-b, .twinkle { animation: none; }
+  .drift-a, .drift-b, .twinkle, .skel { animation: none; }
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
