@@ -26,7 +26,7 @@ export default function TimeClock({ clock, punch, now }) {
   const noonish = now.getHours() >= 11 && now.getHours() < 14 && !last('lunchOut')
   const worked = workedMs(clock, now)
   const dot = (clock.pending > 0 || clock.lastError || clock.unclosed) && (
-    <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: clock.lastError ? '#F0776B' : '#E8B85A' }} />
+    <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: clock.lastError ? 'var(--late)' : 'var(--caution)' }} />
   )
   const solid = { background: 'var(--accent)', color: 'var(--accent-ink)' }
   const ghost = { border: '1px solid var(--line-2)' }
@@ -61,12 +61,12 @@ export default function TimeClock({ clock, punch, now }) {
               {clock.events.filter(e => e.kind !== 'pause').map((e, i) => (
                 <li key={i} className="flex items-center justify-between">
                   <span>{{ in: 'In', lunchOut: 'Lunch out', lunchIn: 'Lunch in', out: 'Out' }[e.kind]}</span>
-                  <span className="tnum flex items-center gap-2">{e.label}{e.error ? <span title={e.error} className="h-1.5 w-1.5 rounded-full" style={{ background: '#F0776B' }} /> : !e.written ? <span title="Not in the sheet yet" className="h-1.5 w-1.5 rounded-full" style={{ background: '#E8B85A' }} /> : null}</span>
+                  <span className="tnum flex items-center gap-2">{e.label}{e.error ? <span title={e.error} className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--late)' }} /> : !e.written ? <span title="Not in the sheet yet" className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--caution)' }} /> : null}</span>
                 </li>
               ))}
               {!clock.events.length && <li style={{ color: 'var(--ink-3)' }}>No punches yet.</li>}
             </ul>
-            {clock.lastError && <p className="mt-3 text-[13.5px] leading-relaxed" style={{ color: '#E8B85A' }}>{clock.lastError}</p>}
+            {clock.lastError && <p className="mt-3 text-[13.5px] leading-relaxed" style={{ color: 'var(--caution)' }}>{clock.lastError}</p>}
             {!clock.lastError && clock.pending > 0 && <p className="mt-3 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>{clock.pending} punch{clock.pending > 1 ? 'es' : ''} waiting to be written.</p>}
             {clock.sheet && !clock.pending && !clock.lastError && clock.events.length > 0 && <p className="mt-3 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>Written to {clock.sheet.name}, row {clock.sheet.row}.</p>}
             <div className="mt-4 flex flex-wrap items-center gap-3">

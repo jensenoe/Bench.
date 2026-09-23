@@ -25,7 +25,7 @@ export default function Nav({ route, auth, meta, onRefresh, now, scene, timecloc
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[150px] 2xl:h-[170px]" style={{
         background: 'linear-gradient(to bottom, rgba(var(--veil),.82) 0%, rgba(var(--veil),.45) 50%, transparent 100%)',
         backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
-        maskImage: 'linear-gradient(to bottom, #000 45%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, #000 45%, transparent 100%)' }} />
+        maskImage: 'linear-gradient(to bottom, black 45%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 45%, transparent 100%)' }} />
       <div className="relative mx-auto flex h-[88px] max-w-[1800px] items-start justify-between px-8 pt-6 2xl:h-[104px] 2xl:pt-7">
         <div className="flex shrink-0 items-baseline gap-7 whitespace-nowrap xl:gap-10 2xl:gap-14">
           <a href="#/" className="display text-[23px] font-semibold tracking-tight 2xl:text-[27px]">Bench<span style={{ color: 'var(--accent)' }}>.</span></a>

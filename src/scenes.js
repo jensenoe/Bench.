@@ -9,13 +9,19 @@ import library from './library.json'
  * Any subset can be switched on; the pools are interleaved so consecutive hours change mood.
  * Photos arrive via fetch-photos.bat; until then each scene falls back to a procedural render.
  */
+/**
+ * Each scene also grades the photographs: `filter` runs on the picture itself, `grade` is the colour laid
+ * over it in soft light (see .grade in index.css). Dawn and dusk lean warm, day and night lean cool, so
+ * pictures from eleven libraries and dozens of photographers read as one product.
+ */
 const SCENES = {
-  dawn:  { label: 'Dawn',  start: 5,  glow: '#3A2C4A', accent: '#F0A483', accentInk: '#2A1810', light: { glow: '#F1DCD2', accent: '#B85A34', accentInk: '#FFF7F2' } },
-  day:   { label: 'Day',   start: 9,  glow: '#1B2A3C', accent: '#8CC4F5', accentInk: '#0A1C2E', light: { glow: '#D9E6F2', accent: '#2E6CA8', accentInk: '#F3F8FD' } },
-  dusk:  { label: 'Dusk',  start: 17, glow: '#3A2038', accent: '#F09468', accentInk: '#2A140A', light: { glow: '#F1D9D0', accent: '#B9501F', accentInk: '#FFF6F1' } },
-  night: { label: 'Night', start: 21, glow: '#0E1526', accent: '#9DB9E6', accentInk: '#0A1428', light: { glow: '#D7DEEC', accent: '#3A5B96', accentInk: '#F4F6FB' } }
+  dawn:  { label: 'Dawn',  start: 5,  glow: '#3A2C4A', accent: '#F0A483', accentInk: '#2A1810', filter: 'saturate(.9) contrast(1.04) sepia(.1)',            grade: '240,164,131', light: { glow: '#F1DCD2', accent: '#B85A34', accentInk: '#FFF7F2' } },
+  day:   { label: 'Day',   start: 9,  glow: '#1B2A3C', accent: '#8CC4F5', accentInk: '#0A1C2E', filter: 'saturate(.86) contrast(1.05)',                     grade: '140,180,230', light: { glow: '#D9E6F2', accent: '#2E6CA8', accentInk: '#F3F8FD' } },
+  dusk:  { label: 'Dusk',  start: 17, glow: '#3A2038', accent: '#F09468', accentInk: '#2A140A', filter: 'saturate(.92) contrast(1.05) sepia(.12)',          grade: '236,140,104', light: { glow: '#F1D9D0', accent: '#B9501F', accentInk: '#FFF6F1' } },
+  night: { label: 'Night', start: 21, glow: '#0E1526', accent: '#9DB9E6', accentInk: '#0A1428', filter: 'saturate(.8) contrast(1.06) brightness(.94)',      grade: '96,116,168',  light: { glow: '#D7DEEC', accent: '#3A5B96', accentInk: '#F4F6FB' } }
 }
-export const STATUS = { overdue: '#F0776B', caution: '#E8B85A', held: '#7CC8DA', done: '#8CD3A2', muted: 'rgba(var(--ink-rgb),.5)' }
+/** Functional colours as tokens (index.css defines them per theme). Keys kept for the components. */
+export const STATUS = { overdue: 'var(--late)', caution: 'var(--caution)', held: 'var(--held)', done: 'var(--ok)', muted: 'rgba(var(--ink-rgb),.5)' }
 
 export const COLLECTIONS = ['alps', 'tropics', 'urban', 'mono', 'pnw', 'desert', 'brutalist', 'italy', 'canada', 'autumn', 'gothic'].map(key => ({ key, label: library[key].label }))
 export const DEFAULT_COLLECTIONS = COLLECTIONS.map(c => c.key)
@@ -119,7 +125,7 @@ export const ALL_SCENES = Object.keys(SCENES).map(k => { const d = new Date(); d
 export function sceneAt(key, d = new Date(), shift = 0) { return build(key, d, shift) }
 
 /** Lunch: a village at dusk, lights coming on. Changes with the day, not the hour. */
-const LUNCH = { key: 'lunch', label: 'Lunch', glow: '#2E1E33', accent: '#F5B26B', accentInk: '#2A1606', light: { glow: '#F3E2D0', accent: '#B0662A', accentInk: '#FFF8F0' } }
+const LUNCH = { key: 'lunch', label: 'Lunch', glow: '#2E1E33', accent: '#F5B26B', accentInk: '#2A1606', filter: 'saturate(.92) contrast(1.04) sepia(.1)', grade: '245,178,107', light: { glow: '#F3E2D0', accent: '#B0662A', accentInk: '#FFF8F0' } }
 export function lunchScene(d = new Date()) {
   const imgs = (library.lunch.images || []).map(src)
   return { ...LUNCH, terrain: imgs.length ? imgs[dayOfYear(d) % imgs.length] : '/terrain/dusk.jpg', fallback: '/terrain/dusk.jpg' }

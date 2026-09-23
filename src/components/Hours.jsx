@@ -39,14 +39,14 @@ export default function Hours({ clock }) {
             <div className="flex gap-8 text-right">
               <div><div className="display tnum text-[32px] font-semibold leading-none">{hm(data.worked)}</div><div className="mt-1 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>on the clock</div></div>
               <div><div className="display tnum text-[32px] font-semibold leading-none">{data.daysWorked}</div><div className="mt-1 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>days</div></div>
-              {pending > 0 && <div><div className="display tnum text-[32px] font-semibold leading-none" style={{ color: '#E8B85A' }}>{pending}</div><div className="mt-1 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>not in the sheet yet</div></div>}
+              {pending > 0 && <div><div className="display tnum text-[32px] font-semibold leading-none" style={{ color: 'var(--caution)' }}>{pending}</div><div className="mt-1 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>not in the sheet yet</div></div>}
             </div>
           )}
         </div>
 
-        {err && <p className="mt-5 text-[13px]" style={{ color: '#F0776B' }}>{err}</p>}
+        {err && <p className="mt-5 text-[13px]" style={{ color: 'var(--late)' }}>{err}</p>}
         {failed.length > 0 && (
-          <p className="mt-5 flex items-start gap-2 text-[13px]" style={{ color: '#E8B85A' }}><Warning size={15} weight="bold" className="mt-0.5 shrink-0" /> {failed[0].failed}</p>
+          <p className="mt-5 flex items-start gap-2 text-[13px]" style={{ color: 'var(--caution)' }}><Warning size={15} weight="bold" className="mt-0.5 shrink-0" /> {failed[0].failed}</p>
         )}
 
         {data && (
@@ -64,15 +64,15 @@ export default function Hours({ clock }) {
                   <tr key={d.date} style={{ borderTop: '1px solid var(--line)', opacity: d.future ? .35 : (weekend && empty) ? .5 : 1, background: d.today ? 'rgba(var(--ink-rgb),.04)' : 'transparent' }}>
                     <td className="py-2" style={{ color: d.today ? 'var(--ink)' : weekend ? 'var(--ink-3)' : 'var(--ink-2)', fontWeight: d.today ? 500 : 400 }}>{shortDate(new Date(d.date + 'T12:00:00'))}</td>
                     <td className="tnum py-2">{t(d.in)}</td>
-                    <td className="tnum py-2">{d.open && !d.today ? <span style={{ color: '#E8B85A' }}>open</span> : t(d.out)}</td>
+                    <td className="tnum py-2">{d.open && !d.today ? <span style={{ color: 'var(--caution)' }}>open</span> : t(d.out)}</td>
                     <td className="tnum py-2" style={{ color: 'var(--ink-3)' }}>{d.breakMs ? hm(d.breakMs) : ''}</td>
                     <td className="tnum py-2 text-right" style={{ fontWeight: d.worked ? 500 : 400 }}>{d.worked ? hm(d.worked) : ''}</td>
                     <td className="py-2 pl-4 text-[13.5px]">
-                      {d.failed ? <span title={d.failed} style={{ color: '#F0776B' }}>failed</span>
-                        : d.unclosed ? <span style={{ color: '#E8B85A' }}>needs closing</span>
-                        : d.pending ? <span style={{ color: '#E8B85A' }}>{d.pending} waiting</span>
+                      {d.failed ? <span title={d.failed} style={{ color: 'var(--late)' }}>failed</span>
+                        : d.unclosed ? <span style={{ color: 'var(--caution)' }}>needs closing</span>
+                        : d.pending ? <span style={{ color: 'var(--caution)' }}>{d.pending} waiting</span>
                         : d.closedLater ? <span style={{ color: 'var(--ink-3)' }}>closed later</span>
-                        : d.in ? <span style={{ color: '#8CD3A2' }}>written</span> : ''}
+                        : d.in ? <span style={{ color: 'var(--ok)' }}>written</span> : ''}
                     </td>
                   </tr>
                 )

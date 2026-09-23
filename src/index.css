@@ -33,10 +33,21 @@
 
   --page-bg: var(--bg); --page-veil: var(--veil); --page-ink: var(--ink); --page-ink-rgb: var(--ink-rgb);   /* the page behind a photo, unaffected by .on-photo */
 
-  /* set per scene */
+  /* Functional colours: the same four meanings everywhere. Late (a date is past, something failed),
+     caution (waiting, not written yet, needs a look), ok (written, delivered, done), held (ordered,
+     on its way, parked). Components never carry raw hex; they use these or the scene accent. */
+  --late:     #F0776B;
+  --caution:  #E8B85A;
+  --ok:       #8CD3A2;
+  --held:     #7CC8DA;
+  --late-ink: #2A0A08;            /* type on a late-coloured surface */
+
+  /* set per scene (App.jsx writes them from src/scenes.js) */
   --glow: #1B2A3C;
   --accent: #8CC4F5;
   --accent-ink: #0A1C2E;
+  --grade: 140,180,230;           /* the scene's colour grade over every photograph, as rgb */
+  --grade-a: .35;
   color-scheme: dark;
 }
 
@@ -60,6 +71,12 @@
   --photo-filter: saturate(.92) contrast(1.02);
   --shadow-panel: 0 20px 50px rgba(22,22,26,.14), 0 1px 0 rgba(22,22,26,.06);
   --page-bg: #F3F1EC; --page-veil: 243,241,236; --page-ink: #16161A; --page-ink-rgb: 22,22,26;
+  /* the same four meanings, dark enough to read as type on paper */
+  --late:     #B9432F;
+  --caution:  #946212;
+  --ok:       #2E7D4F;
+  --held:     #1F6F86;
+  --late-ink: #FFF6F4;
   color-scheme: light;
 }
 :root[data-theme="light"] .panel { box-shadow: 0 1px 2px rgba(22,22,26,.04); }
@@ -75,6 +92,7 @@
 
 /* Everything laid over a photograph: night tokens in both themes. */
 .on-photo {
+  --late: #F0776B; --caution: #E8B85A; --ok: #8CD3A2; --held: #7CC8DA; --late-ink: #2A0A08;
   --bg: #15161C; --veil: 21,22,28;
   --ink: #F3F3F1; --ink-rgb: 243,243,241;
   --ink-2: rgba(243,243,241,.74); --ink-3: rgba(243,243,241,.5);
@@ -108,8 +126,18 @@ body {
 }
 .field:focus { border-color: var(--accent); outline: none; }
 
-/* image treatment: everything photographic sits *in* the dark */
+/* image treatment: everything photographic sits *in* the dark.
+   Three layers make 302 photographs from many photographers read as one product:
+   .photo   the scene's filter (warm for dawn and dusk, cool for day and night)
+   .grade   the scene's colour laid over the picture in soft light, so every picture leans the same way
+   .grain   a still film grain, tiled, that hides banding in the fades and evens out compression */
 .photo { filter: var(--photo-filter); }
+.grade { background: rgba(var(--grade), var(--grade-a)); mix-blend-mode: soft-light; pointer-events: none; }
+.grain {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 160px 160px;
+  opacity: .07; mix-blend-mode: overlay; pointer-events: none;
+}
 .photo-veil { background: linear-gradient(to top, rgba(var(--veil),.96) 0%, rgba(var(--veil),.6) 40%, rgba(var(--veil),.12) 100%); }
 
 /* frosted glass behind type that sits on a photograph. Same 20px radius as panels. */

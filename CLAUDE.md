@@ -19,6 +19,7 @@ Read `HANDOFF.md` before changing anything; it lists what is verified, what is n
 
 ## Conventions that matter
 
+- Design: `DESIGN.md` is the one page that says how Bench. looks and why; read it before touching a component. Colours only through tokens (`--late`, `--caution`, `--ok`, `--held`, `--accent`, the ink and surface tokens in `src/index.css`); `npm run lint` fails on raw hex outside `index.css`, `scenes.js` and `library.json`.
 - Copy: no em dashes anywhere in UI text, docs or comments. Headlines end with a period ("Board.", "Something broke."). Voice is plain, first person where the author speaks (About, footer). Photos are credited by name in Settings > About.
 - Dates: `shortDate`/`fmtDate` in `src/lanes.js` ("Tue 22 Sep"), never `toLocaleDateString` with `month: 'short'` (en-GB gives "Sept"). Times: `de-CH` 24h.
 - One reading column: the `.col` class (`--col`, 1120px, 1320px at 2xl). The nav is full width on purpose.

@@ -17,8 +17,8 @@ export default function OpenDay({ clock, onClose, onDismiss }) {
       {u && (
         <motion.div key={u.date} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: .3 }}
           className="mx-auto col px-6 pt-[104px]">
-          <div className="panel flex flex-wrap items-center gap-x-5 gap-y-3 px-5 py-3.5 text-[13.5px]" style={{ borderColor: '#E8B85A' }}>
-            <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: '#E8B85A' }} />
+          <div className="panel flex flex-wrap items-center gap-x-5 gap-y-3 px-5 py-3.5 text-[13.5px]" style={{ borderColor: 'var(--caution)' }}>
+            <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: 'var(--caution)' }} />
             <span><span className="font-medium">{date}</span> was never clocked out{u.status === 'lunch' ? ' and is still on lunch' : ''}. Close it at</span>
             <input value={time} onChange={e => setTime(e.target.value)} className="field tnum w-[76px] px-2 py-1 text-center text-[13.5px]" aria-label="Time to close the day" />
             <button disabled={!ok || busy} onClick={async () => { setBusy(true); try { await onClose(time) } finally { setBusy(false) } }}

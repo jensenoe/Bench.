@@ -39,6 +39,8 @@ function Door({ s, tall = false, wide = false, sheetState, doorImages }) {
       style={{ borderRadius: 20, border: '1px solid var(--line)', minHeight: tall ? 560 : wide ? 300 : 268, opacity: ready ? 1 : .6 }}>
       <Photo key={doorImages[s.id]?.src || s.image} src={doorImages[s.id]?.src || s.image} fallback={doorImages[s.id]?.fallback || s.fallback}
            className="photo absolute inset-0 -z-10 h-full w-full object-cover transition-transform duration-[1600ms] ease-out group-hover:scale-[1.05]" />
+      <div aria-hidden="true" className="grade absolute inset-0 -z-10" />
+      <div aria-hidden="true" className="grain absolute inset-0 -z-10" />
       <div className="photo-veil absolute inset-0 -z-10" />
       <div className="p-7">
         <h3 className={`display font-semibold leading-none ${tall ? 'text-[40px]' : 'text-[28px]'}`}>{s.title}.</h3>

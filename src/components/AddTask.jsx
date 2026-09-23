@@ -63,7 +63,7 @@ export default function AddTask({ lane, onCreate }) {
               <L label="Tags"><input value={f.tags} onChange={e => set('tags', e.target.value)} placeholder="comma separated" className={inp} /></L>
             </div>
           )}
-          {err && <p className="mt-2 text-[13px]" style={{ color: '#E8B85A' }}>{err}</p>}
+          {err && <p className="mt-2 text-[13px]" style={{ color: 'var(--caution)' }}>{err}</p>}
           <div className="mt-2.5 flex items-center gap-3">
             <button type="submit" className="pill px-4 py-1.5 text-[13px] font-medium"
               style={{ background: 'var(--ink)', color: 'var(--bg)' }}>Add</button>

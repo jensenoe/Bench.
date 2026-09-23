@@ -130,14 +130,14 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
               <a href="#/hours" onClick={onClose} className="underline underline-offset-2" style={{ color: 'var(--ink-3)' }}>This month's hours</a>
             </div>
             {probe && !probe.busy && (
-              <p className="text-[13.5px] leading-relaxed" style={{ color: probe.ok ? '#8CD3A2' : '#E8B85A' }}>
+              <p className="text-[13.5px] leading-relaxed" style={{ color: probe.ok ? 'var(--ok)' : 'var(--caution)' }}>
                 {probe.ok ? <>Found it. Sheet <span className="tnum">{probe.sheet}</span>, today is row <span className="tnum">{probe.row}</span>.</> : probe.message}
               </p>
             )}
             {clock && (clock.events.length > 0 || clock.unclosed) && (
               <p className="text-[13px]" style={{ color: 'var(--ink-3)' }}>
                 {clock.sheet && <>Today writes to {clock.sheet.name} row {clock.sheet.row}. </>}
-                {clock.unclosed && <span style={{ color: '#E8B85A' }}>{clock.unclosed.date} was never clocked out. </span>}
+                {clock.unclosed && <span style={{ color: 'var(--caution)' }}>{clock.unclosed.date} was never clocked out. </span>}
                 {clock.events.length > 0 && <button onClick={() => { if (confirm("Forget today's punches here? The sheet keeps what was written.")) timeclock.reset() }} className="underline underline-offset-2">Reset today</button>}
               </p>
             )}
@@ -152,7 +152,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
                   <button onClick={async () => { const r = await window.bench.chooseDataFolder(); if (r.changed) setNeedsRelaunch(true) }} className="underline underline-offset-2">Choose a shared folder</button>
                   <button onClick={() => window.bench.openDataFolder()} className="underline underline-offset-2" style={{ color: 'var(--ink-3)' }}>Open</button>
                 </div>
-                {needsRelaunch && <p className="mt-2 text-[13px]" style={{ color: '#E8B85A' }}>Takes effect after a restart. <button onClick={() => window.bench.relaunch()} className="underline underline-offset-2">Restart now</button></p>}
+                {needsRelaunch && <p className="mt-2 text-[13px]" style={{ color: 'var(--caution)' }}>Takes effect after a restart. <button onClick={() => window.bench.relaunch()} className="underline underline-offset-2">Restart now</button></p>}
               </div>
               {startup !== null && <Toggle on={startup} onChange={async () => setStartup(await window.bench.startup(!startup))} label="Starts with Windows" />}
               <Toggle on={draft.nudges !== false} onChange={() => saveNow({ nudges: draft.nudges === false })} label="Water and coffee reminders after a task" />

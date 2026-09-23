@@ -35,6 +35,8 @@ export default function FirstRun({ scene, auth, onSave, onRefresh }) {
       <Photo animated key={scene.terrain} src={scene.terrain} fallback={scene.fallback}
         initial={{ scale: 1.06, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 1.6, ease: EASE }}
         className="photo absolute inset-0 h-full w-full object-cover object-center" />
+      <div aria-hidden="true" className="grade absolute inset-0" />
+      <div aria-hidden="true" className="grain absolute inset-0" />
       <div className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(var(--veil),.97) 0%, rgba(var(--veil),.7) 40%, rgba(var(--veil),.2) 100%)' }} />
       <div className="relative z-10 mx-auto flex min-h-[100svh] col flex-col justify-end px-6 pb-24">
         <AnimatePresence mode="wait" initial={false}>
@@ -67,7 +69,7 @@ export default function FirstRun({ scene, auth, onSave, onRefresh }) {
                 {auth?.signedIn ? (
                   <div>
                     <p className="flex items-center gap-2 text-[14px]"><Check size={15} weight="bold" style={{ color: 'var(--accent)' }} /> Connected as <span className="tnum">{auth.username}</span></p>
-                    <p className="mt-2 text-[13.5px] leading-relaxed" style={{ color: probe ? (probe.ok ? 'var(--ink-2)' : '#E8B85A') : 'var(--ink-3)' }}>
+                    <p className="mt-2 text-[13.5px] leading-relaxed" style={{ color: probe ? (probe.ok ? 'var(--ink-2)' : 'var(--caution)') : 'var(--ink-3)' }}>
                       {!probe ? 'Looking for your hours workbook.' : probe.ok ? <>Your hours workbook is there: sheet <span className="tnum">{probe.sheet}</span>, today is row <span className="tnum">{probe.row}</span>.</> : <>{probe.message} The path can be fixed in Settings before the first punch.</>}
                     </p>
                   </div>

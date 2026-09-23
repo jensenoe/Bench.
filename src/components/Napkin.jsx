@@ -17,7 +17,8 @@ import * as api from '../api.js'
  * subtree gets vertical room by its leaf count. Saved to the shared folder, debounced.
  */
 const NODE_W = 180, NODE_H = 36, GAP_X = 70, GAP_Y = 12
-const PALETTE = { accent: 'var(--accent)', rose: '#F0776B', amber: '#E8B85A', mint: '#8CD3A2', sky: '#7CC8DA', plum: '#C9A2F0' }
+// The note colours are literal on purpose: they are baked into the SVG and PNG exports, where a var() would not resolve.
+const PALETTE = { accent: 'var(--accent)', rose: '#F0776B', amber: '#E8B85A', mint: '#8CD3A2', sky: '#7CC8DA', plum: '#C9A2F0' } // tokens-ok
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2))
 
 /** Positions for every visible node. Children sorted by order; collapsed nodes hide their subtree. */
@@ -213,7 +214,7 @@ export default function Napkin() {
   const svgString = () => {
     const cs = getComputedStyle(document.documentElement)
     const v = (n, fb) => (cs.getPropertyValue(n).trim() || fb)
-    const ink = v('--ink', '#F3F3F1'), row = v('--row', '#25262F'), panel = v('--panel', '#1E1F27'), line = v('--line-2', 'rgba(243,243,241,.14)'), accent = v('--accent', '#8CC4F5'), bg = v('--bg', '#15161C'), ink3 = v('--ink-3', 'rgba(243,243,241,.48)')
+    const ink = v('--ink', '#F3F3F1'), row = v('--row', '#25262F'), panel = v('--panel', '#1E1F27'), line = v('--line-2', 'rgba(243,243,241,.14)'), accent = v('--accent', '#8CC4F5'), bg = v('--bg', '#15161C'), ink3 = v('--ink-3', 'rgba(243,243,241,.48)') // export fallbacks for a detached document, tokens-ok
     const col = c => c ? (c === 'accent' ? accent : PALETTE[c]) : null
     const ps = Object.entries(pos); if (!ps.length) return null
     const xs = ps.map(([id, p]) => id === root ? -NODE_W / 2 : p.x), ys = ps.map(([, p]) => p.y)

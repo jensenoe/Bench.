@@ -52,7 +52,7 @@ export default function Connect({ auth, onRefresh, tier = 'core', label = 'Conne
       {!code?.userCode && (
         <button disabled={busy} className={pillCls} style={pill} onClick={connect}>{busy ? 'Starting' : label}</button>
       )}
-      {code?.error && <p className="mt-2 leading-relaxed" style={{ color: '#E8B85A' }}>{code.error}</p>}
+      {code?.error && <p className="mt-2 leading-relaxed" style={{ color: 'var(--caution)' }}>{code.error}</p>}
       {needsAdmin && auth?.adminConsentUrl && (
         <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1" style={{ color: 'var(--ink-3)' }}>
           <span>Send this to whoever administers tom.fit:</span>

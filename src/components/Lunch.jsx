@@ -22,6 +22,8 @@ export default function Lunch({ clock, punch, now, scene }) {
       <Photo animated key={scene.terrain} src={scene.terrain} fallback={scene.fallback}
         initial={{ scale: 1.08, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 1.6, ease: [0.16, 1, 0.3, 1] }}
         className="photo absolute inset-0 h-full w-full object-cover object-center" />
+      <div aria-hidden="true" className="grade absolute inset-0" />
+      <div aria-hidden="true" className="grain absolute inset-0" />
       <div className="pointer-events-none absolute inset-0" style={{
         background: 'linear-gradient(to top, rgba(var(--veil),.96) 0%, rgba(var(--veil),.55) 35%, rgba(var(--veil),.15) 70%, rgba(var(--veil),.35) 100%)' }} />
 
@@ -66,13 +68,13 @@ export default function Lunch({ clock, punch, now, scene }) {
           {(clock?.events || []).filter(e => e.kind !== 'pause').map((e, i) => (
             <li key={i} className="tnum">
               {{ in: 'In', lunchOut: 'Lunch', lunchIn: 'Back', out: 'Out' }[e.kind]} {e.label}
-              <span className="ml-1.5" style={{ color: e.error ? '#F0776B' : e.written ? 'var(--ink-3)' : '#E8B85A' }}>
+              <span className="ml-1.5" style={{ color: e.error ? 'var(--late)' : e.written ? 'var(--ink-3)' : 'var(--caution)' }}>
                 {e.error ? '· not written' : e.written ? '· in the sheet' : '· waiting'}{e.auto ? ' · auto' : ''}
               </span>
             </li>
           ))}
           {clock?.lastError
-            ? <li style={{ color: '#E8B85A' }}>{clock.lastError}</li>
+            ? <li style={{ color: 'var(--caution)' }}>{clock.lastError}</li>
             : clock?.sheet && clock.events.some(e => e.written)
               ? <li>Written to {clock.sheet.name}, row {clock.sheet.row}.</li>
               : clock?.pending > 0 ? <li>Waiting for Microsoft 365 to write the sheet.</li> : null}

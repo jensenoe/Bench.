@@ -66,6 +66,7 @@ export default function App() {
     const el = document.documentElement.style
     const t = light && scene.light ? scene.light : scene
     el.setProperty('--glow', t.glow); el.setProperty('--accent', t.accent); el.setProperty('--accent-ink', t.accentInk)
+    el.setProperty('--photo-filter', scene.filter); el.setProperty('--grade', scene.grade)
   }, [scene, light])
   useEffect(() => {
     const on = () => { setR(route()); window.scrollTo({ top: 0 }) }
@@ -208,7 +209,7 @@ export default function App() {
       <Toast item={toast} onDismiss={() => setToast(null)} />
       <Search open={searchOpen} onClose={() => setSearchOpen(false)} tasks={state.tasks} />
       <QuickAdd open={quickOpen} onClose={() => setQuickOpen(false)} onCreate={onCreate} defaultLane={r === 'board' && stats.today < 5 ? 'today' : 'active'} />
-      {(error || timeclock.error) && <p className="pill fixed bottom-5 left-1/2 z-50 -translate-x-1/2 px-4 py-2 text-[13px]" style={{ background: STATUS.overdue, color: '#2A0A08' }}>{error || timeclock.error}</p>}
+      {(error || timeclock.error) && <p className="pill fixed bottom-5 left-1/2 z-50 -translate-x-1/2 px-4 py-2 text-[13px]" style={{ background: STATUS.overdue, color: 'var(--late-ink)' }}>{error || timeclock.error}</p>}
       {!onLunch && <OpenDay clock={timeclock.clock} onClose={closeDay} onDismiss={dismissDay} />}
 
       <Suspense fallback={null}>

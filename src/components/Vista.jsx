@@ -19,6 +19,8 @@ export default function Vista({ scene, children }) {
       <Photo animated key={scene.terrain} src={scene.terrain} fallback={scene.fallback}
         style={{ y: imgY, scale: imgScale }}
         className="photo absolute inset-0 h-full w-full object-cover object-center will-change-transform" />
+      <div aria-hidden="true" className="grade absolute inset-0" />
+      <div aria-hidden="true" className="grain absolute inset-0" />
       <div className="pointer-events-none absolute inset-0" style={{
         background: 'linear-gradient(to top, var(--page-bg) 0%, rgba(var(--page-veil),.6) 9%, rgba(var(--page-veil),.16) 26%, rgba(var(--page-veil),.05) 100%)' }} />
       <motion.div style={{ y: copyY, opacity: copyO }} className="relative z-10 h-full">{children}</motion.div>

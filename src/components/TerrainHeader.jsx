@@ -14,6 +14,8 @@ export default function TerrainHeader({ scene, title, line, aside, compact = fal
       style={compact ? { marginBottom: -OVERLAP } : undefined}>
       <Photo key={scene.terrain} src={scene.terrain} fallback={scene.fallback}
         className="photo absolute inset-0 h-full w-full object-cover" />
+      <div aria-hidden="true" className="grade absolute inset-0" />
+      <div aria-hidden="true" className="grain absolute inset-0" />
       {/* A light veil over most of the picture; the page colour only arrives at the very bottom, where the content already covers it. */}
       <div className="absolute inset-0" style={{
         background: compact

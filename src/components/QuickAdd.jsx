@@ -40,7 +40,7 @@ export default function QuickAdd({ open, onClose, onCreate, defaultLane = 'activ
                   style={{ color: lane === k ? 'var(--ink)' : 'var(--ink-3)', background: lane === k ? 'rgba(var(--ink-rgb),.1)' : 'transparent', border: '1px solid var(--line)' }}>{LANES[k].label}</button>
               ))}
               <span className="ml-auto flex items-center gap-3 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>
-                {err && <span style={{ color: '#E8B85A' }}>{err}</span>}
+                {err && <span style={{ color: 'var(--caution)' }}>{err}</span>}
                 <span className="tnum">Enter adds · Esc closes</span>
               </span>
             </div>

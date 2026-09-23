@@ -38,7 +38,7 @@ export default function Week({ refreshKey }) {
               <div className="mt-2 flex items-center justify-between">
                 <span className="text-[13px]" style={{ color: d.today ? 'var(--ink)' : 'var(--ink-3)', fontWeight: d.today ? 500 : 400 }}>{date.toLocaleDateString('en-GB', { weekday: 'short' })}</span>
                 <span className="flex items-center gap-[3px]">
-                  {Array.from({ length: Math.min(d.completed, 6) }).map((_, k) => <span key={k} className="block h-[5px] w-[5px] rounded-full" style={{ background: '#8CD3A2' }} />)}
+                  {Array.from({ length: Math.min(d.completed, 6) }).map((_, k) => <span key={k} className="block h-[5px] w-[5px] rounded-full" style={{ background: 'var(--ok)' }} />)}
                   {d.completed > 6 && <span className="tnum text-[12px]" style={{ color: 'var(--ink-3)' }}>+{d.completed - 6}</span>}
                   {d.logbook > 0 && <span className="ml-1 block h-[5px] w-[9px] rounded-sm" title={`${d.logbook} logbook`} style={{ background: 'var(--accent)', opacity: .8 }} />}
                 </span>
