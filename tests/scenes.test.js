@@ -122,6 +122,20 @@ describe('slots', () => {
     expect(libs.size).toBeGreaterThan(1)
     setPictureMode('daily')
   })
+  it('the hero and the five Home doors never share a picture, in any library and scene', () => {
+    const HOME_SLOTS = [0, 5, 2, 3, 4, 1]   // hero, board, procurement, tools, logbook, napkin (routes.jsx)
+    for (const c of COLLECTIONS) {
+      setCollections([c.key])
+      for (const scene of ['dawn', 'day', 'dusk', 'night']) {
+        for (const hour of [7, 12, 18, 22]) {
+          const d = local(2026, 9, 22, hour, 0)
+          const pics = HOME_SLOTS.map(s => imageFor(scene, d, s))
+          expect(new Set(pics).size, `${c.key} ${scene} ${hour}h`).toBe(6)
+        }
+      }
+    }
+    setCollections(DEFAULT_COLLECTIONS)
+  })
   it('every slot picture belongs to the slot library', () => {
     const d = local(2026, 9, 22, 14, 0)
     for (let shift = 0; shift < 12; shift++) {

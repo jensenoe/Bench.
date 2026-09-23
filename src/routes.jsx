@@ -56,7 +56,7 @@ export function Routes({
 }) {
   return (
     <AnimatePresence mode="wait">
-      {r === '' && page('home', <Landing scene={scene} stats={stats} pressing={pressing} sheetState={sheetState} doorImages={{ board: boardImage, procurement: { src: sceneAt(timeKey, now, 2).terrain, fallback: `/terrain/${timeKey}.jpg` }, tools: { src: sceneAt(timeKey, now, 3).terrain, fallback: `/terrain/${timeKey}.jpg` }, cockpit: cockpitCover(now), logbook: { src: sceneAt(timeKey, now, 4).terrain, fallback: `/terrain/${timeKey}.jpg` }, napkin: { src: sceneAt(timeKey, now, 6).terrain, fallback: `/terrain/${timeKey}.jpg` } }} name={settings.name} late={workingLate} hoursIn={hoursIn} />)}
+      {r === '' && page('home', <Landing scene={scene} stats={stats} pressing={pressing} sheetState={sheetState} doorImages={{ board: boardImage, procurement: { src: sceneAt(timeKey, now, 2).terrain, fallback: `/terrain/${timeKey}.jpg` }, tools: { src: sceneAt(timeKey, now, 3).terrain, fallback: `/terrain/${timeKey}.jpg` }, cockpit: cockpitCover(now), logbook: { src: sceneAt(timeKey, now, 4).terrain, fallback: `/terrain/${timeKey}.jpg` }, napkin: { src: sceneAt(timeKey, now, 1).terrain, fallback: `/terrain/${timeKey}.jpg` } }} name={settings.name} late={workingLate} hoursIn={hoursIn} />)}
 
       {onLunch && page('lunch', <Lunch clock={timeclock.clock} punch={punch} now={now} scene={scene} />)}
 
@@ -123,7 +123,7 @@ export function Routes({
       </>)}
 
       {r === 'napkin' && page('napkin', <>
-        <TerrainHeader compact scene={sceneAt(timeKey, now, 6)} title="Napkin" line={SHEETS[4].body} />
+        <TerrainHeader compact scene={sceneAt(timeKey, now, 1)} title="Napkin" line={SHEETS[4].body} />
         <div className="relative">
           <Coach id="napkin" steps={COACH.napkin} />
           <Napkin />

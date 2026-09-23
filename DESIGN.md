@@ -87,6 +87,13 @@ on a photograph sits in `.glass` (veil at .42, blur 22 px, 20 px radius) with `-
 New libraries: 3200 by 1800 px, landscape, no people in the foreground, no text. Credit by name.
 Never lower the resolution; the reference monitor is wide.
 
+Which picture where: every picture on screen follows one time of day (the Time of day setting, or
+the real sky) and one library (one library a day with several on, or Random). Pages differ by slot,
+not by scene: the hero is slot 0, the five Home doors are slots 5, 2, 3, 4 and 1, so with six
+pictures per scene all six differ; page headers reuse slots freely, since one page shows at a time.
+A slot above 5 wraps back onto slot 0 in a six-picture library, so Home never uses one. Each
+library needs at least six pictures per scene.
+
 ## 4. Type
 
 - Display: Outfit, weight 600, letter-spacing -0.025em, `leading-none`. Every headline ends with a

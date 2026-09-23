@@ -128,11 +128,17 @@ export function libraryFor(d = new Date(), shift = 0) {
 export const nextLibrary = (d = new Date()) => { const n = enabled.length; return n === 1 ? enabled[0] : enabled[(((dayOfYear(d) + libraryShift + 1) % n) + n) % n] }
 export const libraryLabel = (key) => library[key]?.label || key
 
+const gcd = (a, b) => b ? gcd(b, a % b) : a
+/** The largest of 5, 7, 3 or 1 that shares no factor with n: 5 for six or eight pictures, 7 for ten. */
+export const stepFor = (n) => [5, 7, 3, 1].find(k => gcd(k, n) === 1)
+
 export function imageFor(scene, d = new Date(), shift = 0) {
   const lib = libraryFor(d, shift)
   const imgs = (library[lib]?.[scene] || []).map(src)
   if (!imgs.length) return `/terrain/${scene}.jpg`
-  return imgs[((slotOf(d, shift) * 5) % imgs.length + imgs.length) % imgs.length]
+  // Walk the pool with a step coprime to its size, so consecutive slots (and the six Home slots) all differ.
+  // A fixed step of 5 reached only two of Tropics' ten night pictures.
+  return imgs[((slotOf(d, shift) * stepFor(imgs.length)) % imgs.length + imgs.length) % imgs.length]
 }
 
 const build = (k, d, shift = 0) => ({ key: k, ...SCENES[k], ...library._sky[k], library: libraryFor(d, shift), terrain: imageFor(k, d, shift), fallback: `/terrain/${k}.jpg` })
