@@ -58,6 +58,9 @@ export function jsonEngine(dir) {
           fs.renameSync(p + '.tmp', p)
         },
         mtime: () => { try { return fs.statSync(p).mtimeMs } catch { return 0 } },
+        // Change detection for a shared folder: time and size together. Two writes inside one kernel
+        // timestamp tick would look the same by time alone (Linux CI caught that); a size change cannot hide.
+        stamp: () => { try { const s = fs.statSync(p); return `${s.mtimeMs}:${s.size}` } catch { return '0:0' } },
         moveAside() { const bak = `${p}.corrupt-${Date.now()}`; fs.copyFileSync(p, bak); return bak }
       }
     }

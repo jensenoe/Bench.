@@ -58,6 +58,9 @@ function scheduleRetry() {
 }
 
 const mtimeOf = () => col.mtime()
+// What "the disk changed" means: time and size (or row count) together, never the timestamp alone.
+const stampOf = () => col.stamp ? col.stamp() : String(mtimeOf())
+let diskStamp = '0:0'
 function readDisk() {
   const raw = col.read()
   if (!raw || typeof raw !== 'object') throw new Error('not an object')
@@ -66,11 +69,11 @@ function readDisk() {
   if (!raw.meta.sources) raw.meta.sources = {}
   return raw
 }
-const remember = (db) => { knownIds = new Set(db.tasks.map(t => t.id)); diskMtime = mtimeOf() }
+const remember = (db) => { knownIds = new Set(db.tasks.map(t => t.id)); diskMtime = mtimeOf(); diskStamp = stampOf() }
 
 export function load() {
   // Another Bench on the same shared folder may have written since we last looked.
-  if (cache && mtimeOf() !== diskMtime) reconcile()
+  if (cache && stampOf() !== diskStamp) reconcile()
   if (cache) return cache
   ensureDir()
   if (!col.exists()) {
@@ -120,7 +123,7 @@ function reconcile() {
   }
   cache = { ...disk, ...cache, tasks: merged, meta: { ...disk.meta, ...cache.meta, sources } }
   remember({ tasks: disk.tasks })
-  diskMtime = mtimeOf()
+  diskMtime = mtimeOf(); diskStamp = stampOf()
 }
 
 /**
@@ -129,7 +132,7 @@ function reconcile() {
  * is thrown as before.
  */
 export function save() {
-  if (cache && mtimeOf() !== diskMtime) reconcile()   // returns quietly when the disk cannot be read
+  if (cache && stampOf() !== diskStamp) reconcile()   // returns quietly when the disk cannot be read
   try {
     ensureDir()
     if (col.file) backupOnce(col.file)   // yesterday's state, once a day, before the first write (the JSON files; sqlite is one file)
@@ -147,7 +150,7 @@ export function save() {
 /** Drop the caches so the next read comes from disk (after a backup restore). Refused while writes are held. */
 export function reload() {
   if (offline) throw Object.assign(new Error('The shared folder is unreachable; held writes would be lost.'), { status: 409 })
-  cache = null; diskMtime = 0; knownIds = new Set()
+  cache = null; diskMtime = 0; diskStamp = '0:0'; knownIds = new Set()
   return load()
 }
 

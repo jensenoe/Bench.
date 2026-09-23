@@ -113,6 +113,7 @@ export function open(dir, collections) {
         },
         /** Last write, ms since the epoch; 0 before the first. */
         mtime: () => db.prepare('SELECT writtenAt FROM collections WHERE name = ?').get(name)?.writtenAt || 0,
+        stamp: () => { const r = db.prepare(`SELECT writtenAt, (SELECT count(*) FROM "${name}") AS n FROM collections WHERE name = ?`).get(name); return r ? `${r.writtenAt}:${r.n}` : '0:0' },
         moveAside: () => engine.moveAside()
       }
       return col
