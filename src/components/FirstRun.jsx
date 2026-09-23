@@ -9,7 +9,7 @@ import { FIRST_RUN } from '../copy.js'
 const EASE = [0.16, 1, 0.3, 1]
 const Dots = ({ step }) => (
   <span className="flex items-center gap-1.5">
-    {[0, 1].map(i => <span key={i} className="h-1.5 rounded-full transition-all" style={{ width: i === step ? 18 : 6, background: i === step ? 'var(--accent)' : 'rgba(var(--ink-rgb),.25)' }} />)}
+    {[0, 1].map(i => <span key={i} className="h-1.5 rounded-full transition-[width,background-color]" style={{ width: i === step ? 18 : 6, background: i === step ? 'var(--accent)' : 'rgba(var(--ink-rgb),.25)' }} />)}
   </span>
 )
 

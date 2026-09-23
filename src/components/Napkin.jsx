@@ -274,7 +274,7 @@ export default function Napkin() {
       {map && nodes ? (
         <section className="panel relative overflow-hidden" style={{ height: '72vh', minHeight: 480 }}>
           <div className="absolute left-4 top-4 z-10 flex items-center gap-3">
-            <input key={map.id} defaultValue={map.title} onBlur={e => rename(e.target.value.trim() || map.title)} onKeyDown={e => e.key === 'Enter' && e.target.blur()}
+            <input key={map.id} aria-label="Map title" defaultValue={map.title} onBlur={e => rename(e.target.value.trim() || map.title)} onKeyDown={e => e.key === 'Enter' && e.target.blur()}
               className="display bg-transparent text-[20px] font-semibold tracking-tight outline-none" />
             <span className="tnum text-[13px]" style={{ color: 'var(--ink-3)' }}>{Object.keys(nodes).length} nodes{dirty ? ' · saving' : ''}</span>
             {note && <span className="text-[13.5px]" style={{ color: 'var(--accent)' }}>{note}</span>}

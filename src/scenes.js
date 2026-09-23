@@ -21,7 +21,7 @@ const SCENES = {
   night: { label: 'Night', start: 21, glow: '#0E1526', accent: '#9DB9E6', accentInk: '#0A1428', filter: 'saturate(.8) contrast(1.06) brightness(.94)',      grade: '96,116,168',  light: { glow: '#D7DEEC', accent: '#3A5B96', accentInk: '#F4F6FB' } }
 }
 /** Functional colours as tokens (index.css defines them per theme). Keys kept for the components. */
-export const STATUS = { overdue: 'var(--late)', caution: 'var(--caution)', held: 'var(--held)', done: 'var(--ok)', muted: 'rgba(var(--ink-rgb),.5)' }
+export const STATUS = { overdue: 'var(--late)', caution: 'var(--caution)', held: 'var(--held)', done: 'var(--ok)', muted: 'rgba(var(--ink-rgb),.7)' }
 
 export const COLLECTIONS = ['alps', 'tropics', 'urban', 'mono', 'pnw', 'desert', 'brutalist', 'italy', 'canada', 'autumn', 'gothic'].map(key => ({ key, label: library[key].label }))
 export const DEFAULT_COLLECTIONS = COLLECTIONS.map(c => c.key)

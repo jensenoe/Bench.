@@ -84,12 +84,12 @@ proposal, in the order it will be built:
 
 - [x] 50 [S] DESIGN.md: one page with atmosphere, every token, the scene table, type scale, shape lock, motion, words and the banned list. CLAUDE.md points at it.
 - [x] 51 [S] Functional colours as tokens: --late, --caution, --ok, --held (and --late-ink), darker on paper. Twelve components lost their raw hex; STATUS in scenes.js resolves to the tokens. `npm run lint` now runs scripts/check-tokens.mjs and fails on a raw colour outside index.css, scenes.js and library.json.
-- [ ] 52 [M] Accessibility rules in the smoke test: axe-core in the Playwright run, plus the mechanical ui-ux-pro-max rules (contrast, focus visibility, labels, target size). Then the Vercel Web Interface Guidelines review over src/components once per batch.
-- [ ] 53 [S] Focus follows the route: after a page change, focus moves to the page heading.
-- [ ] 54 [S] Focus never hides under the fixed nav: scroll margin on focusable elements.
-- [ ] 55 [S] Shortcut sheet on `?`: one overlay that lists the eight shortcuts.
-- [ ] 56 [S] Errors with a way back: the red error pill becomes a toast with Retry and Dismiss, read by the live region.
-- [ ] 57 [S] Chips stay on one line; the full text on focus as well as hover.
+- [x] 52 [M] Accessibility rules in the smoke test: axe-core (WCAG 2.0 to 2.2 AA and best practice) on every page, a 24 px target-size sweep, and checks for the key sheet, route focus, the mono ledger and one-line chips. The Vercel Web Interface Guidelines review ran over src/components: transition-all listed out, "Loading…", the rest was already in place or is noted in DESIGN.md. Fixed on the way: tertiary ink to .62 so every label passes 4.5:1, one grey for chips, 24 px hit areas on checkboxes and on nav, footer, lead-time and tool links, labelled nav landmarks, the coach heading level, the napkin title label, dimming by colour instead of opacity.
+- [x] 53 [S] Focus follows the route: after a page change, focus moves to the page heading (lazy pages included).
+- [x] 54 [S] Focus never hides under the fixed nav: scroll padding on the document and scroll margin on every focusable element, 112 px (128 px at 2xl).
+- [x] 55 [S] Key sheet on `?`: a dialog that lists every shortcut (anywhere, quick add, napkin); Escape closes and returns focus. The coach mentions it.
+- [x] 56 [S] Errors with a way back: the red pill is an error toast now, "Something broke." with the message, Retry (state and time clock) and Dismiss, role alert; a dismissed message stays away until it changes.
+- [x] 57 [S] Chips stay on one line and trim at 220 px; the whole text shows while the card is hovered or holds focus, and as a title.
 - [x] 58 [S] One colour grade across the 302 photographs: each scene sets the picture filter (warm for dawn and dusk, cool for day and night) and a soft-light colour layer (.grade, strength in --grade-a). App.jsx writes both with the accent.
 - [x] 59 [S] Film grain on every photograph (.grain): a still noise tile at .07 in overlay, hides banding in the fades.
 - [ ] 60 [S] Shadows tinted to the scene instead of pure black.
@@ -98,7 +98,7 @@ proposal, in the order it will be built:
 - [ ] 63 [S] One Phosphor icon weight per row.
 - [ ] 64 [S] Ration the middle dot in footer and meta lines.
 - [ ] 65 [M] App and tray icon from the design skill's icon generator (needs a Gemini key; the current icon is fine).
-- [ ] 66 [M] Hours page as telemetry: monospace figures, one-pixel grid, no cards. A deliberate exception for the one data page.
+- [x] 66 [M] Hours page as telemetry: JetBrains Mono figures, a one-pixel ledger grid, a strip of cells for month, sheet and figures instead of a card, today marked with the accent. The one deliberate exception, written into DESIGN.md.
 
 Not adopted, on purpose: landing-page heroes, bento grids and scroll effects (the hero is the sky); the
 single-accent lock as written (the accent follows the scene by design, and never carries a status); the

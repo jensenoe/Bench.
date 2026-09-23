@@ -182,8 +182,9 @@ function Entry({ entry, save, remove, template, onRefresh, setEntries }) {
               <li key={a.id} className="row px-3 py-2">
                 <div className="flex items-center gap-2.5">
                   <button onClick={() => setActions(actions.map(x => x.id === a.id ? { ...x, done: !x.done } : x))} role="checkbox" aria-checked={a.done} aria-label={`${a.done ? 'Reopen' : 'Complete'} ${a.text}`}
-                    className="grid h-[16px] w-[16px] shrink-0 place-items-center rounded-full border" style={{ borderColor: a.done ? 'var(--ok)' : 'var(--line-2)', background: a.done ? 'var(--ok)' : 'transparent' }}>
-                    {a.done && <Check size={10} weight="bold" color="var(--bg)" />}</button>
+                    className="-m-1 grid h-6 w-6 shrink-0 place-items-center">
+                    <span className="grid h-[16px] w-[16px] place-items-center rounded-full border" style={{ borderColor: a.done ? 'var(--ok)' : 'var(--line-2)', background: a.done ? 'var(--ok)' : 'transparent' }}>
+                    {a.done && <Check size={10} weight="bold" color="var(--bg)" />}</span></button>
                   <ActionText a={a} onCommit={text => setActions(actions.map(x => x.id === a.id ? { ...x, text } : x))} />
                   <button onClick={() => setActions(actions.filter(x => x.id !== a.id))} aria-label="Remove" className="grid h-5 w-5 shrink-0 place-items-center rounded" style={{ color: 'var(--ink-3)' }}><X size={11} /></button>
                 </div>

@@ -13,7 +13,7 @@ export const DRAG_TYPE = 'text/bench-task'
 
 function Tag({ children, color, title }) {
   return (
-    <span title={title} className="rounded-md px-1.5 py-[2px] text-[12px] font-medium tracking-wide"
+    <span title={title || (typeof children === 'string' ? children : undefined)} className="tag rounded-md px-1.5 py-[2px] text-[12px] font-medium tracking-wide"
       style={{ color, background: `color-mix(in srgb, ${color} 14%, transparent)` }}>
       {children}
     </span>
@@ -32,8 +32,10 @@ function Checklist({ task, onPatch }) {
       {list.map(c => (
         <li key={c.id} className="flex items-start gap-2 text-[13px]">
           <button role="checkbox" aria-checked={c.done} aria-label={`${c.done ? 'Untick' : 'Tick'} ${c.text}`} onClick={() => toggle(c.id)}
-            className="mt-[3px] grid h-[13px] w-[13px] shrink-0 place-items-center rounded-[4px] border" style={{ borderColor: c.done ? STATUS.done : 'var(--line-2)', background: c.done ? STATUS.done : 'transparent' }}>
-            {c.done && <Check size={9} weight="bold" color="var(--bg)" />}
+            className="-my-[3px] -ml-[5px] grid h-6 w-6 shrink-0 place-items-center">
+            <span className="grid h-[13px] w-[13px] place-items-center rounded-[4px] border" style={{ borderColor: c.done ? STATUS.done : 'var(--line-2)', background: c.done ? STATUS.done : 'transparent' }}>
+              {c.done && <Check size={9} weight="bold" color="var(--bg)" />}
+            </span>
           </button>
           <span style={{ color: c.done ? 'var(--ink-3)' : 'var(--ink-2)', textDecoration: c.done ? 'line-through' : 'none' }}>{c.text}</span>
         </li>
@@ -78,9 +80,11 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true }) 
         <motion.button role="checkbox" aria-checked={task.done} whileTap={{ scale: .85 }}
           aria-label={`${task.done ? 'Reopen' : 'Complete'} ${task.title}`}
           onClick={() => onPatch(task.id, { done: !task.done })}
-          className="mt-[2px] grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full border transition-colors"
-          style={{ borderColor: task.done ? STATUS.done : 'var(--line-2)', background: task.done ? STATUS.done : 'transparent' }}>
-          {task.done && <Check size={11} weight="bold" color="var(--bg)" />}
+          className="-mt-[1px] -ml-[3px] grid h-6 w-6 shrink-0 place-items-center">
+          <span className="grid h-[18px] w-[18px] place-items-center rounded-full border transition-colors"
+            style={{ borderColor: task.done ? STATUS.done : 'var(--line-2)', background: task.done ? STATUS.done : 'transparent' }}>
+            {task.done && <Check size={11} weight="bold" color="var(--bg)" />}
+          </span>
         </motion.button>
 
         <div className="min-w-0 flex-1">
@@ -89,14 +93,14 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true }) 
           <div className="mt-1.5 flex flex-wrap gap-1.5 empty:hidden">
             {task.priority && <Tag color={PRIO_COLOR[task.priority]}>P{task.priority}</Tag>}
             {ORIGIN[task.source] && <Tag color="var(--accent)">{ORIGIN[task.source]}</Tag>}
-            {task.project && <Tag color="rgba(var(--ink-rgb),.6)">{task.project}</Tag>}
-            {from && <Tag color="rgba(var(--ink-rgb),.5)">from {from}</Tag>}
-            {task.lead && <Tag color="rgba(var(--ink-rgb),.5)">lead {task.lead}</Tag>}
+            {task.project && <Tag color={STATUS.muted}>{task.project}</Tag>}
+            {from && <Tag color={STATUS.muted}>from {from}</Tag>}
+            {task.lead && <Tag color={STATUS.muted}>lead {task.lead}</Tag>}
             {task.effortHours ? <Tag color={STATUS.muted}>{task.effortHours}h</Tag> : null}
             {task.repeat && <Tag color={STATUS.muted} title="Completing it creates the next one"><span className="inline-flex items-center gap-1"><ArrowsClockwise size={10} weight="bold" />{task.repeat}</span></Tag>}
-            {(task.tags || []).map(t => <Tag key={t} color="rgba(var(--ink-rgb),.4)">{t}</Tag>)}
-            {task.planTitle && task.source !== 'qms' && task.source !== 'issues' && <Tag color="rgba(var(--ink-rgb),.6)">{task.planTitle}</Tag>}
-            {task.bucketName && <Tag color="rgba(var(--ink-rgb),.5)">{task.bucketName}</Tag>}
+            {(task.tags || []).map(t => <Tag key={t} color={STATUS.muted}>{t}</Tag>)}
+            {task.planTitle && task.source !== 'qms' && task.source !== 'issues' && <Tag color={STATUS.muted}>{task.planTitle}</Tag>}
+            {task.bucketName && <Tag color={STATUS.muted}>{task.bucketName}</Tag>}
             {task.sourceStatus && !task.done && <Tag color={STATUS.muted}>{task.sourceStatus}</Tag>}
             {task.meta?.prio && <Tag color={STATUS.caution}>P{task.meta.prio}</Tag>}
             {task.meta?.priority && /high/i.test(task.meta.priority) && <Tag color={STATUS.overdue}>high</Tag>}
@@ -106,8 +110,8 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true }) 
               ? <Tag color={STATUS.done}>ordered {fmtDate(task.orderedOn)}</Tag>
               : orderIn !== null && <Tag color={orderIn < 0 ? STATUS.overdue : orderIn <= 7 ? STATUS.caution : STATUS.muted}>
                 {orderIn < 0 ? 'order date passed' : orderIn === 0 ? 'order today' : `order in ${orderIn}d`}</Tag>}
-            {task.supplier && <Tag color="rgba(var(--ink-rgb),.5)">{task.supplier}</Tag>}
-            {task.poNumber && <Tag color="rgba(var(--ink-rgb),.5)">PO {task.poNumber}</Tag>}
+            {task.supplier && <Tag color={STATUS.muted}>{task.supplier}</Tag>}
+            {task.poNumber && <Tag color={STATUS.muted}>PO {task.poNumber}</Tag>}
             {task.waitingOn && <Tag color={STATUS.held}>{task.waitingOn}</Tag>}
             {held !== null && <Tag color={held >= 7 ? STATUS.overdue : STATUS.held}>with them {held}d</Tag>}
             {cold !== null && cold >= 14 && <Tag color={STATUS.caution}>untouched {cold}d</Tag>}

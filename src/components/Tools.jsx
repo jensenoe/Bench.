@@ -68,7 +68,7 @@ export default function Tools({ state, onPatch, onDelete, onRefresh, onConnect }
           <div key={key} className="flex flex-wrap items-center gap-x-5 gap-y-2 py-3.5" style={{ borderTop: i ? '1px solid var(--line)' : 'none' }}>
             <div className="min-w-[200px]">
               <div className="display text-[18px] font-semibold leading-none">{s.label}.</div>
-              <a href={s.origin} onClick={e => { e.preventDefault(); api.openExternal(s.origin) }} className="mt-1 inline-flex items-center gap-1 text-[13.5px] hover:underline" style={{ color: 'var(--ink-3)' }}>
+              <a href={s.origin} onClick={e => { e.preventDefault(); api.openExternal(s.origin) }} className="-mb-[2px] mt-1 inline-flex items-center gap-1 py-[2px] text-[13.5px] hover:underline" style={{ color: 'var(--ink-3)' }}>
                 {s.origin.replace('https://', '')} <ArrowSquareOut size={11} />
               </a>
             </div>

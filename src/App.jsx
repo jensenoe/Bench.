@@ -27,6 +27,8 @@ import Coach, { COACH } from './components/Coach.jsx'
 import Search from './components/Search.jsx'
 import QuickAdd from './components/QuickAdd.jsx'
 import OpenDay from './components/OpenDay.jsx'
+import Shortcuts from './components/Shortcuts.jsx'
+import ErrorToast from './components/ErrorToast.jsx'
 
 const route = () => location.hash.replace(/^#\/?/, '').split('?')[0]
 const Aside = ({ n, label, tone }) => (
@@ -47,6 +49,9 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [quickOpen, setQuickOpen] = useState(false)
+  const [keysOpen, setKeysOpen] = useState(false)
+  const [dismissedError, setDismissedError] = useState(null)
+  const [retrying, setRetrying] = useState(false)
   const [toast, setToast] = useState(null)
   const [sourceFilter, setSourceFilter] = useState('all')
   const [peopleFilter, setPeopleFilter] = useState('everyone')
@@ -72,12 +77,28 @@ export default function App() {
     const on = () => { setR(route()); window.scrollTo({ top: 0 }) }
     addEventListener('hashchange', on); return () => removeEventListener('hashchange', on)
   }, [])
-  // Keyboard: Ctrl-K or / for search, n for a new task, 1 to 7 for the pages. Never while typing.
+  // Focus follows the route: after a page change the page heading takes focus, so keyboard and screen
+  // reader users land on the content and not in the nav (roadmap 53). Pages are lazy, so wait for it.
+  const firstRoute = useRef(true)
+  useEffect(() => {
+    if (firstRoute.current) { firstRoute.current = false; return }
+    const sel = 'main h1, header h1, h1, main h2'
+    const leaving = document.querySelector(sel)   // the outgoing page is still on screen while it fades
+    let tries = 0
+    const id = setInterval(() => {
+      const h = document.querySelector(sel)
+      if (h && h !== leaving && !inField()) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); clearInterval(id) }
+      else if (++tries > 60) clearInterval(id)
+    }, 50)
+    return () => clearInterval(id)
+  }, [r])
+  // Keyboard: Ctrl-K or / for search, n for a new task, 1 to 7 for the pages, ? for the key sheet. Never while typing.
   useEffect(() => {
     const onKey = e => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setSearchOpen(v => !v); return }
-      if (e.ctrlKey || e.metaKey || e.altKey || inField() || searchOpen || quickOpen || settingsOpen) return
-      if (e.key === '/') { e.preventDefault(); setSearchOpen(true) }
+      if (e.ctrlKey || e.metaKey || e.altKey || inField() || searchOpen || quickOpen || settingsOpen || keysOpen) return
+      if (e.key === '?') { e.preventDefault(); setKeysOpen(true) }
+      else if (e.key === '/') { e.preventDefault(); setSearchOpen(true) }
       else if (e.key === 'n') { e.preventDefault(); setQuickOpen(true) }
       else if (PAGE_KEYS[e.key] !== undefined) { location.hash = `#/${PAGE_KEYS[e.key]}` }
     }
@@ -153,11 +174,12 @@ export default function App() {
   }, [])
   const closeDay = useCallback(async (time) => { try { await api.closeUnclosed(time); await timeclock.refresh(); showToast({ text: 'Closed.', by: 'The out punch is on its way to the sheet.', plain: true }) } catch (e) { setError(e.message) } }, [timeclock, showToast])
   const dismissDay = useCallback(async () => { try { await api.dismissUnclosed(); await timeclock.refresh() } catch (e) { setError(e.message) } }, [timeclock])
+  const retry = useCallback(async () => { setRetrying(true); try { await refresh(); await timeclock.refresh() } finally { setRetrying(false) } }, [refresh, timeclock])
 
   if (!state) return (
     <div className="grid min-h-screen place-items-center">
       <motion.p animate={{ opacity: [.35, 1, .35] }} transition={{ repeat: Infinity, duration: 1.8 }} className="text-[13.5px]" style={{ color: 'var(--ink-3)' }}>
-        {error ? `Server not reachable. ${error}` : 'Loading'}
+        {error ? `Server not reachable. ${error}` : 'Loading…'}
       </motion.p>
     </div>
   )
@@ -200,6 +222,7 @@ export default function App() {
     <motion.div key={key} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: .4, ease: EASE }}>{node}</motion.div>
   )
   const inner = r !== '' && !onLunch
+  const errMsg = error || timeclock.error || null
 
   return (
     <div className="min-h-screen" style={{ background: (r === '' || onLunch) ? 'var(--bg)' : `radial-gradient(120% 60% at 50% 0%, ${scene.glow} 0%, var(--bg) 60%)` }}>
@@ -208,8 +231,9 @@ export default function App() {
       <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} settings={settings} onSave={saveSettings} auth={state.auth} timeclock={timeclock} onRefresh={refresh} />
       <Toast item={toast} onDismiss={() => setToast(null)} />
       <Search open={searchOpen} onClose={() => setSearchOpen(false)} tasks={state.tasks} />
+      <Shortcuts open={keysOpen} onClose={() => setKeysOpen(false)} />
       <QuickAdd open={quickOpen} onClose={() => setQuickOpen(false)} onCreate={onCreate} defaultLane={r === 'board' && stats.today < 5 ? 'today' : 'active'} />
-      {(error || timeclock.error) && <p className="pill fixed bottom-5 left-1/2 z-50 -translate-x-1/2 px-4 py-2 text-[13px]" style={{ background: STATUS.overdue, color: 'var(--late-ink)' }}>{error || timeclock.error}</p>}
+      <ErrorToast message={errMsg && errMsg !== dismissedError ? errMsg : null} busy={retrying} onRetry={retry} onDismiss={() => setDismissedError(errMsg)} />
       {!onLunch && <OpenDay clock={timeclock.clock} onClose={closeDay} onDismiss={dismissDay} />}
 
       <Suspense fallback={null}>

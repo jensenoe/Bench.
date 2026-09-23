@@ -15,13 +15,13 @@ import Reminder from './Reminder.jsx'
 export default function Nav({ route, auth, meta, onRefresh, now, scene, timeclock, onSettings, settingsOpen, onSearch }) {
   const [busy, setBusy] = useState(false)
   const link = (id, label, i) => (
-    <a key={id} href={`#/${id}`} title={i !== undefined ? `Press ${i}` : undefined} className="text-[14px] transition-colors xl:text-[15px] 2xl:text-[16.5px]"
+    <a key={id} href={`#/${id}`} title={i !== undefined ? `Press ${i}` : undefined} className="-my-[3px] inline-block py-[3px] text-[14px] transition-colors xl:text-[15px] 2xl:text-[16.5px]"
       style={{ color: route === id ? 'var(--ink)' : 'var(--ink-3)' }}>{label}</a>
   )
 
   return (
     // on-photo: the nav always sits on a photograph, so its fog and its ink stay the night ones in the light theme too
-    <nav className="on-photo fixed inset-x-0 top-0 z-50">
+    <nav aria-label="Pages" className="on-photo fixed inset-x-0 top-0 z-50">
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[150px] 2xl:h-[170px]" style={{
         background: 'linear-gradient(to bottom, rgba(var(--veil),.82) 0%, rgba(var(--veil),.45) 50%, transparent 100%)',
         backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',

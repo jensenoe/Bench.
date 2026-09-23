@@ -30,7 +30,7 @@ Everything is a token. Components never carry a hex value; `npm run lint` fails 
 | `--row` | `#25262F` | `#F7F6F2` | rows and cards inside a panel |
 | `--ink` | `#F3F3F1` | `#16161A` | type |
 | `--ink-2` | ink at .72 | ink at .76 | secondary type, lines under a title |
-| `--ink-3` | ink at .56 | ink at .56 | labels, meta, placeholders. Never lighter than this |
+| `--ink-3` | ink at .62 | ink at .62 | labels, meta, placeholders. Never lighter: .62 is what keeps 4.5:1 on a row |
 | `--line`, `--line-2` | ink at .08 / .14 | ink at .10 / .18 | hairlines. No solid grey borders |
 | `--veil` | `21,22,28` | `243,241,236` | rgb of the page for scrims over photographs |
 
@@ -96,11 +96,13 @@ Never lower the resolution; the reference monitor is wide.
   body 14 to 14.5, meta and chips 13, the floor is 12. Noël likes the bigger text; when in doubt go
   up, never below 12.
 - Line length: prose at most 48ch under a headline, 65ch in panels.
-- No serif, no monospace outside code, no Inter, no all-caps eyebrows.
+- Mono: JetBrains Mono, on the Hours page only (`.mono`, `.ledger`). A time sheet is a table first,
+  so it is set as telemetry: monospace figures, a one-pixel grid, no card. No other page borrows it.
+- No serif, no monospace elsewhere, no Inter, no all-caps eyebrows.
 
 ## 5. Shape
 
-Panels 20 px, rows and cards 12 px, fields 10 px, buttons and nav items full pill, checkboxes 4 px.
+Panels 20 px, rows and cards 12 px, fields 10 px, buttons and nav items full pill, checkboxes and keycaps 4 px.
 Nothing else. Borders are hairlines from `--line`; a panel never has both a border and a shadow
 in the dark theme. Shadows: `--shadow-panel` for floating panels (search, time clock, toasts),
 nothing on resting panels.
@@ -111,9 +113,14 @@ nothing on resting panels.
   `--row` fill or ghost. `translateY(1px)` on press. Never a glow.
 - Field: `.field`, label above, help or error below in `--caution` or `--late`. Dates only through
   `DateField`. Focus is the 2 px accent outline, 2 px offset, everywhere.
-- Chip and tag: 12 to 13 px, one line, tinted with `color-mix`; the full text on hover and focus.
-- Toast: bottom centre, one line of plain words, at most one link, read by the live region. A
-  refused write (Today is full) is a toast, not the error pill.
+- Chip and tag: 12 to 13 px, one line, tinted with `color-mix`; the full text on hover and focus. Grey
+  chips use `STATUS.muted` (ink at .7), one grey, not three.
+- Checkbox: the drawn circle or square is 13 to 18 px; the button around it is 24 px, always.
+- Dimming: never by opacity on text. Use `--ink-3`, so it still passes contrast.
+- Toast: bottom right, one line of plain words, at most one link, read by the live region. A
+  refused write (Today is full) is a toast. A fault is the error toast: bottom centre, "Something
+  broke." with the message, Retry and Dismiss, role alert, stays until dealt with. Never a bare pill.
+- Key sheet: `?` lists every shortcut; Escape closes it and gives focus back.
 - Empty state: one sentence that says what to do next, in `--ink-3`, never "No data".
 - Icons: Phosphor, one weight per row; `bold` at 10 to 15 px inside chips, `regular` elsewhere.
 
@@ -147,10 +154,12 @@ Errors say what happened and what to do, in one sentence each. No exclamation ma
 - Eyebrow labels, gradient text, glows, bento grids, marketing heroes. The hero is the sky.
 - Font size under 12 px. Contrast under 4.5:1 for text, 3:1 for icons and hairlines that matter.
 - Controls that only exist on hover with no keyboard route. Anything without a visible focus ring.
+- A page change that leaves focus in the nav; a focused control hidden under the nav.
 - Em dashes. Headlines without a period. Titles wrapped one word per line.
 
 ## 11. Checks
 
 `npm run lint` runs ESLint and the token check (`scripts/check-tokens.mjs`). `npm run test:ui`
-walks every page in Chromium: no console errors, no horizontal scroll, the time clock panel is
-hittable. Before a release, look at Board, Home and Hours at 1280 and 2560 in both themes.
+walks every page in Chromium: axe-core with the WCAG 2.0 to 2.2 AA rules on every page, buttons and
+links at least 24 px, no console errors, no horizontal scroll, the time clock panel is hittable, the
+key sheet opens, focus follows the route, chips stay on one line. Before a release, look at Board, Home and Hours at 1280 and 2560 in both themes.

@@ -33,11 +33,11 @@ export default function Footer({ name, version, scene, glow, now = new Date(), o
     <footer className="mt-16" style={{ borderTop: '1px solid var(--line)' }}>
       <div className="mx-auto col flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-5 text-[13px]" style={{ color: 'var(--ink-3)' }}>
         <span className="display text-[17px] font-semibold tracking-tight" style={{ color: 'var(--ink)' }}>Bench<span style={{ color: 'var(--accent)' }}>.</span></span>
-        <nav className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <a href="#/" className="hover:underline underline-offset-2">Home</a>
-          {pages.map(s => <a key={s.id} href={`#/${s.id}`} className="hover:underline underline-offset-2">{s.title}</a>)}
-          <a href="#/hours" className="hover:underline underline-offset-2">Hours</a>
-          <button onClick={onSettings} className="hover:underline underline-offset-2">Settings</button>
+        <nav aria-label="Footer" className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <a href="#/" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Home</a>
+          {pages.map(s => <a key={s.id} href={`#/${s.id}`} className="-my-1 inline-block py-1 hover:underline underline-offset-2">{s.title}</a>)}
+          <a href="#/hours" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Hours</a>
+          <button onClick={onSettings} className="-my-1 inline-block py-1 hover:underline underline-offset-2">Settings</button>
         </nav>
         <span className="tnum">{scene?.label || 'Day'} light · next picture <span>{nextHour}</span>{version ? ` · ${ver(version)}` : ''}</span>
       </div>
@@ -63,13 +63,13 @@ export default function Footer({ name, version, scene, glow, now = new Date(), o
 
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:col-span-6 md:pt-3">
             <Col title="Pages">
-              <li><a href="#/" className="hover:underline underline-offset-2">Home</a></li>
-              {pages.map(s => <li key={s.id}><a href={`#/${s.id}`} className="hover:underline underline-offset-2">{s.title}</a></li>)}
-              <li><a href="#/hours" className="hover:underline underline-offset-2">Hours</a></li>
-              <li><button onClick={onSettings} className="hover:underline underline-offset-2" style={{ color: 'var(--ink-2)' }}>Settings</button></li>
+              <li><a href="#/" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Home</a></li>
+              {pages.map(s => <li key={s.id}><a href={`#/${s.id}`} className="-my-1 inline-block py-1 hover:underline underline-offset-2">{s.title}</a></li>)}
+              <li><a href="#/hours" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Hours</a></li>
+              <li><button onClick={onSettings} className="-my-1 inline-block py-1 hover:underline underline-offset-2" style={{ color: 'var(--ink-2)' }}>Settings</button></li>
             </Col>
             <Col title="Tools">
-              {TOOLS.map(t => <li key={t.label}><a href={t.url} onClick={e => { e.preventDefault(); openTool(t.url) }} className="inline-flex items-center gap-1 hover:underline underline-offset-2">{t.label} <ArrowSquareOut size={11} /></a></li>)}
+              {TOOLS.map(t => <li key={t.label}><a href={t.url} onClick={e => { e.preventDefault(); openTool(t.url) }} className="-my-1 inline-flex items-center gap-1 py-1 hover:underline underline-offset-2">{t.label} <ArrowSquareOut size={11} /></a></li>)}
             </Col>
             <Col title="Right now">
               <li style={{ color: 'var(--ink-2)' }}>{scene?.label || 'Day'} light</li>

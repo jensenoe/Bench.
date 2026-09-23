@@ -24,7 +24,7 @@ export default function LeadTime({ items, compact = false, title = 'Order dates.
           const when = ordered ? `ordered ${fmtDate(it.orderedOn)}` : over ? `${-it.days}d late` : it.days === 0 ? 'today' : `${it.days}d`
           return (
             <li key={it.id} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3" style={{ borderTop: '1px solid var(--line)', opacity: ordered ? .7 : 1 }}>
-              <a href={`#/board?task=${it.id}`} className="min-w-[200px] flex-1 text-[14px] underline-offset-2 hover:underline">{it.title}</a>
+              <a href={`#/board?task=${it.id}`} className="-my-[2px] min-w-[200px] flex-1 py-[2px] text-[14px] underline-offset-2 hover:underline">{it.title}</a>
               <span className="tnum text-[13px]" style={{ color: 'var(--ink-3)' }}>{it.supplier ? `${it.supplier}${it.poNumber ? ` · PO ${it.poNumber}` : ''}` : it.poNumber ? `PO ${it.poNumber}` : ''}</span>
               <span className="tnum w-[92px] text-right text-[13px]" style={{ color: 'var(--ink-2)' }}>{fmtDate(it.orderBy)}</span>
               <span className="tnum w-[128px] shrink-0 text-right text-[13.5px] font-semibold" style={{ color }}>{when}</span>

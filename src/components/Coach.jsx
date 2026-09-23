@@ -18,10 +18,10 @@ export default function Coach({ id, steps }) {
     <AnimatePresence initial={false}>
       {show && step && (
         <motion.div key="coach" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: .3, ease: [0.16, 1, 0.3, 1] }} className="mx-auto col overflow-hidden px-6">
-          <aside role="note" aria-label="Introduction" className="row mb-4 flex flex-wrap items-start gap-x-6 gap-y-3 px-5 py-4" style={{ borderColor: 'var(--line-2)' }}>
-            <div className="flex items-center gap-1.5 pt-2">{steps.map((_, k) => <span key={k} className="block h-1.5 rounded-full transition-all" style={{ width: k === i ? 18 : 6, background: k <= i ? 'var(--accent)' : 'rgba(var(--ink-rgb),.15)' }} />)}</div>
+          <aside aria-label="Introduction" className="row mb-4 flex flex-wrap items-start gap-x-6 gap-y-3 px-5 py-4" style={{ borderColor: 'var(--line-2)' }}>
+            <div className="flex items-center gap-1.5 pt-2">{steps.map((_, k) => <span key={k} className="block h-1.5 rounded-full transition-[width,background-color]" style={{ width: k === i ? 18 : 6, background: k <= i ? 'var(--accent)' : 'rgba(var(--ink-rgb),.15)' }} />)}</div>
             <div className="min-w-[260px] flex-1">
-              <h3 className="display text-[18px] font-semibold leading-tight tracking-tight">{step.title}</h3>
+              <h2 className="display text-[18px] font-semibold leading-tight tracking-tight">{step.title}</h2>
               <p className="mt-1 max-w-[80ch] text-[13.5px] leading-relaxed" style={{ color: 'var(--ink-2)' }}>{step.body}</p>
             </div>
             <div className="flex items-center gap-3 pt-1">
@@ -48,7 +48,7 @@ export const COACH = {
   board: [
     { title: 'Five lanes, one cap.', body: 'Today holds five. When it is full, something leaves before anything arrives. That is the whole rule, and it is what keeps the list honest. Drag a card from lane to lane; the lane lights up when it will take it.' },
     { title: 'Where things live.', body: 'Active is started and not finished. Waiting on is out of your hands, with a clock on how long. Innovation is the work that makes next year easier. Parked is shelved on purpose.' },
-    { title: 'Moving and finishing.', body: 'The circle ticks a task off, with an Undo for a few seconds. The sliders open every field: checklist, repeat, supplier, notes. Press n anywhere to add a task, / to search, 1 to 7 for the pages.' },
+    { title: 'Moving and finishing.', body: 'The circle ticks a task off, with an Undo for a few seconds. The sliders open every field: checklist, repeat, supplier, notes. Press n anywhere to add a task, / to search, 1 to 7 for the pages, ? for every key.' },
     { title: 'What the tools own.', body: 'Tasks from Issues, QMS, the BOM and Planner keep their title and status from the tool. Everything else on the card is yours: lane, priority, hours, tags, notes.' }
   ],
   logbook: [

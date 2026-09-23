@@ -29,7 +29,7 @@ export default function Week({ refreshKey }) {
           const h = d.worked ? Math.max(4, (d.worked / max) * 96) : 0
           const weekend = date.getDay() === 0 || date.getDay() === 6
           return (
-            <div key={d.date} className="flex flex-col items-stretch" style={{ opacity: weekend && !d.worked ? .45 : 1 }}>
+            <div key={d.date} className="flex flex-col items-stretch">
               <div className="relative h-[96px] overflow-hidden rounded-[10px]" style={{ background: 'rgba(var(--ink-rgb),.045)' }}>
                 {h > 0 && <motion.div initial={{ height: 0 }} animate={{ height: h }} transition={{ duration: .6, delay: i * .04, ease: [0.16, 1, 0.3, 1] }}
                   className="absolute inset-x-0 bottom-0 rounded-[10px]" style={{ background: d.today ? 'var(--accent)' : 'rgba(var(--ink-rgb),.28)', opacity: d.open && !d.today ? .5 : 1 }} />}

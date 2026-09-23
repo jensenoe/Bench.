@@ -15,7 +15,7 @@ export default function Vista({ scene, children }) {
   const copyO = useTransform(scrollYProgress, [0, .55], [1, 0])
 
   return (
-    <section ref={ref} className="on-photo relative isolate h-[100svh] min-h-[560px] overflow-hidden">
+    <header ref={ref} className="on-photo relative isolate h-[100svh] min-h-[560px] overflow-hidden">
       <Photo animated key={scene.terrain} src={scene.terrain} fallback={scene.fallback}
         style={{ y: imgY, scale: imgScale }}
         className="photo absolute inset-0 h-full w-full object-cover object-center will-change-transform" />
@@ -24,6 +24,6 @@ export default function Vista({ scene, children }) {
       <div className="pointer-events-none absolute inset-0" style={{
         background: 'linear-gradient(to top, var(--page-bg) 0%, rgba(var(--page-veil),.6) 9%, rgba(var(--page-veil),.16) 26%, rgba(var(--page-veil),.05) 100%)' }} />
       <motion.div style={{ y: copyY, opacity: copyO }} className="relative z-10 h-full">{children}</motion.div>
-    </section>
+    </header>
   )
 }

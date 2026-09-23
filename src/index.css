@@ -3,6 +3,7 @@
 @theme {
   --font-display: "Outfit Variable", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Work Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "Cascadia Mono", Consolas, monospace;
 }
 
 /* ──────────────────────────────────────────────────────────────────
@@ -25,7 +26,7 @@
   --line-2:  rgba(var(--ink-rgb),.14);
   --ink:     #F3F3F1;
   --ink-2:   rgba(var(--ink-rgb),.72);
-  --ink-3:   rgba(var(--ink-rgb),.56);
+  --ink-3:   rgba(var(--ink-rgb),.62);   /* 4.5:1 on panel and row; axe checks it */
   --shadow-text: 0 2px 8px rgba(0,0,0,.4), 0 10px 50px rgba(0,0,0,.4);
   --shadow-text-soft: 0 1px 4px rgba(0,0,0,.5);
   --photo-filter: saturate(.88) contrast(1.04);
@@ -65,7 +66,7 @@
   --line-2:  rgba(var(--ink-rgb),.18);
   --ink:     #16161A;
   --ink-2:   rgba(var(--ink-rgb),.76);
-  --ink-3:   rgba(var(--ink-rgb),.56);
+  --ink-3:   rgba(var(--ink-rgb),.62);
   --shadow-text: none;
   --shadow-text-soft: none;
   --photo-filter: saturate(.92) contrast(1.02);
@@ -85,7 +86,7 @@
 .off-photo {
   --bg: var(--page-bg); --veil: var(--page-veil);
   --ink: var(--page-ink); --ink-rgb: var(--page-ink-rgb);
-  --ink-2: rgba(var(--page-ink-rgb),.72); --ink-3: rgba(var(--page-ink-rgb),.5);
+  --ink-2: rgba(var(--page-ink-rgb),.72); --ink-3: rgba(var(--page-ink-rgb),.62);
   --line: rgba(var(--page-ink-rgb),.08); --line-2: rgba(var(--page-ink-rgb),.14);
   color: var(--ink);
 }
@@ -95,7 +96,7 @@
   --late: #F0776B; --caution: #E8B85A; --ok: #8CD3A2; --held: #7CC8DA; --late-ink: #2A0A08;
   --bg: #15161C; --veil: 21,22,28;
   --ink: #F3F3F1; --ink-rgb: 243,243,241;
-  --ink-2: rgba(243,243,241,.74); --ink-3: rgba(243,243,241,.5);
+  --ink-2: rgba(243,243,241,.74); --ink-3: rgba(243,243,241,.62);
   --line: rgba(243,243,241,.08); --line-2: rgba(243,243,241,.14);
   --shadow-text: 0 2px 8px rgba(0,0,0,.4), 0 10px 50px rgba(0,0,0,.4);
   --shadow-text-soft: 0 1px 4px rgba(0,0,0,.5);
@@ -111,6 +112,20 @@ body {
 
 .display { font-family: var(--font-display); letter-spacing: -0.025em; }
 .tnum { font-variant-numeric: tabular-nums; }
+/* Telemetry register: the Hours page only (DESIGN.md, section 4). */
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.ledger th, .ledger td { border-top: 1px solid var(--line); }
+.ledger th + th, .ledger td + td { border-left: 1px solid var(--line); }
+
+/* A chip stays on one line and trims; the whole text shows while its card is hovered or holds focus (roadmap 57). */
+.tag { display: inline-block; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+.group:is(:hover, :focus-within) .tag { max-width: none; }
+
+/* Focus never hides under the fixed nav: anchors and focused controls scroll to below it (WCAG 2.4.11, roadmap 54). */
+html { scroll-padding-top: 112px; }
+:where(a, button, input, select, textarea, [tabindex]) { scroll-margin-top: 112px; }
+@media (min-width: 1536px) { html { scroll-padding-top: 128px; } :where(a, button, input, select, textarea, [tabindex]) { scroll-margin-top: 128px; } }
+h1:focus-visible, h2:focus-visible { outline-offset: 8px; border-radius: 4px; }
 
 @media (min-width: 1536px) { :root { --col: 1320px; } }
 @media (min-width: 2200px) { :root { --col: 1560px; } }   /* 2560 wide: three lanes of 480 px */
