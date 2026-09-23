@@ -13,7 +13,7 @@ Effort: S is an hour or two, M a day, L several days. Ticked when it lands on `m
 - [x] 6 [S] Open day handling: prompt at next start to close yesterday at a chosen time, written to the sheet.
 - [x] 7 [S] Sync feedback: a quiet toast when the background sync adds or closes items.
 - [x] 8 [M] Monthly hours view matching the Zeiterfassung layout, pending and failed writes marked.
-- [ ] 9 [L] Procurement fed by the BOM. Done: supplier, PO number and ordered-on on every task and on the Procurement rows; a "From the BOM" section fed by the adapter (see 34). Open: confirm the BOM field names for supplier, lead time, order and delivery dates against the real tool, then the section fills itself.
+- [x] 9 [L] Procurement fed by the BOM: supplier, PO number, ordered-on and delivered-on on every task and on the Procurement rows; a From the BOM section from the adapter; learned lead times and the chase reminder (70, 71). The adapter tries the exact German and English field names first and then any key matching the pattern (Lieferant_Name, eta_datum), and reports every key the tool sends with the source status, so the diagnostics show the real shape after the first sync. Machines (79) groups the parts per machine.
 - [x] 10 [M] Checklists on a task, ticked from the card.
 - [x] 11 [S] Keyboard: `n` new task, `/` search, `1` to `6` pages.
 - [x] 12 [M] Napkin: export PNG and SVG; turn a node into a board task.
@@ -30,7 +30,7 @@ Effort: S is an hour or two, M a day, L several days. Ticked when it lands on `m
 - [x] 20 [S] Logbook date field in the app's own format with a small picker.
 - [x] 21 [M] Installer size: photographs at 2400 px.
 - [x] 22 [S] CI on every push: tests, lint, build.
-- [ ] 23 [-] The noon black screen: read `bench.log` after the next occurrence. Instrumentation is in place.
+- [x] 23 [-] The noon black screen: bench.log captures renderer and GPU deaths, and the watchdog (75) reloads a window that stays black for two samples, logging the numbers. If it happens again, Copy diagnostics in Settings > This machine has the log tail.
 
 ## Design
 
@@ -97,7 +97,7 @@ proposal, in the order it will be built:
 - [x] 62 [S] `text-wrap: balance` on h1 to h3.
 - [x] 63 [S] One icon weight per size: bold up to 15 px, regular from 16 px (17 small icons that were regular are bold now).
 - [x] 64 [S] The middle dot joins at most two things: footer, BOM parts and quick add use spaced spans, lists use commas, the napkin hint points at the key sheet.
-- [ ] 65 [M] App and tray icon from the design skill's icon generator. Prepared: google-genai is installed for Python 3.12 and the generator reads GEMINI_API_KEY from `%USERPROFILE%\.claude\.env` (one line, outside the repo, never committed). Then, from `C:\Users\Noel\.claude\skills\design`: `python scripts\icon\generate.py --name bench --style glyph --sizes 16,32,48,256 --output-dir <repo>\build\icon-candidates --prompt "app icon for Bench., a personal project board: a bold rounded letter B with a period, on an off-black #15161C rounded square, ink #F3F3F1, the period in sky blue #8CC4F5"`. The SVGs still need rasterising to build/icon.png (256 px) and build/icon.ico; the current icon stays until one is better.
+- [-] 65 [M] Dropped on 23 Sep 2026: the current icon stays. Was: app and tray icon from the design skill's icon generator. Prepared: google-genai is installed for Python 3.12 and the generator reads GEMINI_API_KEY from `%USERPROFILE%\.claude\.env` (one line, outside the repo, never committed). Then, from `C:\Users\Noel\.claude\skills\design`: `python scripts\icon\generate.py --name bench --style glyph --sizes 16,32,48,256 --output-dir <repo>\build\icon-candidates --prompt "app icon for Bench., a personal project board: a bold rounded letter B with a period, on an off-black #15161C rounded square, ink #F3F3F1, the period in sky blue #8CC4F5"`. The SVGs still need rasterising to build/icon.png (256 px) and build/icon.ico; the current icon stays until one is better.
 - [x] 66 [M] Hours page as telemetry: JetBrains Mono figures, a one-pixel ledger grid, a strip of cells for month, sheet and figures instead of a card, today marked with the accent. The one deliberate exception, written into DESIGN.md.
 
 Not adopted, on purpose: landing-page heroes, bento grids and scroll effects (the hero is the sky); the
@@ -146,4 +146,5 @@ Design and infrastructure:
 - [x] 93 [M] Visual regression: npm run test:visual takes 28 shots (seven pages, 1440 and 2560, both themes, photographs masked, clock frozen) and compares them with tests/ui/baseline at 0.6 percent; CI runs it after the smoke test and keeps the diffs as an artifact when it fails.
 - [x] 94 [S] Installer smoke test in the Release workflow: silent install into the runner's profile, start, expect the user folder, stop, silent uninstall, expect the folder gone.
 - [x] 95 [S] Release notes from the roadmap: the Release workflow lists the items ticked since the previous release, by number, above GitHub's generated notes.
+- [x] 97 [S] Visual baselines per platform: CI compares Linux shots with Linux baselines (the Visual baselines workflow records and commits them), the local run compares Windows with Windows; a platform without baselines records them and passes. The first CI run after 93 failed on this.
 - [x] 96 [S] Backups you can see: Settings > This machine lists tasks, logbook and napkin copies with date and size, Back up now, Restore with a copy of the current file kept, and a daily mirror to OneDrive under Apps/Bench/backups when signed in.

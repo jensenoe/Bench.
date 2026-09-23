@@ -1,0 +1,35 @@
+# Renders the visual regression baselines on the CI platform (Ubuntu) and commits them under
+# tests/ui/baseline/linux, so the CI compare is Linux against Linux. The Windows baselines in
+# tests/ui/baseline/win32 are made locally with UPDATE_BASELINE=1 npm run test:visual.
+#
+#   Actions > Visual baselines > Run workflow      after a deliberate change of the interface
+name: Visual baselines
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-fund --no-audit
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: UPDATE_BASELINE=1 npm run test:visual
+      - name: Commit the Linux baselines
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/ui/baseline/linux
+          if git diff --cached --quiet; then echo "baselines unchanged"; exit 0; fi
+          git commit -m "Visual baselines rendered on Linux (roadmap 97)"
+          git push

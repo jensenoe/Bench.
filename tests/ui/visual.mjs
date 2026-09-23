@@ -1,7 +1,7 @@
 /**
  * Visual regression (roadmap 93). Like the smoke test: the server on a free port with scratch data,
  * the same seed, headless Chromium. Every page at 1440x900 and 2560x1440 in dark and light (28 shots,
- * viewport only) is compared pixel by pixel with tests/ui/baseline/<name>.png. A pixel counts as
+ * viewport only) is compared pixel by pixel with tests/ui/baseline/<platform>/<name>.png. A pixel counts as
  * changed when any channel moves more than 24; a shot fails when more than 0.6 percent of its pixels
  * changed. The photographs are hidden before each shot (they change with the slot), the browser clock
  * is fixed and Math.random is seeded, so only the interface is compared.
@@ -21,9 +21,14 @@ import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
-const BASELINE = path.join(root, 'tests', 'ui', 'baseline')
+// Fonts rasterise differently per platform, so baselines live per platform: win32 is made locally, linux by the
+// Visual baselines workflow (roadmap 97). A platform without baselines records them and passes.
+const BASELINE = path.join(root, 'tests', 'ui', 'baseline', process.platform)
 const OUT = path.join(root, 'tests', 'ui', 'visual-out')
-const UPDATE = process.env.UPDATE_BASELINE === '1'
+const HAS = fs.existsSync(BASELINE) && fs.readdirSync(BASELINE).some(f => f.endsWith('.png'))
+const UPDATE = process.env.UPDATE_BASELINE === '1' || !HAS
+if (!HAS) console.log(`no baselines for ${process.platform} in ${path.relative(root, BASELINE)}: recording them this run`)
+fs.mkdirSync(BASELINE, { recursive: true })
 const PAGES = [['home', ''], ['board', 'board'], ['procurement', 'procurement'], ['tools', 'tools'], ['logbook', 'logbook'], ['napkin', 'napkin'], ['hours', 'hours']]
 const VIEWPORTS = [[1440, 900], [2560, 1440]]
 const THEMES = ['dark', 'light']

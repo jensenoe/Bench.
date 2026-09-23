@@ -33,7 +33,7 @@ export async function syncSource(key) {
     }
     const merged = mergeSource(key, r.items)
     // A successful read is the only reliable sign-in test: MSAL-in-page tools keep no cookie we can see.
-    patchSource(key, { signedIn: true, total: r.total ?? null, stale: !!r.stale, error: null })
+    patchSource(key, { signedIn: true, total: r.total ?? null, stale: !!r.stale, error: null, ...(r.keys ? { keys: r.keys } : {}) })
     return { ok: true, fetched: r.items.length, total: r.total ?? null, ...merged }
   } catch (err) {
     noteSourceError(key, err.message)
