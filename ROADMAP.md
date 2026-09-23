@@ -177,5 +177,6 @@ Integrations:
 - [x] 114 [M] Commissioning playbooks at #/playbooks: templates create the standard task set for a machine (Today cap respected), a starter template ships, and a finished machine becomes a template with New from machine.
 - [x] 115 [S] Cost per machine on Review: hours by machine and month over 3, 6 or 12 months, CHF when the hourly rate in Settings > Hours is set, and a semicolon CSV for the controller.
 - [x] 116 [M] A phone view on the workshop network: with Phone access and a PIN in Settings > Tools, a second server on port 5199 serves the brief, Today ticks, the valid punches, quick add and a camera input that drops photos into the inbox; ten wrong PINs lock the address for five minutes.
+- [x] 118 [S] Installer finish page: the two tick box labels were painted black by the Windows theme on the night background, and the note ran past its box. The theme is taken off those two controls and they are coloured like the page; the note is three lines.
 - [x] 117 [M] The Innovation dashboard as a connected tool: sign-in like QMS and the BOM, then a two-stage discovery on the first sync, the page's own API calls first and a reading of the page as fallback, with the field names and endpoints seen stored on the source status. The mapping is a guess until the real page has been synced once.
 

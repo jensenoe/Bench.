@@ -14,7 +14,7 @@ same page is the no-install version: keep it in any folder and run it from there
 
 ---
 
-**0.11, fourth beta (0.11.0-beta.4).** Everything here works on my machine and on the mocks; the
+**0.11, fifth beta (0.11.0-beta.5).** Everything here works on my machine and on the mocks; the
 Microsoft paths (Planner, the hours workbook, the issue list, the calendar) still want a
 first real run in the tom.fit tenant, and the issue list and calendar need a one-time admin
 approval, see below.
@@ -58,7 +58,7 @@ Administrator; `build-exe.bat plain` skips the icon stamping instead, and `build
 Bump `version` in `package.json`, commit, then tag and push:
 
 ```bash
-git tag v0.11.0-beta.5 && git push --tags
+git tag v0.11.0-beta.6 && git push --tags
 ```
 
 The *Release* workflow in `.github/workflows/release.yml` builds both exes on a Windows

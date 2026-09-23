@@ -59,6 +59,16 @@
     System::Call 'Shell32::SHChangeNotify(i 0x8000000, i 0, i 0, i 0)'
   FunctionEnd
 
+  ; The two tick boxes are themed controls: Windows paints their labels black whatever MUI_TEXTCOLOR says,
+  ; which on the night background made them invisible (roadmap 118). Take the theme off those two controls
+  ; and colour them like the rest of the page.
+  Function benchFinishShow
+    System::Call 'uxtheme::SetWindowTheme(i $mui.FinishPage.Run, w " ", w " ")'
+    System::Call 'uxtheme::SetWindowTheme(i $mui.FinishPage.ShowReadme, w " ", w " ")'
+    SetCtlColors $mui.FinishPage.Run F3F1EC 15161C
+    SetCtlColors $mui.FinishPage.ShowReadme F3F1EC 15161C
+  FunctionEnd
+
   !ifndef MUI_FINISHPAGE_TITLE
     !define MUI_FINISHPAGE_TITLE "Ready."
   !endif
@@ -66,7 +76,8 @@
     !define MUI_FINISHPAGE_TITLE_3LINES
   !endif
   !ifndef MUI_FINISHPAGE_TEXT
-    !define MUI_FINISHPAGE_TEXT "Bench. is installed. The first start asks for your name and work email, then offers the Microsoft 365 sign-in. Both take a minute.$\r$\n$\r$\nThe gear in the top right holds everything else: the pictures, the hours workbook, the shared folder."
+    ; Three lines at most: the box under the title is short, and a longer text is cut off, not wrapped.
+    !define MUI_FINISHPAGE_TEXT "Bench. is installed. The first start asks for your name and work email, then offers the Microsoft 365 sign-in. Everything else is behind the gear at the top right."
   !endif
   !ifndef MUI_FINISHPAGE_RUN
     !define MUI_FINISHPAGE_RUN
@@ -87,6 +98,7 @@
   !ifndef MUI_FINISHPAGE_SHOWREADME_FUNCTION
     !define MUI_FINISHPAGE_SHOWREADME_FUNCTION benchDesktopShortcut
   !endif
+  !define MUI_PAGE_CUSTOMFUNCTION_SHOW benchFinishShow
   !insertmacro MUI_PAGE_FINISH
 !macroend
 
