@@ -103,3 +103,7 @@ proposal, in the order it will be built:
 Not adopted, on purpose: landing-page heroes, bento grids and scroll effects (the hero is the sky); the
 single-accent lock as written (the accent follows the scene by design, and never carries a status); the
 generated palettes and font pairings (ours are better matched than what the databases returned).
+
+## Sixth batch, 23 Sep 2026
+
+- [x] 67 [S] Installer licence page: the note was black type on the night box, unreadable. The RichEdit ignores MUI_TEXTCOLOR, so the box is paper (F3F1EC) now, black type on it, the rest of the page stays night.

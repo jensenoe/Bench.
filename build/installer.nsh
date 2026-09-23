@@ -14,7 +14,8 @@
     !define MUI_TEXTCOLOR "F3F1EC"
   !endif
   !ifndef MUI_LICENSEPAGE_BGCOLOR
-    !define MUI_LICENSEPAGE_BGCOLOR "1B1C23"
+    ; The licence box is a RichEdit whose text stays black whatever MUI_TEXTCOLOR says, so the box is paper, not night.
+    !define MUI_LICENSEPAGE_BGCOLOR "F3F1EC"
   !endif
   !ifndef MUI_WELCOMEPAGE_TITLE
     !define MUI_WELCOMEPAGE_TITLE "Bench."
