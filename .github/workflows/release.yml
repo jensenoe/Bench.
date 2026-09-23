@@ -65,6 +65,34 @@ jobs:
       - name: Package installer and portable exe
         run: npx electron-builder --win nsis portable --publish never
 
+      # Roadmap 94: the release is not the first install. Silent install into the runner's profile, start the
+      # app, expect it to stay alive and write its log, stop it, silent uninstall, expect the folder gone.
+      - name: Install, start and uninstall the built installer
+        run: |
+          $setup = (Get-ChildItem release\Bench-Setup-*.exe | Select-Object -First 1).FullName
+          $p = Start-Process -FilePath $setup -ArgumentList '/S' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "installer exit code $($p.ExitCode)" }
+          $dir = Join-Path $env:LOCALAPPDATA 'Programs\Bench'
+          $exe = Join-Path $dir 'Bench.exe'
+          if (-not (Test-Path $exe)) { throw "no $exe after install" }
+          $app = Start-Process -FilePath $exe -PassThru
+          Start-Sleep -Seconds 25
+          if ($app.HasExited) { throw "Bench exited within 25 s, code $($app.ExitCode)" }
+          $log = Join-Path $env:APPDATA 'bench\bench.log'
+          $user = Join-Path $env:APPDATA 'bench\user'
+          if (-not (Test-Path $user)) { throw "Bench did not create its user folder at $user" }
+          if (Test-Path $log) { Write-Host "--- bench.log ---"; Get-Content $log -Tail 40 }
+          Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue
+          Get-Process Bench -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          Start-Sleep -Seconds 3
+          $un = Join-Path $dir 'Uninstall Bench.exe'
+          if (-not (Test-Path $un)) { throw "no uninstaller at $un" }
+          $u = Start-Process -FilePath $un -ArgumentList '/S' -Wait -PassThru
+          if ($u.ExitCode -ne 0) { throw "uninstaller exit code $($u.ExitCode)" }
+          Start-Sleep -Seconds 5
+          if (Test-Path $exe) { throw "Bench.exe still there after uninstall" }
+          Write-Host "install, start, uninstall: ok"
+
       - name: Publish the release
         if: startsWith(github.ref, 'refs/tags/v')
         env:
@@ -87,6 +115,29 @@ jobs:
 
           ## What changed
           "@ | Set-Content -Encoding UTF8 notes.md
+
+          # Roadmap 95: the roadmap is the changelog. Items ticked since the previous release, by number.
+          $prev = $null
+          try { $prev = gh release list --repo $env:REPO --limit 20 --json tagName,isPrerelease --jq "[.[] | select(.tagName != `"$env:TAG`")][0].tagName" } catch { $prev = $null }
+          $old = ''
+          if ($prev) {
+            try {
+              $b64 = gh api "repos/$env:REPO/contents/ROADMAP.md?ref=$prev" --jq .content
+              $old = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(($b64 -replace '\s', '')))
+            } catch { $old = '' }
+          }
+          $pick = { param($text) [regex]::Matches($text, '(?m)^- \[x\] (\d+) (?:\[[A-Z-]\] )?(.*)$') | ForEach-Object { [pscustomobject]@{ n = [int]$_.Groups[1].Value; text = $_.Groups[2].Value.Trim() } } }
+          $now = & $pick (Get-Content ROADMAP.md -Raw)
+          $before = @{}
+          foreach ($i in (& $pick $old)) { $before[$i.n] = $true }
+          $fresh = $now | Where-Object { -not $before.ContainsKey($_.n) } | Sort-Object n
+          if ($fresh) {
+            $lines = $fresh | ForEach-Object { "- **$($_.n)** $($_.text)" }
+            Add-Content -Encoding UTF8 notes.md (($lines -join "`n") + "`n")
+            Write-Host "release notes: $($fresh.Count) roadmap items since $prev"
+          } else {
+            Add-Content -Encoding UTF8 notes.md "See ROADMAP.md for the items in this release.`n"
+          }
 
           $files = Get-ChildItem release\*.exe | ForEach-Object { $_.FullName }
           $args = @("release", "create", $env:TAG) + $files + @("--repo", $env:REPO, "--title", "Bench. $env:TAG", "--notes-file", "notes.md", "--generate-notes")

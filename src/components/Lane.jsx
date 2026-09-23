@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { AnimatePresence } from 'motion/react'
 import TaskCard, { DRAG_TYPE } from './TaskCard.jsx'
 import AddTask from './AddTask.jsx'
+import Capacity from './Capacity.jsx'
 import { LANES } from '../copy.js'
 import { STATUS } from '../scenes.js'
 import { daysSince } from '../lanes.js'
@@ -35,6 +36,7 @@ export default function Lane({ laneKey, tasks, onPatch, onDelete, onCreate, wide
         </span>
       </header>
       <p className="mt-1.5 max-w-[60ch] text-[13px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>{lane.blurb}</p>
+      {laneKey === 'today' && <Capacity refreshKey={`${tasks.length}:${tasks.reduce((m, t) => (t.updatedAt || '') > m ? t.updatedAt : m, '')}`} />}
 
       {overCap && <p className="mt-3 text-[13px] leading-snug" style={{ color: STATUS.overdue }}>
         {open.length} on Today. Your week has about three working days in it. Move {open.length - lane.cap} back to Active.

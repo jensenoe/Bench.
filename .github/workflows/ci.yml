@@ -24,3 +24,11 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:ui
+      # Every page at two sizes in both themes against tests/ui/baseline; the shots and diffs are kept when it fails.
+      - run: npm run test:visual
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: visual-out
+          path: tests/ui/visual-out
+          if-no-files-found: ignore

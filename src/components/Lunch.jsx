@@ -1,12 +1,32 @@
+import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
 import Photo from './Photo.jsx'
 import { fmt, mmss, hm, workedMs } from '../hooks/useTimeclock.js'
+import { getWeather } from '../api/extras.js'
+
+/** "9.5 °C, overcast. 30 percent chance of rain in the next hour. Sunset 19:24." Nothing when the server has no reading. */
+export function weatherLine(w) {
+  if (!w?.ok) return null
+  const parts = [`${Number(w.temp).toFixed(1)} °C, ${w.words}.`]
+  if (w.rainNextHour !== null && w.rainNextHour !== undefined) parts.push(`${w.rainNextHour} percent chance of rain in the next hour.`)
+  if (w.sunset) parts.push(`Sunset ${w.sunset}.`)
+  return parts.join(' ')
+}
 
 /**
  * The break screen. A village at dusk, one large number, nothing else asking for attention.
  * On break: minutes gone and the minute it ends. Not yet: the one button that starts it.
+ * One line of weather under the text, from Open-Meteo, hidden when there is none.
  */
 export default function Lunch({ clock, punch, now, scene }) {
+  const [weather, setWeather] = useState(null)
+  useEffect(() => {
+    let on = true
+    const load = () => getWeather().then(w => on && setWeather(w)).catch(() => on && setWeather(null))
+    load(); const id = setInterval(load, 15 * 60_000)
+    return () => { on = false; clearInterval(id) }
+  }, [])
+  const sky = weatherLine(weather)
   const onBreak = clock?.status === 'lunch'
   const started = onBreak && clock.lunch?.startedAt ? new Date(clock.lunch.startedAt) : null
   const [eh, em] = /^\d{1,2}:\d{2}$/.test(clock?.lunch?.endsAt || '') ? clock.lunch.endsAt.split(':').map(Number) : [12, 30]
@@ -62,6 +82,7 @@ export default function Lunch({ clock, punch, now, scene }) {
               <a href="#/" className="mt-8 inline-block text-[13px] underline-offset-2 hover:underline" style={{ color: 'var(--ink-3)' }}>Back to the board</a>
             </>
           )}
+          {sky && <p className="tnum mt-6 max-w-[46ch] text-[13.5px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>{sky}</p>}
         </motion.div>
 
         <ul className="mt-16 flex flex-wrap gap-x-8 gap-y-2 text-[13px]" style={{ color: 'var(--ink-3)' }}>

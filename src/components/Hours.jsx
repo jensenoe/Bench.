@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { CaretLeft, CaretRight } from '@phosphor-icons/react'
 import * as api from '../api.js'
+import { getDrift } from '../api/core.js'
 import { shortDate } from '../lanes.js'
 import { LedgerSkeleton } from './Skeleton.jsx'
 
@@ -21,6 +22,11 @@ const mark = (d) =>
       : d.pending ? { word: `${d.pending} waiting`, tone: 'var(--caution)' }
         : d.closedLater ? { word: 'closed later', tone: 'var(--ink-3)' }
           : d.in ? { word: 'written', tone: 'var(--ok)' } : null
+/** Why the sheet check did not run, in one plain line. */
+const driftNote = (r) => !r || r.ok ? null
+  : r.reason === 'needs-signin' ? 'The sheet was not compared: connect Microsoft 365 and Bench checks it against the workbook.'
+    : `The sheet was not compared: ${r.reason}`
+const FIELD = { in: 'In', out: 'Out', break: 'Break' }
 
 const Figure = ({ value, label, tone }) => (
   <div className="px-6 py-4" style={{ borderLeft: '1px solid var(--line)' }}>
@@ -33,7 +39,12 @@ export default function Hours({ clock }) {
   const [month, setMonth] = useState(() => ym(new Date()))
   const [data, setData] = useState(null)
   const [err, setErr] = useState(null)
+  const [drift, setDrift] = useState(null)
   useEffect(() => { let on = true; api.getMonth(month).then(d => on && setData(d)).catch(e => on && setErr(e.message)); return () => { on = false } }, [month, clock?.events?.length, clock?.unclosed])
+  // the sheet, read back and compared to Bench's punches (roadmap 74); cached on the server for half an hour
+  useEffect(() => { let on = true; setDrift(null); getDrift(month).then(r => on && setDrift(r)).catch(() => on && setDrift(null)); return () => { on = false } }, [month, clock?.events?.length])
+  const differs = new Map()
+  for (const r of drift?.rows || []) differs.set(r.date, [...(differs.get(r.date) || []), r])
   const shift = (n) => { const [y, m] = month.split('-').map(Number); setMonth(ym(new Date(y, m - 1 + n, 1))) }
   const title = new Date(month + '-01T12:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
   const isNow = month === ym(new Date())
@@ -67,6 +78,14 @@ export default function Hours({ clock }) {
         {failed.length > 0 && (
           <p className="px-6 py-3 text-[13px]" style={{ borderTop: '1px solid var(--line)', color: 'var(--caution)' }}>{failed[0].failed}</p>
         )}
+        {driftNote(drift) && (
+          <p className="px-6 py-3 text-[13px]" style={{ borderTop: '1px solid var(--line)', color: 'var(--ink-3)' }}>{driftNote(drift)}</p>
+        )}
+        {drift?.ok && differs.size > 0 && (
+          <p className="px-6 py-3 text-[13px]" style={{ borderTop: '1px solid var(--line)', color: 'var(--caution)' }}>
+            The sheet and Bench disagree on {differs.size} {differs.size === 1 ? 'day' : 'days'}. Hover a marked row for both values; the sheet stays the record.
+          </p>
+        )}
 
         {!data && !err && <LedgerSkeleton />}
         {data && (
@@ -86,6 +105,7 @@ export default function Hours({ clock }) {
                 const weekend = d.weekday === 0 || d.weekday === 6
                 const empty = !d.worked && !d.in
                 const m = mark(d)
+                const diff = differs.get(d.date)
                 return (
                   <tr key={d.date} style={{
                     background: d.today ? 'color-mix(in srgb, var(--accent) 7%, transparent)' : 'transparent',
@@ -98,6 +118,9 @@ export default function Hours({ clock }) {
                     <td className="px-6 py-[7px]">
                       {m && <span className="inline-flex items-center gap-2" title={m.title} style={{ color: m.tone }}>
                         <span aria-hidden="true" className="inline-block h-[7px] w-[7px]" style={{ background: m.tone }} />{m.word}</span>}
+                      {diff && <span className="ml-3 inline-flex items-center gap-2" style={{ color: 'var(--caution)' }}
+                        title={diff.map(r => `${FIELD[r.field]}: Bench ${r.bench}, sheet ${r.sheet || 'empty'}`).join('. ') + '.'}>
+                        <span aria-hidden="true" className="inline-block h-[7px] w-[7px] rounded-full" style={{ background: 'var(--caution)' }} />Sheet differs</span>}
                     </td>
                   </tr>
                 )

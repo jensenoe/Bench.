@@ -112,6 +112,28 @@ describe('mergeSource', () => {
   })
 })
 
+describe('delivered-on and links', () => {
+  it('keeps a delivery date and cleans links like the logbook does', () => {
+    const t = store.createTask({ title: 'rails', supplier: 'Bosch', orderedOn: '2026-09-01', deliveredOn: '2026-09-12T08:00:00Z', links: ['\\\\share\\photos\\rail.jpg', { href: 'https://x.y/z', label: ' Drawing ' }, { href: '' }, 'junk-free'] })
+    expect(t.deliveredOn).toBe('2026-09-12')
+    expect(t.links).toHaveLength(3)
+    expect(t.links[0]).toMatchObject({ href: '\\\\share\\photos\\rail.jpg', label: 'rail.jpg' })
+    expect(t.links[1]).toMatchObject({ href: 'https://x.y/z', label: 'Drawing' })
+    expect(t.links[0].id).toBeTruthy()
+    const u = store.updateTask(t.id, { deliveredOn: 'nope', links: 'not a list' })
+    expect(u.deliveredOn).toBeNull()
+    expect(u.links).toEqual([])
+    expect(store.OWN_FIELDS).toEqual(expect.arrayContaining(['deliveredOn', 'links']))
+    store.mergeSource('bom', [remote({ sourceId: 'B-1', title: 'motor' })])
+    expect(store.allTasks().find(x => x.sourceId === 'B-1')).toMatchObject({ deliveredOn: null, links: [] })
+  })
+  it('status says the folder is reachable and reload re-reads the disk', () => {
+    expect(store.status()).toEqual({ offline: false, since: null, error: null, pending: 0 })
+    const n = store.allTasks().length
+    expect(store.reload().tasks.length).toBe(n)
+  })
+})
+
 describe('load', () => {
   it('moves an unreadable file aside instead of losing it', async () => {
     const dir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'bench-store-corrupt-'))

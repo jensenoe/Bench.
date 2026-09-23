@@ -123,6 +123,13 @@ day panel a blue one.
   refused write (Today is full) is a toast. A fault is the error toast: bottom centre, "Something
   broke." with the message, Retry and Dismiss, role alert, stays until dealt with. Never a bare pill.
 - Key sheet: `?` lists every shortcut; Escape closes it and gives focus back.
+- Day dialogs: the morning brief and the evening close are overlays in the key sheet's pattern, one
+  headline with a period, sections with counts in their titles, one primary pill, a quiet "Later" or
+  "Not now" link with a 24 px hit area. Choices are radio pills at 24 px.
+- Ledgers and feeds: Recent changes, Backups, the Machines detail and the Review page are panels of
+  rows, 13 to 13.5 px, a headline with a period, empty sections left out or one sentence.
+- Wall mode is the one page allowed larger type: nothing under 16 px, no controls, Escape leaves.
+- Photographs from the phone: thumbnails at 12 px radius, a task picker, Attach and Dismiss.
 - Empty state: one sentence that says what to do next, in `--ink-3`, never "No data".
 - Loading: a skeleton in the shape of what is coming (`Skeleton.jsx`: page, panel, ledger). Never
   the word "Loading", never a spinner.

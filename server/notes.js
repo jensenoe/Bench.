@@ -1,21 +1,25 @@
 /**
  * Logbook (meeting notes) and Napkin (mind maps). Two JSON files in the shared data folder,
  * next to tasks.json, so a colleague on the same folder sees the same notes and maps.
- * Same atomic-write discipline as the task store.
+ * Same atomic-write discipline as the task store, and the same patience when the folder is away:
+ * a save that cannot reach it keeps the state in memory and retries every 30 s and on the next save.
  */
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { backupOnce } from './backup.js'
+import { isUnreachable, RETRY_MS } from './store.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DATA_DIR = process.env.BENCH_DATA_DIR || path.join(__dirname, '..', 'data')
 const now = () => new Date().toISOString()
 
+const files = []
 function file(name) {
   const p = path.join(DATA_DIR, name)
   let cache = null
+  let offline = null   // { since, error, pending } while the folder is away
   const load = () => {
     if (cache) return cache
     try { cache = JSON.parse(fs.readFileSync(p, 'utf8')) } catch { cache = { items: [] } }
@@ -23,12 +27,46 @@ function file(name) {
     return cache
   }
   const save = () => {
-    fs.mkdirSync(DATA_DIR, { recursive: true })
-    backupOnce(p)
-    fs.writeFileSync(p + '.tmp', JSON.stringify(cache, null, 2)); fs.renameSync(p + '.tmp', p)
+    try {
+      fs.mkdirSync(DATA_DIR, { recursive: true })
+      backupOnce(p)
+      fs.writeFileSync(p + '.tmp', JSON.stringify(cache, null, 2)); fs.renameSync(p + '.tmp', p)
+      if (offline) { console.warn(`[notes] folder is back after ${offline.pending} held write(s) to ${name}`); offline = null }
+    } catch (err) {
+      if (!isUnreachable(err, DATA_DIR)) throw err
+      offline = { since: offline?.since || now(), error: `${err.code || 'error'}: ${err.message}`.slice(0, 300), pending: (offline?.pending || 0) + 1 }
+      console.warn(`[notes] folder unreachable, keeping ${name} in memory:`, err.message)
+      scheduleRetry()
+    }
   }
-  return { load, save }
+  const retry = () => { if (!offline) return true; try { save() } catch (err) { console.warn('[notes] retry failed:', err.message) } return !offline }
+  const reload = () => {
+    if (offline) throw Object.assign(new Error('The shared folder is unreachable; held writes would be lost.'), { status: 409 })
+    cache = null; return load()
+  }
+  const f = { name, load, save, retry, reload, status: () => offline }
+  files.push(f)
+  return f
 }
+let retryTimer = null
+function scheduleRetry() {
+  if (retryTimer) return
+  retryTimer = setInterval(() => {
+    files.forEach(f => f.retry())
+    if (!files.some(f => f.status())) { clearInterval(retryTimer); retryTimer = null }
+  }, RETRY_MS)
+  retryTimer.unref?.()
+}
+/** { offline, since, error, pending } across both files, for the health check. */
+export function status() {
+  const off = files.map(f => f.status()).filter(Boolean)
+  if (!off.length) return { offline: false, since: null, error: null, pending: 0 }
+  return { offline: true, since: off.map(o => o.since).sort()[0], error: off[0].error, pending: off.reduce((s, o) => s + o.pending, 0) }
+}
+/** Write held saves now (the timer does this every 30 s). True when nothing is held any more. */
+export function retryWrite() { files.forEach(f => f.retry()); return !status().offline }
+/** Drop the caches so the next read comes from disk (after a backup restore). */
+export function reload() { files.forEach(f => f.reload()) }
 
 // ── Logbook ───────────────────────────────────────────────────────────
 const logbook = file('logbook.json')

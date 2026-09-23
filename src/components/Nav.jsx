@@ -3,6 +3,7 @@ import { ArrowsClockwise, GearSix, MagnifyingGlass } from '@phosphor-icons/react
 import * as api from '../api.js'
 import { SHEETS } from '../copy.js'
 import Clock from './Clock.jsx'
+import FocusTimer from './FocusTimer.jsx'
 import TimeClock from './TimeClock.jsx'
 import Reminder from './Reminder.jsx'
 
@@ -32,10 +33,12 @@ export default function Nav({ route, auth, meta, onRefresh, now, scene, timecloc
           <div className="hidden items-baseline gap-5 lg:flex xl:gap-7 2xl:gap-9">
             {link('', 'Home', 1)}
             {SHEETS.filter(s => !s.external).map((s, i) => link(s.id, s.title, i + 2))}
+            {link('machines', 'Machines', 9)}
           </div>
         </div>
         <div className="relative flex shrink-0 items-center gap-4 whitespace-nowrap xl:gap-5 2xl:gap-6">
           <Clock now={now} scene={scene} />
+          <FocusTimer />
           <TimeClock clock={timeclock?.clock} punch={timeclock?.punch} now={now} />
           <Reminder clock={timeclock?.clock} now={now} />
           {auth.configured && auth.signedIn && (

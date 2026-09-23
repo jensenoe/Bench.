@@ -37,6 +37,8 @@ export default function Footer({ name, version, scene, glow, now = new Date(), o
           <a href="#/" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Home</a>
           {pages.map(s => <a key={s.id} href={`#/${s.id}`} className="-my-1 inline-block py-1 hover:underline underline-offset-2">{s.title}</a>)}
           <a href="#/hours" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Hours</a>
+          <a href="#/machines" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Machines</a>
+          <a href="#/review" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Review</a>
           <button onClick={onSettings} className="-my-1 inline-block py-1 hover:underline underline-offset-2">Settings</button>
         </nav>
         <span className="tnum flex flex-wrap gap-x-4"><span>{scene?.label || 'Day'} light</span><span>next picture {nextHour}</span>{version ? <span>{ver(version)}</span> : null}</span>
@@ -66,6 +68,8 @@ export default function Footer({ name, version, scene, glow, now = new Date(), o
               <li><a href="#/" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Home</a></li>
               {pages.map(s => <li key={s.id}><a href={`#/${s.id}`} className="-my-1 inline-block py-1 hover:underline underline-offset-2">{s.title}</a></li>)}
               <li><a href="#/hours" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Hours</a></li>
+              <li><a href="#/machines" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Machines</a></li>
+              <li><a href="#/review" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Review</a></li>
               <li><button onClick={onSettings} className="-my-1 inline-block py-1 hover:underline underline-offset-2" style={{ color: 'var(--ink-2)' }}>Settings</button></li>
             </Col>
             <Col title="Tools">

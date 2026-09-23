@@ -195,3 +195,25 @@ button:active, a.pill:active { transform: translateY(1px); }
   .drift-a, .drift-b, .twinkle, .skel { animation: none; }
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+/* Compact density (roadmap 91): one-line cards on wide screens. App sets data-density from Settings > Look;
+   nothing here touches the comfortable default. Cards are the li.row.group rows on the Board. */
+:root[data-density="compact"] li.row.group { padding-top: 7px; padding-bottom: 7px; }
+:root[data-density="compact"] li.row.group p.cursor-text { font-size: 13.5px; }
+:root[data-density="compact"] li.row.group .tag { font-size: 12px; }
+/* Only the first two chips show; the rest come back while the card is hovered or holds focus, next to the existing max-width rule. */
+:root[data-density="compact"] li.row.group .tag:nth-child(n+3) { display: none; }
+:root[data-density="compact"] li.row.group:is(:hover, :focus-within) .tag:nth-child(n+3) { display: inline-block; }
+:root[data-density="compact"] li.row.group:is(:hover, :focus-within) button.tag:nth-child(n+3) { display: inline-flex; }
+@media (min-width: 1280px) {
+  /* Title and chips on one line; a long title pushes the chips to a second line rather than clipping. */
+  :root[data-density="compact"] li.row.group > div > div.min-w-0 { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 10px; row-gap: 2px; }
+  :root[data-density="compact"] li.row.group > div > div.min-w-0 > p.cursor-text { flex: 1 1 auto; min-width: 0; padding-right: 3.5rem; }
+  :root[data-density="compact"] li.row.group > div > div.min-w-0 > div.flex-wrap { margin-top: 0; flex: 0 1 auto; margin-right: 2.25rem; }   /* clear the details icon at the card's right edge */
+  :root[data-density="compact"] li.row.group > div > div.min-w-0 > ul { flex-basis: 100%; }
+}
+:root[data-density="compact"] main .grid.gap-4 { gap: .625rem; }
+:root[data-density="compact"] section.panel.p-6 { padding: 18px 20px; }
+:root[data-density="compact"] section.panel.p-6 > ul.gap-2 { gap: .375rem; margin-top: .75rem; }
+:root[data-density="compact"] section.panel.p-6 > p.mt-1\.5 { display: none; }
+:root[data-density="compact"] aside[aria-label="Introduction"] { display: none; }

@@ -31,7 +31,8 @@ const check = (name, ok, detail = '') => { console.log(`${ok ? 'ok  ' : 'FAIL'} 
 let browser
 try {
   // seed
-  await api('PUT', '/api/settings', { name: 'Test Person', email: 'test@example.com', setupDone: true })
+  // The brief and the close are checked on their own below; off here so they do not cover the pages.
+  await api('PUT', '/api/settings', { name: 'Test Person', email: 'test@example.com', setupDone: true, morningBrief: false, eveningClose: false })
   for (let i = 0; i < 5; i++) await api('POST', '/api/tasks', { title: `Today ${i + 1}`, lane: 'today' })
   await api('POST', '/api/tasks', { title: 'Parked one', lane: 'parked' })
   await api('POST', '/api/tasks', { title: 'Order the rails', lane: 'active', orderBy: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10) })
@@ -45,7 +46,7 @@ try {
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()) })
   page.on('pageerror', e => errors.push('pageerror: ' + e.message))
 
-  for (const r of ['', 'board', 'procurement', 'tools', 'logbook', 'napkin', 'hours', 'lunch']) {
+  for (const r of ['', 'board', 'procurement', 'tools', 'logbook', 'napkin', 'hours', 'review', 'machines', 'wall', 'lunch']) {
     await page.goto(`${BASE}/#/${r}`, { waitUntil: 'networkidle' }); await page.waitForTimeout(600)
     const hscroll = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
     check(`page ${r || 'home'} renders without horizontal scroll`, !hscroll)
@@ -136,6 +137,31 @@ try {
   await page.goto(`${BASE}/#/board`, { waitUntil: 'networkidle' }); await page.waitForTimeout(500)
   const chip = await page.evaluate(() => { const c = document.querySelector('.tag'); return c ? getComputedStyle(c).whiteSpace : 'none' })
   check('chips never wrap', chip === 'nowrap', chip)
+
+  // the morning brief opens once when the setting is on, and Start the day closes it (roadmap 68)
+  await api('PUT', '/api/settings', { morningBrief: true })
+  // a goto to the same hash is a same-document navigation, so the app would not restart: reload instead
+  await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(1200)
+  const brief = page.getByRole('dialog', { name: /Morning/ })
+  check('the morning brief opens on the first start of the day', await brief.isVisible().catch(() => false), `dialogs ${await page.locator('[role=dialog]').count()}`)
+  await page.getByRole('button', { name: /Start the day/ }).click().catch(() => {}); await page.waitForTimeout(600)
+  check('Start the day closes the brief', !(await brief.isVisible().catch(() => false)))
+  await api('PUT', '/api/settings', { morningBrief: false })
+
+  // Settings opens from the gear and every tab renders (roadmap 92)
+  await page.getByRole('button', { name: 'Settings' }).first().click(); await page.waitForTimeout(500)
+  const tabs = page.getByRole('tab')
+  check('settings has six tabs', (await tabs.count()) === 6, String(await tabs.count()))
+  for (let i = 0; i < await tabs.count(); i++) { await tabs.nth(i).click(); await page.waitForTimeout(350) }
+  check('settings shows the backups list', (await page.getByText(/Backups\./).count()) >= 1)
+  await page.keyboard.press('Escape'); await page.waitForTimeout(300)
+
+  // machines and the wall render their content
+  await page.goto(`${BASE}/#/machines`, { waitUntil: 'networkidle' }); await page.waitForTimeout(700)
+  check('machines page renders its heading', /Machines/.test(await page.locator('h1').first().textContent().catch(() => '')))
+  await page.goto(`${BASE}/#/wall`, { waitUntil: 'networkidle' }); await page.waitForTimeout(900)
+  check('wall mode shows Today and no nav', /Today/.test(await page.locator('body').textContent()) && (await page.locator('nav').count()) === 0)
+  await page.goto(`${BASE}/#/board`, { waitUntil: 'networkidle' }); await page.waitForTimeout(400)
 
   check('no console errors across the run', errors.length === 0, errors.slice(0, 3).join(' | '))
 } catch (err) {

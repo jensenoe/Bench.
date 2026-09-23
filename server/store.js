@@ -3,6 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import crypto from 'node:crypto'
 import { backupOnce } from './backup.js'
+import * as history from './history.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // Electron sets BENCH_DATA_DIR to a folder next to the executable, so a copy in a
@@ -27,6 +28,32 @@ export class CapError extends Error { constructor(msg) { super(msg); this.status
 let cache = null
 let diskMtime = 0            // mtime of tasks.json when we last read or wrote it
 let knownIds = new Set()     // task ids that were on disk at that moment (to tell a delete from an add)
+
+/**
+ * The shared folder can vanish under us (VPN drops, the share goes away, OneDrive relinks). A save that
+ * fails that way keeps the in-memory state, notes it here and retries every 30 s and on the next save.
+ * A write is never lost to the folder being away; the worst case is that it lands later (roadmap 77).
+ */
+const UNREACHABLE = new Set(['ENOENT', 'ENOTDIR', 'EBUSY', 'EPERM', 'EACCES', 'ENETUNREACH', 'EIO', 'ENOTEMPTY', 'EEXIST'])
+const isDir = (p) => { try { return fs.statSync(p).isDirectory() } catch { return false } }
+/** True when a write failed because the folder cannot be reached, not because the data is wrong. */
+export const isUnreachable = (err, dir = DATA_DIR) => Boolean(err && (UNREACHABLE.has(err.code) || !isDir(dir)))
+export const RETRY_MS = 30_000
+let offline = null           // { since, error, pending } while the folder is away, null otherwise
+let retryTimer = null
+/** { offline, since, error, pending } for the health check and the UI. */
+export function status() { return offline ? { offline: true, ...offline } : { offline: false, since: null, error: null, pending: 0 } }
+/** Try the write again now (the timer calls this every 30 s while offline). Returns true when the folder took it. */
+export function retryWrite() {
+  if (!offline) return true
+  try { save() } catch (err) { console.warn('[store] retry failed:', err.message) }
+  return !offline
+}
+function scheduleRetry() {
+  if (retryTimer) return
+  retryTimer = setInterval(() => { if (!offline) { clearInterval(retryTimer); retryTimer = null; return } retryWrite() }, RETRY_MS)
+  retryTimer.unref?.()
+}
 
 const mtimeOf = () => { try { return fs.statSync(DB_FILE).mtimeMs } catch { return 0 } }
 function readDisk() {
@@ -71,7 +98,7 @@ export function load() {
  */
 function reconcile() {
   let disk
-  try { disk = readDisk() } catch { return }   // mid-write by the other side; try again next time
+  try { disk = readDisk() } catch { return }   // mid-write by the other side, or the folder is away; try again next time
   const ours = new Map(cache.tasks.map(t => [t.id, t]))
   const theirs = new Map(disk.tasks.map(t => [t.id, t]))
   const merged = []
@@ -94,15 +121,34 @@ function reconcile() {
   diskMtime = mtimeOf()
 }
 
-/** Atomic write: temp file + rename, so a crash mid-write cannot truncate the store. */
+/**
+ * Atomic write: temp file + rename, so a crash mid-write cannot truncate the store. When the folder is
+ * unreachable the state stays in memory and the write is retried (see `offline` above); any other error
+ * is thrown as before.
+ */
 export function save() {
-  ensureDir()
-  if (cache && mtimeOf() !== diskMtime) reconcile()
-  backupOnce(DB_FILE)   // yesterday's state, once a day, before the first write
-  const tmp = DB_FILE + '.tmp'
-  fs.writeFileSync(tmp, JSON.stringify(cache, null, 2), 'utf8')
-  fs.renameSync(tmp, DB_FILE)
-  remember(cache)
+  if (cache && mtimeOf() !== diskMtime) reconcile()   // returns quietly when the disk cannot be read
+  try {
+    ensureDir()
+    backupOnce(DB_FILE)   // yesterday's state, once a day, before the first write
+    const tmp = DB_FILE + '.tmp'
+    fs.writeFileSync(tmp, JSON.stringify(cache, null, 2), 'utf8')
+    fs.renameSync(tmp, DB_FILE)
+    remember(cache)
+    if (offline) { console.warn(`[store] folder is back after ${offline.pending} held write(s)`); offline = null }
+  } catch (err) {
+    if (!isUnreachable(err)) throw err
+    offline = { since: offline?.since || now(), error: `${err.code || 'error'}: ${err.message}`.slice(0, 300), pending: (offline?.pending || 0) + 1 }
+    console.warn('[store] folder unreachable, keeping the write in memory:', err.message)
+    scheduleRetry()
+  }
+}
+
+/** Drop the caches so the next read comes from disk (after a backup restore). Refused while writes are held. */
+export function reload() {
+  if (offline) throw Object.assign(new Error('The shared folder is unreachable; held writes would be lost.'), { status: 409 })
+  cache = null; diskMtime = 0; knownIds = new Set()
+  return load()
 }
 
 const now = () => new Date().toISOString()
@@ -118,8 +164,10 @@ const now = () => new Date().toISOString()
  *   checklist    steps inside the task, [{ id, text, done }]
  *   repeat       null, daily, weekly, fortnightly or monthly: completing it creates the next one
  *   supplier, poNumber, orderedOn   the procurement side of a part with a lead time
+ *   deliveredOn  the day the part arrived; with orderedOn it is one lead-time sample for the supplier
+ *   links        files and pages that belong to the task, [{ id, href, label }], photographs included
  */
-export const OWN_FIELDS = ['assignedBy', 'lead', 'project', 'priority', 'effortHours', 'tags', 'checklist', 'repeat', 'supplier', 'poNumber', 'orderedOn']
+export const OWN_FIELDS = ['assignedBy', 'lead', 'project', 'priority', 'effortHours', 'tags', 'checklist', 'repeat', 'supplier', 'poNumber', 'orderedOn', 'deliveredOn', 'links']
 const clampPrio = p => (p === null || p === undefined || p === '') ? null : Math.min(3, Math.max(1, Number(p) || 3))
 const normTags = t => Array.isArray(t) ? [...new Set(t.map(x => String(x).trim()).filter(Boolean))].slice(0, 12)
   : typeof t === 'string' ? normTags(t.split(/[,;]/)) : []
@@ -129,6 +177,12 @@ const normChecklist = c => Array.isArray(c) ? c.map(x => typeof x === 'string' ?
 const normRepeat = r => REPEATS.includes(r) ? r : null
 const str = v => (typeof v === 'string' && v.trim()) ? v.trim() : null
 const dateStr = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : null
+/** Same shape and cleaning as the logbook's links: a path, a page or a picture, with a label. */
+export const cleanLinks = (v) => Array.isArray(v) ? v.map(l => typeof l === 'string' ? { href: l } : (l || {})).map(l => {
+  const href = String(l.href || '').trim()
+  const label = String(l.label || '').trim() || href.split(/[\\/]/).filter(Boolean).pop() || href
+  return { id: l.id || crypto.randomUUID(), href, label: label.slice(0, 120) }
+}).filter(l => l.href).slice(0, 40) : []
 const ownFields = (input = {}) => ({
   assignedBy: str(input.assignedBy),
   lead: str(input.lead),
@@ -140,7 +194,9 @@ const ownFields = (input = {}) => ({
   repeat: normRepeat(input.repeat),
   supplier: str(input.supplier),
   poNumber: str(input.poNumber),
-  orderedOn: dateStr(input.orderedOn)
+  orderedOn: dateStr(input.orderedOn),
+  deliveredOn: dateStr(input.deliveredOn),
+  links: cleanLinks(input.links)
 })
 
 export function allTasks() {
@@ -181,6 +237,25 @@ export function createTask(input) {
   }
   db.tasks.push(task)
   save()
+  history.record('created', null, task)
+  return task
+}
+
+/**
+ * Put a task back exactly as it was (undo of a delete). The id stays so links to it keep working; a
+ * task with that id already on the board is left alone.
+ */
+export function restoreTask(snapshot) {
+  const db = load()
+  if (!snapshot?.id || !snapshot.title) return null
+  const existing = db.tasks.find(x => x.id === snapshot.id)
+  if (existing) return existing
+  const task = structuredClone(snapshot)
+  if (task.lane === 'today' && !task.done) assertRoom(db)
+  task.updatedAt = now(); task.lastTouched = now()
+  db.tasks.push(task)
+  save()
+  history.record('created', null, task)
   return task
 }
 
@@ -219,6 +294,7 @@ export function updateTask(id, patch) {
   const db = load()
   const t = db.tasks.find(x => x.id === id)
   if (!t) return null
+  const before = structuredClone(t)
 
   const lane = patch.lane && LANES.includes(patch.lane) ? patch.lane : t.lane
   const willBeOpen = patch.done === false || (patch.done !== true && !t.done)
@@ -248,10 +324,13 @@ export function updateTask(id, patch) {
   if ('repeat' in patch) t.repeat = normRepeat(patch.repeat)
   for (const k of ['supplier', 'poNumber']) if (k in patch) t[k] = str(patch[k])
   if ('orderedOn' in patch) t.orderedOn = dateStr(patch.orderedOn)
+  if ('deliveredOn' in patch) t.deliveredOn = dateStr(patch.deliveredOn)
+  if ('links' in patch) t.links = cleanLinks(patch.links)
 
   t.updatedAt = now()
   t.lastTouched = now()
   save()
+  history.record('changed', before, t)
   return spawned ? { ...t, spawned } : t
 }
 
@@ -259,8 +338,9 @@ export function deleteTask(id) {
   const db = load()
   const i = db.tasks.findIndex(x => x.id === id)
   if (i === -1) return false
-  db.tasks.splice(i, 1)
+  const [gone] = db.tasks.splice(i, 1)
   save()
+  history.record('deleted', gone, null)
   return true
 }
 
@@ -283,6 +363,7 @@ export function mergeSource(source, remote) {
   const db = load()
   const seen = new Set()
   let added = 0, updated = 0, closed = 0
+  const events = []
 
   for (const r of remote) {
     seen.add(r.sourceId)
@@ -307,15 +388,21 @@ export function mergeSource(source, remote) {
         createdAt: now(), updatedAt: now(), lastTouched: now(), completedAt: r.done ? now() : null,
         order: db.tasks.length
       })
+      events.push({ before: null, after: db.tasks.at(-1) })
       added++
     }
   }
   // Gone upstream means finished or reassigned. Either way it leaves the open board.
   for (const t of db.tasks) {
-    if (t.source === source && !t.done && !seen.has(t.sourceId)) { t.done = true; t.completedAt = now(); closed++ }
+    if (t.source === source && !t.done && !seen.has(t.sourceId)) {
+      const before = structuredClone(t)
+      t.done = true; t.completedAt = now(); closed++
+      events.push({ before, after: t })
+    }
   }
   db.meta.sources[source] = { ...(db.meta.sources[source] || {}), lastSync: now(), count: remote.length, error: null }
   save()
+  for (const e of events) history.record('synced', e.before, e.after, { who: source })
   return { added, updated, closed }
 }
 

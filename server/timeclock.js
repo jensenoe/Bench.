@@ -38,7 +38,7 @@ const LUNCH_ENDS = () => hm(settings.get().lunchEnds, { h: 12, m: 30 })
 const ROUND_MIN = () => settings.get().roundMinutes || 5
 
 // ── workbook location ────────────────────────────────────────────────
-function workbookBase(year) {
+export function workbookBase(year) {
   // A sharing link wins (works for any copy the link points at); otherwise the path template from settings.
   const link = settings.get().timesheetUrl
   if (link) {
@@ -99,6 +99,15 @@ function rollover() {
   save()
 }
 
+/**
+ * Every day Bench knows about: the 90-day history plus today as it stands, oldest first. Read-only,
+ * for the sheet drift check; `days()` and `month()` stay the shapes the UI reads.
+ */
+export function history() {
+  rollover()
+  return [...(state.history || []), { date: state.date, ...summarize(state.events, new Date()), today: true }]
+}
+
 /** The last n days including today, for the week strip. */
 export function days(n = 7) {
   rollover()
@@ -132,7 +141,7 @@ const fraction = (d) => (d.getHours() * 60 + d.getMinutes()) / 1440   // Excel t
 const at = (d, { h, m }) => { const r = new Date(d); r.setHours(h, m, 0, 0); return r }
 
 // ── Graph / Excel ─────────────────────────────────────────────────────
-async function graph(token, url, init = {}) {
+export async function graph(token, url, init = {}) {
   const res = await fetch(url, { ...init, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(init.headers || {}) } })
   if (!res.ok) {
     const body = await res.text().catch(() => '')
@@ -142,7 +151,7 @@ async function graph(token, url, init = {}) {
 }
 
 const sheetNames = new Map()   // year -> [names]
-async function sheetFor(token, date) {
+export async function sheetFor(token, date) {
   const year = date.getFullYear()
   const want = MONTHS[date.getMonth()]
   if (!sheetNames.has(year)) {
@@ -155,18 +164,23 @@ async function sheetFor(token, date) {
   return hit
 }
 
+/** Excel's day serial for a date (days since 1899-12-30), what column A holds. */
+export const serialOf = (date) => Math.round((Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) - Date.UTC(1899, 11, 30)) / 86400000)
+/** The known layout when column A gives no answer: Januar starts at row 9, every other month at row 7. */
+export const layoutRow = (date) => (date.getMonth() === 0 ? 8 : 6) + date.getDate()
+
 /** Row of this date in the month sheet: read column A, match the date serial; fall back to the known layout. */
-async function rowFor(token, date, sheet) {
+export async function rowFor(token, date, sheet) {
   if (state.sheet?.name === sheet && state.sheet?.date === today(date) && state.sheet.row) return state.sheet.row
   const base = workbookBase(date.getFullYear())
-  const serial = Math.round((Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) - Date.UTC(1899, 11, 30)) / 86400000)
+  const serial = serialOf(date)
   let row = null
   try {
     const r = await graph(token, `${base}/worksheets('${encodeURIComponent(sheet)}')/range(address='A1:A45')?$select=values`)
     const idx = (r.values || []).findIndex(([v]) => typeof v === 'number' && Math.round(v) === serial)
     if (idx >= 0) row = idx + 1
   } catch (err) { console.warn('[timeclock] column A read failed, using layout fallback:', err.message) }
-  if (!row) row = (date.getMonth() === 0 ? 8 : 6) + date.getDate()
+  if (!row) row = layoutRow(date)
   state.sheet = { name: sheet, date: today(date), row }
   save()
   return row

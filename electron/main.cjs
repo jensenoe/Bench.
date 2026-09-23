@@ -8,10 +8,12 @@
  *    folder is read by whoever opens it. Credentials (MSAL cache, cookies) live in
  *    per-user storage and never enter that folder.
  */
-const { app, BrowserWindow, screen, session, shell, ipcMain, Notification, dialog, Tray, Menu, nativeImage } = require('electron')
+const { app, BrowserWindow, screen, session, shell, ipcMain, Notification, dialog, Tray, Menu, nativeImage, globalShortcut } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
+const os = require('node:os')
 const net = require('node:net')
+const { spawn } = require('node:child_process')
 const { pathToFileURL } = require('node:url')
 
 // ESM imports need file:// URLs; a bare C:\ path is read as a URL scheme on Windows.
@@ -48,6 +50,7 @@ process.env.BENCH_EMBEDDED = '1'
 // One log for the things that would otherwise vanish: renderer crashes, unhandled errors, notification
 // failures. Settings > About shows where it is. Capped at ~1 MB by rewriting the tail.
 const LOG_FILE = path.join(app.getPath('userData'), 'bench.log')
+process.env.BENCH_LOG_FILE = LOG_FILE   // the server module reads it when it is imported in start()
 function log(...parts) {
   const line = `${new Date().toISOString()} ${parts.map(x => typeof x === 'string' ? x : (x?.stack || JSON.stringify(x))).join(' ')}\n`
   try {
@@ -205,6 +208,57 @@ function showMain() {
   if (mainWin.isMinimized()) mainWin.restore()
   mainWin.show(); mainWin.focus()
 }
+// The tray has a pulse (roadmap 81): the menu says how Today stands and whether you are clocked in, and
+// offers the punches that are valid right now. Data comes from the local server every 30 s and right
+// before the menu opens, so it is never a stale snapshot from the morning.
+let serverPort = null, trayMenu = null, trayData = { clock: null, today: 0, at: 0 }
+const TRAY_CAP = 5
+const PUNCH = { in: { label: 'Clock in', from: ['off', 'out'] }, lunchOut: { label: 'Lunch', from: ['in'] }, lunchIn: { label: 'Back', from: ['lunch'] }, out: { label: 'Clock out', from: ['in', 'lunch'] } }
+const api = (p, init) => fetch(`http://127.0.0.1:${serverPort}${p}`, init).then(r => { if (!r.ok) throw new Error(`${p} ${r.status}`); return r.json() })
+const lastPunch = (clock, kind) => clock?.events?.filter(e => e.kind === kind).at(-1)?.label || null
+function trayHeader() {
+  const { clock, today } = trayData
+  const board = `${today} of ${TRAY_CAP} on Today`
+  if (!clock) return board
+  if (clock.status === 'in') return `${board}, in since ${lastPunch(clock, 'in')}`
+  if (clock.status === 'lunch') return `${board}, on lunch since ${lastPunch(clock, 'lunchOut')}`
+  if (clock.status === 'out') return `${board}, out since ${lastPunch(clock, 'out')}`
+  return `${board}. Not clocked in`
+}
+function trayTooltip() {
+  const { clock, today } = trayData
+  const state = !clock || clock.status === 'off' ? 'Not clocked in.' : clock.status === 'in' ? `Clocked in ${lastPunch(clock, 'in')}.` : clock.status === 'lunch' ? `On lunch since ${lastPunch(clock, 'lunchOut')}.` : `Clocked out ${lastPunch(clock, 'out')}.`
+  return `Bench. ${today} of ${TRAY_CAP} on Today. ${state}`
+}
+async function punchFromTray(kind) {
+  try { await api('/api/timeclock/punch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind }) }) }
+  catch (err) { log('[tray] punch', err) }
+  await refreshTray()
+}
+function buildTrayMenu() {
+  if (!tray) return
+  const status = trayData.clock?.status || 'off'
+  const punches = Object.entries(PUNCH).filter(([, p]) => p.from.includes(status)).map(([kind, p]) => ({ label: p.label, click: () => punchFromTray(kind) }))
+  trayMenu = Menu.buildFromTemplate([
+    { label: trayHeader(), enabled: false },
+    ...punches,
+    { type: 'separator' },
+    { label: 'Open Bench.', click: showMain },
+    { label: 'Lunch screen', click: () => { showMain(); mainWin?.webContents.send('bench:route', '#/lunch') } },
+    { type: 'separator' },
+    { label: 'Quit Bench.', click: () => { quitting = true; app.quit() } }
+  ])
+  try { tray.setToolTip(trayTooltip()) } catch { /* tray gone */ }
+}
+/** Fetch the time clock and the board, rebuild the menu. Cheap: two local GETs, no rendering. */
+async function refreshTray() {
+  if (!tray || !serverPort) return
+  try {
+    const [clock, state] = await Promise.all([api('/api/timeclock'), api('/api/state')])
+    trayData = { clock, today: (state.tasks || []).filter(t => !t.done && t.lane === 'today').length, at: Date.now() }
+  } catch (err) { log('[tray] refresh', err) }
+  buildTrayMenu()
+}
 function makeTray() {
   try {
     // dist/icon.png ships inside the asar (build/ does not); the ico is only there in a dev checkout.
@@ -212,16 +266,76 @@ function makeTray() {
     const icon = png.isEmpty() ? nativeImage.createFromPath(path.join(__dirname, '..', 'build', 'icon.ico')) : png.resize({ width: 16, height: 16 })
     tray = new Tray(icon)
     tray.setToolTip('Bench.')
-    const menu = Menu.buildFromTemplate([
-      { label: 'Open Bench.', click: showMain },
-      { label: 'Lunch screen', click: () => { showMain(); mainWin?.webContents.send('bench:route', '#/lunch') } },
-      { type: 'separator' },
-      { label: 'Quit Bench.', click: () => { quitting = true; app.quit() } }
-    ])
-    tray.setContextMenu(menu)
+    buildTrayMenu()
+    // No setContextMenu: the menu is rebuilt from fresh data right before it opens (at most 1.5 s of waiting).
+    tray.on('right-click', async () => {
+      await Promise.race([refreshTray(), new Promise(r => setTimeout(r, 1500))])
+      try { tray.popUpContextMenu(trayMenu) } catch (err) { log('[tray] menu', err) }
+    })
     tray.on('click', showMain)
     tray.on('double-click', showMain)
+    const iv = setInterval(refreshTray, 30_000); iv.unref?.()
+    refreshTray()
   } catch (err) { log('[tray]', err) }
+}
+
+// ── renderer watchdog ─────────────────────────────────────────────────
+// The noon black screen: the renderer is alive as far as Electron can tell, the window is black. Once a
+// minute, while the window is visible, a 48 px thumbnail of the page is read back; when more than 98
+// percent of its pixels are near black on two samples in a row, the page is reloaded (at most once in
+// five minutes). A real Bench page never gets there: the page colour is 21,22,28, the night veil that
+// covers the photographs is the same colour, and a night picture always has a sky, snow or lights.
+const WATCH_EVERY = 60_000, WATCH_DARK = 12, WATCH_SHARE = 0.98, WATCH_GAP = 5 * 60_000
+let darkStreak = 0, lastWatchReload = 0, crashLogged = false
+async function watchdogTick() {
+  try {
+    if (!mainWin || mainWin.isDestroyed() || !mainWin.isVisible() || mainWin.isMinimized()) { darkStreak = 0; return }
+    const wc = mainWin.webContents
+    if (typeof wc.isCrashed === 'function' && wc.isCrashed()) { if (!crashLogged) { crashLogged = true; log('[watchdog] renderer reports isCrashed') } return }
+    crashLogged = false
+    const shot = await wc.capturePage()
+    if (!shot || shot.isEmpty()) return
+    const small = shot.resize({ width: 48, quality: 'good' })
+    const { width, height } = small.getSize()
+    const bmp = small.toBitmap()   // BGRA, 4 bytes a pixel
+    const total = width * height
+    if (!total || bmp.length < total * 4) return
+    let dark = 0
+    for (let i = 0; i < total * 4; i += 4) if (bmp[i] < WATCH_DARK && bmp[i + 1] < WATCH_DARK && bmp[i + 2] < WATCH_DARK) dark++
+    const share = dark / total
+    darkStreak = share > WATCH_SHARE ? darkStreak + 1 : 0
+    if (darkStreak < 2) return
+    darkStreak = 0
+    const stats = { dark, total, share: Number(share.toFixed(3)), width, height }
+    if (Date.now() - lastWatchReload < WATCH_GAP) return log('[watchdog] black window, reload skipped (one per five minutes)', stats)
+    lastWatchReload = Date.now()
+    log('[watchdog] black window, reloading', stats)
+    wc.reload()
+  } catch (err) { log('[watchdog]', err) }
+}
+
+// ── silent update (roadmap 76) ────────────────────────────────────────
+// The server downloads Bench-Setup-x.y.z.exe into %TEMP%\bench-updates; the renderer hands the path here.
+// On quit the installer runs silently and detached (per-user NSIS, no admin prompt); the app is gone by then.
+const UPDATE_DIR = path.join(os.tmpdir(), 'bench-updates')
+let pendingInstaller = null
+function validInstaller(p) {
+  if (typeof p !== 'string' || !p.trim()) return false
+  const full = path.resolve(p)
+  const rel = path.relative(UPDATE_DIR, full)
+  if (!rel || rel.startsWith('..') || path.isAbsolute(rel) || rel.includes(path.sep)) return false
+  if (!/\.exe$/i.test(full)) return false
+  try { return fs.statSync(full).isFile() } catch { return false }
+}
+function runPendingInstaller() {
+  if (!pendingInstaller) return
+  const exe = pendingInstaller; pendingInstaller = null
+  try {
+    const child = spawn(exe, ['/S'], { detached: true, stdio: 'ignore', windowsHide: true })
+    child.on('error', err => log('[update] installer failed to start', err))
+    child.unref()
+    log('[update] installer started', exe)
+  } catch (err) { log('[update] installer', err) }
 }
 
 // ── app ───────────────────────────────────────────────────────────────
@@ -236,6 +350,7 @@ async function start() {
   applyStartupDefault()
 
   const port = await freePort()
+  serverPort = port
   const server = await esm('server', 'index.js')
   await new Promise(res => { const h = server.listen(port); h.once('listening', res) })
 
@@ -280,8 +395,15 @@ async function start() {
   mainWin.on('close', e => { if (!quitting && closeToTray() && app.isPackaged) { e.preventDefault(); mainWin.hide() } })
   if (app.isPackaged) makeTray()
   await mainWin.loadURL(`http://127.0.0.1:${port}/`)
+  const watchdog = setInterval(watchdogTick, WATCH_EVERY); watchdog.unref?.()
+  // Ctrl+Alt+B from anywhere: bring the window up and open quick add (roadmap 80).
+  try {
+    const ok = globalShortcut.register('CommandOrControl+Alt+B', () => { showMain(); mainWin?.webContents.send('bench:quick-add') })
+    if (!ok) log('[keys] Ctrl+Alt+B is taken by another program; the global quick add is off')
+  } catch (err) { log('[keys] register', err) }
 }
-app.on('before-quit', () => { quitting = true })
+app.on('before-quit', () => { quitting = true; runPendingInstaller() })
+app.on('will-quit', () => { try { globalShortcut.unregisterAll() } catch { /* already gone */ } })
 
 ipcMain.handle('bench:info', () => ({ dataDir: DATA_DIR, secretsDir: SECRETS_DIR, logFile: LOG_FILE, version: app.getVersion(), portable: PORTABLE, machineCfg: MACHINE_CFG }))
 ipcMain.handle('bench:open-external', (_e, url) => { if (/^https?:/.test(url)) shell.openExternal(url) })
@@ -313,6 +435,32 @@ ipcMain.handle('bench:startup', (_e, on) => on === undefined ? startupEnabled() 
 ipcMain.handle('bench:notify', (_e, payload) => notify(payload || {}))
 ipcMain.handle('bench:log', (_e, line) => log('[app]', String(line).slice(0, 4000)))
 ipcMain.handle('bench:open-log', () => shell.showItemInFolder(LOG_FILE))
+/** Remember a downloaded installer; it runs silently when Bench quits. Only an .exe from %TEMP%\bench-updates. */
+ipcMain.handle('bench:install-update', (_e, p) => {
+  if (!validInstaller(p)) return { ok: false, error: 'That is not an installer Bench downloaded.' }
+  pendingInstaller = path.resolve(p)
+  log('[update] installer queued for quit', pendingInstaller)
+  return { ok: true, path: pendingInstaller }
+})
+/** The same, then quit now: the installer takes over and starts the new Bench (runAfterFinish). */
+ipcMain.handle('bench:install-update-now', (_e, p) => {
+  if (!validInstaller(p)) return { ok: false, error: 'That is not an installer Bench downloaded.' }
+  pendingInstaller = path.resolve(p)
+  log('[update] installing now', pendingInstaller)
+  quitting = true
+  setTimeout(() => app.quit(), 150)   // let the reply reach the renderer first
+  return { ok: true, path: pendingInstaller }
+})
+/** Everything a bug report needs, in one object (roadmap 78). */
+ipcMain.handle('bench:diagnostics', () => {
+  let logTail = []
+  try { logTail = fs.readFileSync(LOG_FILE, 'utf8').split(/\r?\n/).filter(Boolean).slice(-60) } catch { /* no log yet */ }
+  return {
+    version: app.getVersion(), electron: process.versions.electron, chrome: process.versions.chrome, node: process.versions.node,
+    platform: process.platform, arch: process.arch, dataDir: DATA_DIR, userDir: USER_DIR, logFile: LOG_FILE, machineCfg: MACHINE_CFG,
+    logTail, uptimeSec: Math.round(process.uptime())
+  }
+})
 
 // Started at sign-in: a second launch must not open a second instance (and a second server).
 if (!app.requestSingleInstanceLock()) app.quit()

@@ -43,6 +43,34 @@ export default function Logbook({ onRefresh }) {
     const e = await api.createEntry({ title: m.subject, date: new Date().toISOString().slice(0, 10), attendees: m.attendees, notes: notes ? notes + '.\n\n' : '' })
     await load(); setSel(e.id); setMeetings(null)
   }
+  /**
+   * "Write it down?" (roadmap 73): the notification lands here as #/logbook?new=<subject>. Start an entry
+   * with that title, with the attendees when today's calendar has the meeting, and drop the parameter from
+   * the hash without a reload so a refresh does not start a second one.
+   */
+  const startFromTitle = async (title) => {
+    let m = null
+    try { const r = await api.todaysMeetings(); if (r.ok) m = r.events.find(x => (x.subject || '').trim().toLowerCase() === title.trim().toLowerCase()) || null } catch { /* no calendar: a plain entry */ }
+    if (m) return startFromMeeting(m)
+    const e = await api.createEntry({ title, date: new Date().toISOString().slice(0, 10) })
+    await load(); setSel(e.id)
+  }
+  const handlingNew = useRef(false)
+  useEffect(() => {
+    const check = () => {
+      const [, qs] = location.hash.split('?')
+      const params = new URLSearchParams(qs || '')
+      const title = params.get('new')
+      if (!title || handlingNew.current) return
+      handlingNew.current = true
+      params.delete('new')
+      const rest = params.toString()
+      history.replaceState(null, '', `#/logbook${rest ? '?' + rest : ''}`)
+      startFromTitle(title).catch(() => {}).finally(() => { handlingNew.current = false })
+    }
+    check()
+    addEventListener('hashchange', check); return () => removeEventListener('hashchange', check)
+  }, [])   // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = useMemo(() => {
     if (!entries) return []

@@ -1,7 +1,7 @@
 {
   "name": "bench",
   "private": true,
-  "version": "0.10.0-beta.3",
+  "version": "0.11.0-beta.1",
   "type": "module",
   "scripts": {
     "dev": "concurrently -n server,web -c yellow,cyan \"node server/index.js\" \"vite\"",
@@ -14,7 +14,8 @@
     "test": "vitest run",
     "lint": "eslint . && node scripts/check-tokens.mjs",
     "photos:bat": "node scripts/gen-fetch.mjs",
-    "test:ui": "node tests/ui/smoke.mjs"
+    "test:ui": "node tests/ui/smoke.mjs",
+    "test:visual": "node tests/ui/visual.mjs"
   },
   "dependencies": {
     "@azure/msal-node": "^2.16.2",

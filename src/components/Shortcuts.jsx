@@ -9,9 +9,18 @@ const GROUPS = [
   { title: 'Anywhere', keys: [
     ['n', 'New task'],
     ['/ or Ctrl K', 'Search tasks, notes, maps and pages'],
-    ['1 to 7', 'Home, Board, Procurement, Tools, Logbook, Napkin, Hours'],
+    ['1 to 9', 'Home, Board, Procurement, Tools, Logbook, Napkin, Hours, Review, Machines'],
+    ['> in search', 'Actions: clock in, theme, new task and more'],
+    ['Ctrl Alt B', 'Quick add from anywhere in Windows'],
     ['?', 'This sheet'],
     ['Esc', 'Close whatever is open']
+  ] },
+  { title: 'Board, with a card focused', keys: [
+    ['j / k', 'Next or previous card'],
+    ['e or Enter', 'Open or close the details'],
+    ['x', 'Tick it, or reopen it'],
+    ['Alt ← / Alt →', 'Move it one lane left or right'],
+    ['Del', 'Remove it']
   ] },
   { title: 'Quick add', keys: [
     ['Alt 1 to 5', 'Pick the lane: Today, Innovation, Waiting, Active, Parked'],

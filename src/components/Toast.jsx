@@ -29,7 +29,7 @@ export default function Toast({ item, onDismiss }) {
             </span>
           )}
           {item.link && (
-            <span role="link" tabIndex={0} onClick={e => { e.stopPropagation(); openExternal(item.link.url) }} onKeyDown={e => e.key === 'Enter' && openExternal(item.link.url)}
+            <span role="link" tabIndex={0} onClick={e => { e.stopPropagation(); item.link.onClick ? item.link.onClick() : openExternal(item.link.url) }} onKeyDown={e => e.key === 'Enter' && (item.link.onClick ? item.link.onClick() : openExternal(item.link.url))}
               className="mt-3 inline-flex items-center gap-1.5 text-[13px] underline-offset-2 hover:underline" style={{ color: 'var(--accent)' }}>
               {item.link.label} <ArrowSquareOut size={11} weight="bold" />
             </span>

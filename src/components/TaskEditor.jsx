@@ -3,6 +3,8 @@ import { motion } from 'motion/react'
 import { Check, X } from '@phosphor-icons/react'
 import DateField from './DateField.jsx'
 import { STATUS } from '../scenes.js'
+import { fmtDate } from '../lanes.js'
+import { suggestOrderBy } from '../api/leadtimes.js'
 
 const L = ({ label, children, span }) => (
   <label className={`block text-[13px] ${span ? 'col-span-2' : ''}`} style={{ color: 'var(--ink-3)' }}>{label}{children}</label>
@@ -34,6 +36,33 @@ function ChecklistEditor({ task, onPatch }) {
       </ul>
       <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add() } }} onBlur={add}
         placeholder={list.length ? 'Another step' : 'First step, then Enter'} className={INP} />
+    </div>
+  )
+}
+
+/**
+ * What the supplier usually takes, as one line under the order fields (roadmap 70). Shown when the task
+ * has a supplier and a due date but no order-by date yet; "Use it" writes the suggested date.
+ */
+function LeadTimeHint({ task, onPatch }) {
+  const [hint, setHint] = useState(null)
+  const supplier = (task.supplier || '').trim(), needBy = (task.dueDate || '').slice(0, 10)
+  const wanted = Boolean(supplier && needBy && !task.orderBy)
+  useEffect(() => {
+    if (!wanted) { setHint(null); return }
+    let on = true
+    suggestOrderBy(supplier, needBy).then(s => { if (on) setHint(s && s.orderBy ? s : null) }).catch(() => { if (on) setHint(null) })
+    return () => { on = false }
+  }, [wanted, supplier, needBy])
+  if (!wanted || !hint) return null
+  const when = fmtDate(hint.orderBy)
+  const line = hint.basis === 'default'
+    ? `No history for ${supplier} yet; ${hint.days} working days is the guess: order by ${when}.`
+    : `${supplier} usually takes ${hint.days} days: order by ${when}.`
+  return (
+    <div className="col-span-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] sm:col-span-4" style={{ color: 'var(--ink-2)' }}>
+      <span>{line}</span>
+      <button type="button" onClick={() => onPatch(task.id, { orderBy: hint.orderBy })} className="pill inline-flex h-6 items-center px-2.5 text-[12.5px] font-medium" style={{ border: '1px solid var(--line-2)' }}>Use it</button>
     </div>
   )
 }
@@ -95,6 +124,10 @@ export default function TaskEditor({ task, onPatch, onClose }) {
         <L label="Ordered on">
           <DateField className="mt-1" value={f.orderedOn} onChange={date('orderedOn')} placeholder="not yet" />
         </L>
+        <L label="Delivered on">
+          <DateField className="mt-1" value={f.deliveredOn} onChange={date('deliveredOn')} placeholder="not yet" />
+        </L>
+        <LeadTimeHint task={task} onPatch={onPatch} />
         <L label="Supplier">
           <input value={f.supplier} placeholder="who delivers it" onChange={e => set('supplier', e.target.value)} onBlur={() => commit('supplier')} onKeyDown={onKey('supplier')} className={inp} />
         </L>
@@ -123,6 +156,7 @@ export default function TaskEditor({ task, onPatch, onClose }) {
 const draft = t => ({
   title: t.title || '', assignedBy: t.assignedBy || '', lead: t.lead || '', project: t.project || '',
   priority: t.priority ?? null, effortHours: t.effortHours ?? '', dueDate: t.dueDate ? t.dueDate.slice(0, 10) : '',
-  orderBy: t.orderBy ? t.orderBy.slice(0, 10) : '', orderedOn: t.orderedOn ? t.orderedOn.slice(0, 10) : '', supplier: t.supplier || '', poNumber: t.poNumber || '',
+  orderBy: t.orderBy ? t.orderBy.slice(0, 10) : '', orderedOn: t.orderedOn ? t.orderedOn.slice(0, 10) : '', deliveredOn: t.deliveredOn ? t.deliveredOn.slice(0, 10) : '',
+  supplier: t.supplier || '', poNumber: t.poNumber || '',
   repeat: t.repeat ?? null, waitingOn: t.waitingOn || '', tags: (t.tags || []).join(', '), notes: t.notes || ''
 })

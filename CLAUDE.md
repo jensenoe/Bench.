@@ -28,6 +28,8 @@ Read `HANDOFF.md` before changing anything; it lists what is verified, what is n
 - Photo files are named `<library>-<scene>-<pexelsId>.jpg`; `fetch-photos.bat` is generated from `src/library.json` and prunes files that left the library. Never hand-edit the bat; regenerate it (see HANDOFF.md).
 - Server settings whitelist lives in `server/settings.js` (`DEFAULTS` keys). Adding a setting means adding it there and in the Settings panel.
 - Task fields the board owns vs. the source tool owns: `OWN_FIELDS` in `server/store.js`. A sync never overwrites lane, notes, order-by, waiting-on, priority, tags.
+- Server features live in their own module with `registerRoutes(app)` and, for background work, `start()`; `server/index.js` only imports and calls them (`day.js`, `core.js`, `machines.js`, `inbox.js`, `weather.js`, `updates.js`). Client fetch helpers for a feature go in `src/api/<feature>.js`.
+- Any component can raise a toast with `window.dispatchEvent(new CustomEvent('bench:toast', { detail: { text, by, plain: true } }))` and ask for fresh state with `new Event('bench:refresh')`; App listens to both. Per-user state (brief seen, reminders sent, inbox handled) goes in `BENCH_USER_DIR`, never in the shared folder.
 
 ## Working here
 

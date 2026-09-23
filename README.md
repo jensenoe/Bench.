@@ -14,7 +14,7 @@ same page is the no-install version: keep it in any folder and run it from there
 
 ---
 
-**0.10, third beta (0.10.0-beta.3).** Everything here works on my machine and on the mocks; the
+**0.11, first beta (0.11.0-beta.1).** Everything here works on my machine and on the mocks; the
 Microsoft paths (Planner, the hours workbook, the issue list, the calendar) still want a
 first real run in the tom.fit tenant, and the issue list and calendar need a one-time admin
 approval, see below.
@@ -57,7 +57,7 @@ Administrator; `build-exe.bat plain` skips the icon stamping instead, and `build
 Bump `version` in `package.json`, commit, then tag and push:
 
 ```bash
-git tag v0.10.0-beta.4 && git push --tags
+git tag v0.11.0-beta.2 && git push --tags
 ```
 
 The *Release* workflow in `.github/workflows/release.yml` builds both exes on a Windows
@@ -68,7 +68,23 @@ without publishing and leaves the exes as a workflow artifact.
 ## Everyday
 
 - **Keyboard.** `n` adds a task from anywhere (Alt 1 to 5 picks the lane, Enter adds). `/` or
-  Ctrl K searches tasks, notes, maps and pages. `1` to `7` switch pages. Escape closes whatever is open.
+  Ctrl K searches tasks, notes, maps and pages, and `>` in the box lists actions (clock in, theme, new
+  entry, wall mode). `1` to `9` switch pages. `?` shows every key. On the Board, `j` and `k` walk the
+  cards, `e` opens one, `x` ticks it, Alt with arrows moves it. Ctrl Alt B opens the quick add from
+  anywhere in Windows. Escape closes whatever is open.
+- **The day has a shape.** The first start of the day opens the morning brief: what came in overnight,
+  what is due, yesterday's leftovers with Keep or Back to Active, today's meetings, the sheet. Clocking
+  out opens the evening close: what rolls to tomorrow, what goes back, and a day note in the Logbook.
+  Both can be switched off in Settings > You. When a meeting ends, a notification offers the entry.
+- **Machines.** One page per machine, built from the project on each task, the BOM and the Logbook:
+  open work, orders, tool items, entries, maps, and mentions to assign. Spellings merge with aliases.
+- **Bench works while you don't.** Learned lead times per supplier propose the order-by date; an
+  ordered part with no delivery gets chased; the sheet is read back and differences marked on Hours;
+  a black window is reloaded; the newer installer downloads by itself and installs on quit; a share
+  that drops away queues the writes; backups list, restore and mirror to OneDrive; Settings > This
+  machine shows the health checks with Copy diagnostics.
+- **Focus, review, wall.** Focus on a Today card runs a timer whose minutes land on the task. `#/review`
+  is the week as short sentences with a mail draft. `#/wall` is the board for a workshop screen.
 - **Drag and drop.** Cards move between lanes by dragging; the lane lights up when it will take the
   card, red when Today is full. The lane menu on the card still works.
 - **Today is a rule.** Five open tasks. The server refuses a sixth from you with "Today is full";

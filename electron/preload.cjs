@@ -17,5 +17,12 @@ contextBridge.exposeInMainWorld('bench', {
   log: (line) => ipcRenderer.invoke('bench:log', line),
   openLog: () => ipcRenderer.invoke('bench:open-log'),
   /** main asks the window to jump to a hash route (notification click) */
-  onRoute: (cb) => { const h = (_e, r) => cb(r); ipcRenderer.on('bench:route', h); return () => ipcRenderer.removeListener('bench:route', h) }
+  onRoute: (cb) => { const h = (_e, r) => cb(r); ipcRenderer.on('bench:route', h); return () => ipcRenderer.removeListener('bench:route', h) },
+  /** Ctrl+Alt+B anywhere on the desktop: main brings the window up and asks for quick add */
+  onQuickAdd: (cb) => { const h = () => cb(); ipcRenderer.on('bench:quick-add', h); return () => ipcRenderer.removeListener('bench:quick-add', h) },
+  /** a downloaded installer (path from GET /api/updates .downloaded) runs silently when Bench quits, or right now */
+  installUpdate: (p) => ipcRenderer.invoke('bench:install-update', p),
+  installUpdateNow: (p) => ipcRenderer.invoke('bench:install-update-now', p),
+  /** versions, folders and the log tail for a bug report */
+  diagnostics: () => ipcRenderer.invoke('bench:diagnostics')
 })

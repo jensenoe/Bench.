@@ -107,3 +107,43 @@ generated palettes and font pairings (ours are better matched than what the data
 ## Sixth batch, 23 Sep 2026
 
 - [x] 67 [S] Installer licence page: the note was black type on the night box, unreadable. The RichEdit ignores MUI_TEXTCOLOR, so the box is paper (F3F1EC) now, black type on it, the rest of the page stays night.
+
+## Seventh batch, 23 Sep 2026: Bench working while you don't
+
+Background processes:
+
+- [x] 68 [M] Morning brief: the first start of the day opens it when today has not been seen: leftovers from yesterday with Keep or Back to Active, what came in overnight from the tools, due today, order dates, meetings, the sheet. Start the day applies the choices. Off in Settings > You.
+- [x] 69 [M] Evening close: a successful clock-out opens it: each Today task rolls to tomorrow or goes back to Active, and a Day note lands in the Logbook (hours, ticked tasks, meetings, what rolls). One note per day, updated on a second close. Off in Settings > You.
+- [x] 70 [M] Learned lead times: every ordered-on and delivered-on pair (own fields and BOM meta) becomes a sample per supplier; the editor proposes the order-by date from the median, ten working days when a supplier is new, never on a weekend. Delivered on is a task field now.
+- [x] 71 [S] Chase reminder: an ordered part with no delivery whose need-by lies inside the supplier's lead time gets one notification a day with supplier and PO; GET /api/reminders/chase lists them.
+- [x] 72 [M] Calendar-aware Today: one line under the Today lane, free hours (workday minus the meetings still ahead minus the clocked hours) against the hours Today holds, with the unsized count. Workday length in Settings > You.
+- [x] 73 [S] A meeting ended: within three minutes a notification offers the Logbook entry; #/logbook?new=<subject> starts it with title and attendees. Once per meeting, skipped when the entry exists.
+- [x] 74 [S] Sheet drift check: the month sheet is read back and compared with Bench's punches to the minute; differing cells show as Sheet differs on Hours, and Monday morning says how many days disagree.
+- [x] 75 [S] Renderer watchdog: every minute while the window shows, a 48 px capture is scanned; two samples in a row over 98 percent near-black log the numbers and reload the renderer, at most once in five minutes. A crashed renderer is logged once.
+- [x] 76 [M] Silent updates: the update check keeps the asset; once a day the newer installer downloads to the temp folder (private repo through the API with the token); Bench installs it silently on the next quit, or now from the toast or Settings > About.
+- [x] 77 [M] Offline shared folder: a save into an unreachable folder keeps the state in memory, retries every 30 seconds and on the next write, and reconciles when the share is back. Restore refuses while writes are held.
+- [x] 78 [S] Health checks in Settings > This machine: board folder, store, Microsoft 365, workbook, sources, backups, mirror, as a row of dots with Check again; Copy diagnostics puts the server's text report and the desktop's versions, paths and log tail on the clipboard.
+
+Features:
+
+- [x] 79 [L] Machines at #/machines (key 9): one page per machine derived from task projects, BOM machines and Logbook projects, with aliases for spellings; a card per machine with counts, and a detail page with open tasks, orders, tool counts, Logbook entries, maps, mentions to assign, rename and merge.
+- [x] 80 [S] Global quick add: Ctrl Alt B anywhere in Windows brings Bench forward with the quick add open.
+- [x] 81 [S] Tray with a pulse: the menu shows the Today count and the clock state, offers only the punches that are valid now, and refreshes every 30 seconds.
+- [x] 82 [M] Focus timer: Focus on a Today card runs 15 to 90 minutes (default in Settings > You) in the nav with pause and stop; the finished minutes land on the task as effort hours, rounded to the quarter.
+- [x] 83 [M] Weekly review at #/review (key 8): done, slipped, hours by day and by project, Innovation movement, orders, Logbook entries, as short sentences; Copy as text and Draft a mail (mailto).
+- [x] 84 [S] Wall mode at #/wall: the board alone for a workshop screen, the scene photograph behind, a big clock, Today first in large type, the other lanes beside it, refreshed every minute, nothing under 16 px, Escape leaves.
+- [x] 85 [M] Photo capture: Settings > Tools takes a folder (OneDrive's camera roll works); pictures from the last 14 days appear on the Board as From the phone with a task picker, Attach adds them to the task's links, Dismiss hides them.
+- [x] 86 [S] Command palette: the search box takes actions (type > for actions only): clock in and out, theme, density, data folder, new task, new Logbook entry, brief, close, keys, wall, review, machines, updates.
+- [x] 87 [M] Change feed: every create, change, delete and sync lands in history.json with who, when and the fields; Recent changes on the Board lists the last 30 with Undo, which respects the Today cap.
+- [x] 88 [S] Keyboard on cards: j and k walk the cards, e or Enter opens the details, x ticks, Alt with arrows moves between lanes, Delete removes. Listed on the key sheet.
+- [x] 89 [S] Weather on the Lunch screen from Open-Meteo for Oetwil: temperature, sky, chance of rain in the next hour, sunset. Hidden when offline.
+
+Design and infrastructure:
+
+- [x] 90 [S] Card ageing: the hairline warms toward caution from three to fourteen days untouched and toward late from thirty.
+- [x] 91 [S] Compact density in Settings > Look: one-line cards on wide screens, two chips shown until hover, tighter lanes.
+- [x] 92 [S] Settings in tabs: You, Look, Hours, Tools, This machine, About; arrow keys move, the last tab is remembered, every field kept.
+- [x] 93 [M] Visual regression: npm run test:visual takes 28 shots (seven pages, 1440 and 2560, both themes, photographs masked, clock frozen) and compares them with tests/ui/baseline at 0.6 percent; CI runs it after the smoke test and keeps the diffs as an artifact when it fails.
+- [x] 94 [S] Installer smoke test in the Release workflow: silent install into the runner's profile, start, expect the user folder, stop, silent uninstall, expect the folder gone.
+- [x] 95 [S] Release notes from the roadmap: the Release workflow lists the items ticked since the previous release, by number, above GitHub's generated notes.
+- [x] 96 [S] Backups you can see: Settings > This machine lists tasks, logbook and napkin copies with date and size, Back up now, Restore with a copy of the current file kept, and a daily mirror to OneDrive under Apps/Bench/backups when signed in.

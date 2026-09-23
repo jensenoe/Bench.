@@ -27,6 +27,11 @@ const settings = await import('./settings.js')
 const notes = await import('./notes.js')
 const calendar = await import('./calendar.js')
 const updates = await import('./updates.js')
+const day = await import('./day.js')                 // morning brief, evening close, capacity, review (roadmap 68, 69, 72, 73, 83)
+const machines = await import('./machines.js')       // one page per machine (roadmap 79)
+const core = await import('./core.js')               // lead times, chase, drift, health, history, backups (roadmap 70, 71, 74, 77, 78, 87, 96)
+const inbox = await import('./inbox.js')             // photographs from the phone (roadmap 85)
+const weather = await import('./weather.js')         // Open-Meteo for the lunch screen (roadmap 89)
 
 const PORT = Number(process.env.PORT || 5178)
 const app = express()
@@ -180,11 +185,17 @@ app.get('/api/timeclock/month', wrap((req, res) => res.json(timeclock.month(Stri
 app.get('/api/timeclock/probe', wrap(async (_req, res) => res.json(await timeclock.probe())))
 app.post('/api/timeclock/close-unclosed', wrap((req, res) => res.json(timeclock.closeUnclosed(req.body?.time))))
 app.post('/api/timeclock/dismiss-unclosed', wrap((_req, res) => res.json(timeclock.dismissUnclosed())))
-app.get('/api/updates', wrap(async (req, res) => res.json(await updates.check({ force: req.query.force === '1' }))))
 app.post('/api/timeclock/punch', wrap(async (req, res) => res.json(await timeclock.punch(req.body?.kind))))
 app.post('/api/timeclock/reset', wrap((_req, res) => res.json(timeclock.resetToday())))
 app.post('/api/auth/signin', wrap(async (req, res) => res.json(await auth.signIn({ tier: req.body?.tier || 'core' }))))
 app.post('/api/auth/signout', wrap(async (_req, res) => { await auth.signOut(); res.json({ ok: true }) }))
+
+day.registerRoutes(app)
+machines.registerRoutes(app)
+core.registerRoutes(app)
+inbox.registerRoutes(app)
+weather.registerRoutes(app)
+updates.registerRoutes(app)                          // /api/updates and the background download (roadmap 76)
 
 // Serve the built frontend when it exists (npm run build && npm start)
 const dist = path.join(__dirname, '..', 'dist')
@@ -219,6 +230,10 @@ timeclock.setDigestSource(() => {
   return lines
 })
 timeclock.startScheduler()
+day.start()
+core.start()
+inbox.start()
+updates.start({ log: console.log })
 
 // Background poll while the app is running: every 2 minutes, connected tools only.
 const mins = Number(process.env.SYNC_INTERVAL_MINUTES || 2)

@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Check, X, ArrowSquareOut, SlidersHorizontal, DotsSixVertical, ArrowsClockwise } from '@phosphor-icons/react'
+import { Check, X, ArrowSquareOut, SlidersHorizontal, DotsSixVertical, ArrowsClockwise, Timer, LinkSimple } from '@phosphor-icons/react'
 import TaskEditor from './TaskEditor.jsx'
-import { openExternal } from '../api.js'
+import { openExternal, openLink } from '../api.js'
 import { LANES } from '../copy.js'
 import { STATUS } from '../scenes.js'
 import { daysSince, daysUntil, fmtDate } from '../lanes.js'
+import * as focus from '../focus.js'
 
 const LANE_ORDER = ['today', 'innovation', 'waiting', 'active', 'parked']
 const ORIGIN = { issues: 'Issues', qms: 'QMS', bom: 'BOM', planner: 'Planner' }
@@ -21,6 +22,19 @@ function Tag({ children, color, title }) {
 }
 
 const PRIO_COLOR = { 1: STATUS.overdue, 2: STATUS.caution, 3: STATUS.muted }
+
+/**
+ * Card ageing (roadmap 90): the hairline follows how long since the task was touched. Two days is the
+ * plain line; by day 14 it carries 45 percent caution; from day 30 it is 45 percent late. Tokens only.
+ */
+export function ageBorder(days) {
+  if (days === null || days === undefined || days <= 2) return null
+  if (days >= 30) return 'color-mix(in srgb, var(--late) 45%, var(--line))'
+  const pct = Math.round(45 * Math.min(1, (days - 2) / 12))
+  return `color-mix(in srgb, var(--caution) ${pct}%, var(--line))`
+}
+/** The focus timer's default length: App writes it on <html data-focus-minutes>; 25 when it has not. */
+const focusMinutes = (prop) => Number(prop) || Number(document.documentElement.dataset.focusMinutes) || 25
 
 /** A step inside the task, ticked from the card. */
 function Checklist({ task, onPatch }) {
@@ -49,8 +63,10 @@ function Checklist({ task, onPatch }) {
  * One task. The title gets the whole width: the hover actions float over the top right corner on
  * hover, focus and while editing, instead of reserving a strip that squeezed titles into one word
  * per line in a narrow lane. Details and the drag grip stay inline because they are always there.
+ * With focus on the card itself (j and k put it there): e or Enter for details, x to tick,
+ * Alt with an arrow to move a lane, Delete to remove.
  */
-export default function TaskCard({ task, onPatch, onDelete, draggable = true }) {
+export default function TaskCard({ task, onPatch, onDelete, draggable = true, focusMinutes: focusProp }) {
   const [editing, setEditing] = useState(false)
   const [dragging, setDragging] = useState(false)
   const from = task.assignedBy || task.meta?.from
@@ -59,6 +75,8 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true }) 
   const cold = task.lane === 'innovation' ? daysSince(task.lastTouched) : null
   const orderIn = task.orderBy ? daysUntil(task.orderBy) : null
   const canDrag = draggable && !task.done && !editing
+  const border = task.done || dragging ? null : ageBorder(daysSince(task.lastTouched || task.updatedAt))
+  const links = Array.isArray(task.links) ? task.links.filter(l => l && l.href) : []
 
   const onDragStart = (e) => {
     e.dataTransfer.setData(DRAG_TYPE, task.id)
@@ -66,6 +84,17 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true }) 
     e.dataTransfer.effectAllowed = 'move'
     setDragging(true)
   }
+  const onKey = (e) => {
+    if (e.target !== e.currentTarget) return
+    const k = e.key
+    if (k === 'e' || k === 'Enter') { e.preventDefault(); setEditing(v => !v) }
+    else if (k === 'x') { e.preventDefault(); onPatch(task.id, { done: !task.done }) }
+    else if (e.altKey && (k === 'ArrowLeft' || k === 'ArrowRight')) {
+      const next = LANE_ORDER[LANE_ORDER.indexOf(task.lane) + (k === 'ArrowRight' ? 1 : -1)]
+      if (next) { e.preventDefault(); onPatch(task.id, { lane: next }) }
+    } else if (k === 'Delete') { e.preventDefault(); if (confirm(`Remove "${task.title}"?`)) onDelete(task.id) }
+  }
+  const startFocus = () => focus.start({ taskId: task.id, title: task.title, minutes: focusMinutes(focusProp) })
 
   return (
     <motion.li layout
@@ -73,8 +102,9 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true }) 
       exit={{ opacity: 0, scale: .97, transition: { duration: .15 } }}
       transition={{ type: 'spring', stiffness: 380, damping: 34 }}
       id={`task-${task.id}`} className="group row relative px-4 py-3"
+      tabIndex={-1} onKeyDown={onKey} aria-keyshortcuts="e Enter x Alt+ArrowLeft Alt+ArrowRight Delete"
       draggable={canDrag} onDragStart={canDrag ? onDragStart : undefined} onDragEnd={() => setDragging(false)}
-      style={{ cursor: canDrag ? 'grab' : 'default' }}>
+      style={{ cursor: canDrag ? 'grab' : 'default', ...(border ? { borderColor: border } : {}) }}>
       <div className="flex items-start gap-3">
 
         <motion.button role="checkbox" aria-checked={task.done} whileTap={{ scale: .85 }}
@@ -90,7 +120,7 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true }) 
         <div className="min-w-0 flex-1">
           <p className="cursor-text pr-14 text-[14px] leading-snug" onClick={() => setEditing(v => !v)}
             style={{ textDecoration: task.done ? 'line-through' : 'none' }}>{task.title}</p>
-          <div className="mt-1.5 flex flex-wrap gap-1.5 empty:hidden">
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 empty:hidden">
             {task.priority && <Tag color={PRIO_COLOR[task.priority]}>P{task.priority}</Tag>}
             {ORIGIN[task.source] && <Tag color="var(--accent)">{ORIGIN[task.source]}</Tag>}
             {task.project && <Tag color={STATUS.muted}>{task.project}</Tag>}
@@ -106,15 +136,24 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true }) 
             {task.meta?.priority && /high/i.test(task.meta.priority) && <Tag color={STATUS.overdue}>high</Tag>}
             {over > 0 ? <Tag color={STATUS.overdue}>{over}d overdue</Tag>
               : task.dueDate && <Tag color={STATUS.muted}>{fmtDate(task.dueDate)}</Tag>}
-            {task.orderedOn
-              ? <Tag color={STATUS.done}>ordered {fmtDate(task.orderedOn)}</Tag>
-              : orderIn !== null && <Tag color={orderIn < 0 ? STATUS.overdue : orderIn <= 7 ? STATUS.caution : STATUS.muted}>
-                {orderIn < 0 ? 'order date passed' : orderIn === 0 ? 'order today' : `order in ${orderIn}d`}</Tag>}
+            {task.deliveredOn
+              ? <Tag color={STATUS.done}>delivered {fmtDate(task.deliveredOn)}</Tag>
+              : task.orderedOn
+                ? <Tag color={STATUS.done}>ordered {fmtDate(task.orderedOn)}</Tag>
+                : orderIn !== null && <Tag color={orderIn < 0 ? STATUS.overdue : orderIn <= 7 ? STATUS.caution : STATUS.muted}>
+                  {orderIn < 0 ? 'order date passed' : orderIn === 0 ? 'order today' : `order in ${orderIn}d`}</Tag>}
             {task.supplier && <Tag color={STATUS.muted}>{task.supplier}</Tag>}
             {task.poNumber && <Tag color={STATUS.muted}>PO {task.poNumber}</Tag>}
             {task.waitingOn && <Tag color={STATUS.held}>{task.waitingOn}</Tag>}
             {held !== null && <Tag color={held >= 7 ? STATUS.overdue : STATUS.held}>with them {held}d</Tag>}
             {cold !== null && cold >= 14 && <Tag color={STATUS.caution}>untouched {cold}d</Tag>}
+            {links.map((l, i) => (
+              <button key={l.id || i} onClick={() => openLink(l.href)} title={l.href} aria-label={`Open ${l.label || l.href}`}
+                className="tag -my-[2px] inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-[12px] font-medium tracking-wide"
+                style={{ color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 14%, transparent)' }}>
+                <LinkSimple size={11} weight="bold" />{l.label || l.href}
+              </button>
+            ))}
           </div>
           {task.checklist?.length > 0 && !task.done && <Checklist task={task} onPatch={onPatch} />}
         </div>
@@ -131,7 +170,11 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true }) 
         style={{ borderColor: 'var(--line-2)', boxShadow: '0 8px 24px color-mix(in srgb, var(--glow-dark) 60%, transparent)' }}>
         {!task.done && task.lane !== 'today' && (
           <button onClick={() => onPatch(task.id, { lane: 'today' })} aria-label="Pull to Today" title="Pull to Today"
-            className="pill px-2 py-0.5 text-[12px] font-medium" style={{ border: '1px solid var(--line-2)', color: 'var(--ink-2)' }}>Today</button>
+            className="pill inline-flex h-6 items-center px-2 text-[12px] font-medium" style={{ border: '1px solid var(--line-2)', color: 'var(--ink-2)' }}>Today</button>
+        )}
+        {!task.done && task.lane === 'today' && (
+          <button onClick={startFocus} aria-label={`Focus on ${task.title}`} title={`Focus, ${focusMinutes(focusProp)} minutes`}
+            className="pill inline-flex h-6 items-center gap-1 px-2 text-[12px] font-medium" style={{ border: '1px solid var(--line-2)', color: 'var(--ink-2)' }}><Timer size={12} weight="bold" />Focus</button>
         )}
         {task.url && <button onClick={() => openExternal(task.url)} aria-label="Open in the tool" title="Open in the tool"
           className="grid h-6 w-6 place-items-center rounded-md" style={{ color: 'var(--ink-3)' }}><ArrowSquareOut size={12} weight="bold" /></button>}
