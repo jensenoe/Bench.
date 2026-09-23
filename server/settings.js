@@ -28,7 +28,13 @@ export const DEFAULTS = {
   lunchEnds: '12:30',
   roundMinutes: 5,
   nudges: true,             // water / coffee line under the completion toast
-  updateToken: ''           // optional GitHub token with read access to the repo, so the update check can see releases
+  updateToken: '',          // optional GitHub token with read access to the repo, so the update check can see releases
+  density: 'comfortable',   // comfortable | compact: one-line cards on wide screens
+  inboxDir: '',             // a folder Bench watches for photographs (OneDrive camera roll); empty means off
+  focusMinutes: 25,         // the focus timer's default length
+  workdayHours: 8.4,        // for the free-hours line on Today
+  morningBrief: true,       // the first start of the day opens the brief
+  eveningClose: true        // clocking out offers the close
 }
 
 const ALLOWED = Object.keys(DEFAULTS)
@@ -53,6 +59,10 @@ export function update(patch = {}) {
     if (k === 'roundMinutes') v = Math.max(1, Math.min(30, Number(v) || 5))
     if (k === 'pictureMinutes') v = [10, 20, 30, 60].includes(Number(v)) ? Number(v) : 20
     if (k === 'theme') v = v === 'light' ? 'light' : 'dark'
+    if (k === 'density') v = v === 'compact' ? 'compact' : 'comfortable'
+    if (k === 'focusMinutes') v = [15, 25, 50, 90].includes(Number(v)) ? Number(v) : 25
+    if (k === 'workdayHours') v = Math.max(1, Math.min(14, Number(v) || 8.4))
+    if (k === 'morningBrief' || k === 'eveningClose') v = v !== false
     if (k === 'sceneOverride') v = ['dawn', 'day', 'dusk', 'night'].includes(v) ? v : null
     if ((k === 'lunchAt' || k === 'lunchEnds') && !/^\d{1,2}:\d{2}$/.test(String(v))) continue
     if (typeof v === 'string') v = v.trim()
