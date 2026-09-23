@@ -34,7 +34,14 @@ export const DEFAULTS = {
   focusMinutes: 25,         // the focus timer's default length
   workdayHours: 8.4,        // for the free-hours line on Today
   morningBrief: true,       // the first start of the day opens the brief
-  eveningClose: true        // clocking out offers the close
+  eveningClose: true,       // clocking out offers the close
+  quietFrom: '19:00',       // no notifications between quietFrom and quietTo
+  quietTo: '07:00',
+  quietWeekends: true,      // and none at the weekend
+  phoneAccess: false,       // the phone view on the workshop network (roadmap 116)
+  phonePin: '',             // four to eight digits; empty means off
+  mailRead: false,          // read order confirmations and delivery notes from Outlook (roadmap 113)
+  hourlyRate: 0             // CHF per hour for the cost per machine (roadmap 115); 0 shows hours only
 }
 
 const ALLOWED = Object.keys(DEFAULTS)
@@ -62,7 +69,11 @@ export function update(patch = {}) {
     if (k === 'density') v = v === 'compact' ? 'compact' : 'comfortable'
     if (k === 'focusMinutes') v = [15, 25, 50, 90].includes(Number(v)) ? Number(v) : 25
     if (k === 'workdayHours') v = Math.max(1, Math.min(14, Number(v) || 8.4))
-    if (k === 'morningBrief' || k === 'eveningClose') v = v !== false
+    if (k === 'morningBrief' || k === 'eveningClose' || k === 'quietWeekends') v = v !== false
+    if (k === 'phoneAccess' || k === 'mailRead') v = v === true
+    if ((k === 'quietFrom' || k === 'quietTo') && !/^\d{1,2}:\d{2}$/.test(String(v))) continue
+    if (k === 'phonePin') v = /^\d{4,8}$/.test(String(v)) ? String(v) : ''
+    if (k === 'hourlyRate') v = Math.max(0, Math.min(1000, Number(v) || 0))
     if (k === 'sceneOverride') v = ['dawn', 'day', 'dusk', 'night'].includes(v) ? v : null
     if ((k === 'lunchAt' || k === 'lunchEnds') && !/^\d{1,2}:\d{2}$/.test(String(v))) continue
     if (typeof v === 'string') v = v.trim()
