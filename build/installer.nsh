@@ -63,8 +63,9 @@
   ; which on the night background made them invisible (roadmap 118). Take the theme off those two controls
   ; and colour them like the rest of the page.
   Function benchFinishShow
-    System::Call 'uxtheme::SetWindowTheme(i $mui.FinishPage.Run, w " ", w " ")'
-    System::Call 'uxtheme::SetWindowTheme(i $mui.FinishPage.ShowReadme, w " ", w " ")'
+    ; the space before the comma matters: NSIS reads "$mui.FinishPage.Run," as one unknown name otherwise
+    System::Call 'uxtheme::SetWindowTheme(i $mui.FinishPage.Run , w " ", w " ")'
+    System::Call 'uxtheme::SetWindowTheme(i $mui.FinishPage.ShowReadme , w " ", w " ")'
     SetCtlColors $mui.FinishPage.Run F3F1EC 15161C
     SetCtlColors $mui.FinishPage.ShowReadme F3F1EC 15161C
   FunctionEnd
