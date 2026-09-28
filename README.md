@@ -12,7 +12,7 @@
 Installing over an older Bench. keeps your board, hours and settings. `Bench-portable-…exe` on the
 same page is the no-install version: keep it in any folder and run it from there.
 
-**0.11, thirteenth beta (0.11.0-beta.13).** Everything here works on my machine and on the mocks; the
+**0.11, fourteenth beta (0.11.0-beta.14).** Everything here works on my machine and on the mocks; the
 Microsoft paths (Planner, the hours workbook, the issue list, the calendar) still want a
 first real run in the tom.fit tenant, and the issue list and calendar need a one-time admin
 approval, see below.
@@ -54,7 +54,7 @@ Administrator; `build-exe.bat plain` skips the icon stamping instead, and `build
 Bump `version` in `package.json`, commit, then tag and push:
 
 ```bash
-git tag v0.11.0-beta.13 && git push --tags
+git tag v0.11.0-beta.14 && git push --tags
 ```
 
 The *Release* workflow in `.github/workflows/release.yml` builds both exes on a Windows
@@ -88,7 +88,10 @@ without publishing and leaves the exes as a workflow artifact.
   Logbook, machines, hours and the review while Bench. runs. Nothing leaves the machine. See `docs/mcp.md`.
 - **Projects.** `#/projects` plans a machine backwards from the one date that matters: phases in
   working days, dates that fall out of the deadline, parts that get their order-by from the learned lead
-  times, and slack and fit per phase. Tasks join through their project text and a phase. The hero says
+  times, and slack and fit per phase. Weekends, the Zurich holidays and your own days off are skipped.
+  A task can wait for others; Bench. walks the chain forward and names the task where the room runs out.
+  Tasks join through their project text and a phase, and a Logbook action on the machine lands in the
+  phase running today. The hero says
   when a plan is behind or a deadline is close.
 - **Playbooks, passport, suppliers.** `#/playbooks` applies a standard task set to a machine and makes a
   template from a finished one. Each machine has a printable passport, its whole history on one page.

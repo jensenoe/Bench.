@@ -149,7 +149,9 @@ app.post('/api/logbook/:id/actions/:aid/to-board', wrap((req, res) => {
   const e = notes.listEntries().find(x => x.id === req.params.id); if (!e) return res.status(404).json({ error: 'not found' })
   const a = e.actions.find(x => x.id === req.params.aid); if (!a) return res.status(404).json({ error: 'no such action' })
   if (a.taskId && store.allTasks().some(t => t.id === a.taskId)) return res.json({ task: store.allTasks().find(t => t.id === a.taskId), entry: e })
-  const t = store.createTask({ title: a.text, lane: 'active', dueDate: a.due || null, assignedBy: e.title, lead: a.owner || null, project: e.project || null, tags: ['logbook'], notes: `From the logbook: ${e.title}, ${e.date}` })
+  // on a planned machine it joins the phase running today, so it shows on the project page straight away (roadmap 133)
+  const phase = e.project ? projects.phaseFor(e.project) : null
+  const t = store.createTask({ title: a.text, lane: 'active', dueDate: a.due || null, assignedBy: e.title, lead: a.owner || null, project: e.project || null, phase, tags: ['logbook'], notes: `From the logbook: ${e.title}, ${e.date}` })
   a.taskId = t.id
   res.json({ task: t, entry: notes.updateEntry(e.id, { actions: e.actions }) })
 }))

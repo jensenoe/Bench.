@@ -94,3 +94,109 @@ describe('the store', () => {
     expect(P.remove(p.id)).toBe(true)
   })
 })
+
+const W = await import('../server/workdays.js')
+const S = await import('../server/settings.js')
+
+describe('holidays and days off (roadmap 131)', () => {
+  it('knows Easter and the ten Zurich holidays', () => {
+    expect(W.easter(2025)).toBe('2025-04-20')
+    expect(W.easter(2026)).toBe('2026-04-05')
+    expect(W.easter(2027)).toBe('2027-03-28')
+    const zh = W.holidays(2026, 'ZH')
+    expect(zh.size).toBe(10)
+    expect(zh.get('2026-04-03')).toBe('Good Friday')
+    expect(zh.get('2026-05-14')).toBe('Ascension')
+    expect(zh.get('2026-05-25')).toBe('Whit Monday')
+    expect(W.holidays(2026, 'CH').size).toBe(4)
+    expect(W.holidays(2026, 'none').size).toBe(0)
+  })
+  it('reads dates and ranges', () => {
+    expect([...W.parseDaysOff('2026-12-28 to 2026-12-31, 2027-01-05')]).toEqual(['2026-12-28', '2026-12-29', '2026-12-30', '2026-12-31', '2027-01-05'])
+    expect(W.parseDaysOff('2026-12-31..2026-12-30').size).toBe(2)
+    expect(W.parseDaysOff('nonsense, 2026-13').size).toBe(0)
+  })
+  it('the plan skips the Easter weekend and Christmas', () => {
+    // five working days ending Fri 10 Apr 2026: 10, 9, 8, 7, then over Easter Monday, the weekend and Good Friday to Thu 2 Apr
+    expect(P.scheduleBackwards([{ id: 'x', name: 'Test', days: 5 }], '2026-04-10')[0].start).toBe('2026-04-02')
+    expect(P.addWorkingDays('2026-12-23', 1)).toBe('2026-12-24')
+    expect(P.addWorkingDays('2026-12-23', 2)).toBe('2026-12-28')
+    expect(W.offBetween('2026-12-20', '2027-01-06').map(x => x.date)).toEqual(['2026-12-25', '2027-01-01'])   // 26 Dec and 2 Jan fall on a Saturday
+  })
+  it('the days off in Settings count too, and go away again', () => {
+    S.update({ daysOff: '2026-12-28 to 2026-12-31' })
+    expect(P.addWorkingDays('2026-12-24', 1)).toBe('2027-01-04')
+    S.update({ holidayRegion: 'none', daysOff: '' })
+    expect(P.addWorkingDays('2026-12-24', 1)).toBe('2026-12-25')
+    S.update({ holidayRegion: 'ZH' })
+    expect(P.addWorkingDays('2026-12-24', 1)).toBe('2026-12-28')
+  })
+})
+
+describe('waits for (roadmap 132)', () => {
+  const project = { machine: 'M', deadline: '2026-11-27' }
+  const suggest = () => ({ days: 14 })
+  const base = () => [
+    { id: 'a', title: 'Design', project: 'M', effortHours: 10, done: false },
+    { id: 'b', title: 'Weld', project: 'M', effortHours: 8, after: ['a'], done: false },
+    { id: 'c', title: 'Rails', project: 'M', supplier: 'Misumi', done: false },
+    { id: 'd', title: 'Assemble', project: 'M', after: ['b', 'c'], dueDate: '2026-10-16', done: false }
+  ]
+  it('walks forward from today and names the chain that decides', () => {
+    const f = P.forecastOf(project, [], base(), '2026-10-01', { workdayHours: 8, share: 0.5, suggestFn: suggest })
+    expect(f.tasks.a).toMatchObject({ start: '2026-10-01', finish: '2026-10-05', days: 3 })
+    expect(f.tasks.b).toMatchObject({ start: '2026-10-06', finish: '2026-10-07' })
+    expect(f.tasks.c).toMatchObject({ start: '2026-10-01', finish: '2026-10-14', days: 10 })   // fourteen calendar days, ten working
+    expect(f.tasks.d).toMatchObject({ start: '2026-10-15', finish: '2026-10-15', heldBy: 'c', slack: 1 })
+    expect(f.chain.map(x => x.id)).toEqual(['c', 'd'])
+    expect(f.slack).toBe(1)
+  })
+  it('a due date inside the chain goes negative', () => {
+    const t = base(); t[3].dueDate = '2026-10-14'
+    expect(P.forecastOf(project, [], t, '2026-10-01', { workdayHours: 8, share: 0.5, suggestFn: suggest }).slack).toBe(-1)
+  })
+  it('an ordered part only waits for what is left of its lead time, a done task holds nothing up', () => {
+    const t = base(); t[2].orderedOn = '2026-09-24'; t[0].done = true
+    const f = P.forecastOf(project, [], t, '2026-10-01', { workdayHours: 8, share: 0.5, suggestFn: suggest })
+    expect(f.tasks.c.days).toBe(5)   // ten working days of lead, five gone since Thu 24 Sep
+    expect(f.tasks.b.start).toBe('2026-10-01')
+  })
+  it('no pairs, no forecast; a loop does not hang', () => {
+    expect(P.forecastOf(project, [], [{ id: 'z', project: 'M', done: false }], '2026-10-01')).toEqual({ tasks: {}, chain: [], slack: null })
+    const loop = [{ id: 'e', title: 'E', project: 'M', after: ['f'], done: false }, { id: 'f', title: 'F', project: 'M', after: ['e'], done: false }]
+    expect(() => P.forecastOf(project, [], loop, '2026-10-01', { suggestFn: suggest })).not.toThrow()
+  })
+  it('the store keeps after clean: no self, no repeats', () => {
+    const t = store.createTask({ title: 'Wire the cabinet', project: 'M', lane: 'active' })
+    const u = store.updateTask(t.id, { after: ['x1', 'x1', t.id, 7, 'x2'] })
+    expect(u.after).toEqual(['x1', 'x2'])
+  })
+})
+
+describe('Logbook actions into the phase (roadmap 133)', () => {
+  it('phaseFor picks the phase running today, else the next, and nothing for an unplanned machine', () => {
+    const p = P.create({ name: 'Row 9', machine: 'Row 9', deadline: '2026-11-27' })
+    const running = p.phases.find(x => x.start <= '2026-10-01' && '2026-10-01' <= x.end)
+    expect(P.phaseFor('row 9', '2026-10-01')).toBe(running.id)
+    expect(P.phaseFor('Row 9', '2026-01-05')).toBe(p.phases[0].id)
+    expect(P.phaseFor('No such machine', '2026-10-01')).toBe(null)
+    P.remove(p.id)
+  })
+})
+
+describe('the forecast inside the plan', () => {
+  it('a task does not start before its phase, and the chain runs to the last task', () => {
+    const phases = P.scheduleBackwards([{ id: 'd', name: 'Design', days: 10 }, { id: 'm', name: 'Mechanical', days: 10 }, { id: 't', name: 'Test', days: 5 }], '2026-11-27')
+    const tasks = [
+      { id: 'a', title: 'Drawings', project: 'M', phase: 'd', effortHours: 5, done: false },
+      { id: 'b', title: 'Weld', project: 'M', phase: 'm', effortHours: 5, after: ['a'], done: false },
+      { id: 'c', title: 'Test run', project: 'M', phase: 't', effortHours: 5, after: ['b'], done: false }
+    ]
+    const f = P.forecastOf({ machine: 'M', deadline: '2026-11-27' }, phases, tasks, '2026-09-28', { workdayHours: 10, share: 0.5, suggestFn: () => ({ days: 14 }) })
+    expect(f.tasks.a.start).toBe(phases[0].start)
+    expect(f.tasks.b.start).toBe(phases[1].start)
+    expect(f.tasks.c.start).toBe(phases[2].start)
+    expect(f.chain.map(x => x.id)).toEqual(['c'])   // each waits for its phase, not for the one before, so the chain is the last task alone
+    expect(f.slack).toBe(Math.min(f.tasks.a.slack, f.tasks.b.slack, f.tasks.c.slack))
+  })
+})

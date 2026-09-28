@@ -45,7 +45,9 @@ export const DEFAULTS = {
   mailRead: false,          // read order confirmations and delivery notes from Outlook (roadmap 113)
   hourlyRate: 0,            // CHF per hour for the cost per machine (roadmap 115); 0 shows hours only
   homePlace: '',            // where the drive home ends, a place name geocoded once (roadmap 120)
-  trafficKey: ''            // TomTom API key for the commute with live traffic; stays in this file, never exported
+  trafficKey: '',           // TomTom API key for the commute with live traffic; stays in this file, never exported
+  holidayRegion: 'ZH',      // public holidays the plans skip: ZH (canton Zurich), CH (federal only) or none (roadmap 131)
+  daysOff: ''               // company days off, dates and ranges: "2026-12-24 to 2027-01-01, 2027-05-07"
 }
 
 const ALLOWED = Object.keys(DEFAULTS)
@@ -82,6 +84,8 @@ export function update(patch = {}) {
     if (k === 'hourlyRate') v = Math.max(0, Math.min(1000, Number(v) || 0))
     if (k === 'homePlace') v = String(v || '').trim().slice(0, 80)
     if (k === 'trafficKey') v = String(v || '').trim().slice(0, 120)
+    if (k === 'holidayRegion') v = ['ZH', 'CH', 'none'].includes(v) ? v : 'ZH'
+    if (k === 'daysOff') v = String(v || '').slice(0, 2000)
     if (k === 'sceneOverride') v = ['dawn', 'day', 'dusk', 'night'].includes(v) ? v : null
     if ((k === 'lunchAt' || k === 'lunchEnds') && !/^\d{1,2}:\d{2}$/.test(String(v))) continue
     if (typeof v === 'string') v = v.trim()

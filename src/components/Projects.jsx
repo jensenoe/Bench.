@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, Plus, Trash, ArrowsClockwise, PencilSimple } from '@phosphor-icons/react'
+import { ArrowLeft, Plus, Trash, ArrowsClockwise, PencilSimple, X } from '@phosphor-icons/react'
 import { getProjects, getProject, createProject, patchProject, removeProject, scheduleProject, assignPhase } from '../api/projects.js'
 import { getMachines } from '../api/machines.js'
 import DateField from './DateField.jsx'
 import { PanelSkeleton } from './Skeleton.jsx'
 import { ask } from './Confirm.jsx'
 import { STATUS } from '../scenes.js'
+import { patchTask, saveSettings } from '../api.js'
 
 /**
  * Projects (roadmap 121 to 125): one page that plans a machine. A project is a goal, a machine, the one date
@@ -31,6 +32,20 @@ const fmtLong = iso => iso ? noon(iso).toLocaleDateString('en-GB', { weekday: 'l
 const dayIndex = (iso, from) => Math.round((noon(iso) - noon(from)) / 86400000)
 const roomText = (slack) => slack === null || slack === undefined ? 'no dated work yet'
   : slack < 0 ? `${plural(-slack, 'working day')} behind the plan` : slack === 0 ? 'no room left' : `${plural(slack, 'working day')} of room`
+/** "Christmas 25 Dec, days off 28 to 31 Dec, New Year's Day 1 Jan": consecutive days with the same name become one range. */
+const offRuns = list => {
+  const runs = []
+  for (const o of list) {
+    const prev = runs.at(-1)
+    const next = prev && (() => { const d = noon(prev.to); d.setDate(d.getDate() + 1); while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
+    if (prev && prev.name === o.name && next === o.date) prev.to = o.date
+    else runs.push({ name: o.name, from: o.date, to: o.date })
+  }
+  return runs.map(r => r.from === r.to ? `${r.name} ${fmt(r.from)}` : `${r.name === 'Day off' ? 'days off' : r.name} ${r.from.slice(0, 7) === r.to.slice(0, 7) ? fmt(r.from).split(' ')[0] : fmt(r.from)} to ${fmt(r.to)}`).join(', ')
+}
+const REGION_LABEL = { ZH: 'Zurich holidays', CH: 'Swiss federal holidays', none: 'no public holidays' }
+/** The room the page leads with: the tighter of the phases and the "waits for" chain. */
+const roomOf = d => { const a = d.slack.slack, b = d.forecast?.slack; return b !== null && b !== undefined && (a === null || b < a) ? b : a }
 const roomTone = (slack) => slack === null || slack === undefined ? 'var(--ink-3)' : slack < 0 ? STATUS.overdue : slack <= 2 ? STATUS.caution : STATUS.done
 
 // ── the list ──────────────────────────────────────────────────────────
@@ -114,10 +129,19 @@ function Timeline({ d }) {
   for (const d0 = noon(from); d0 <= noon(to); d0.setDate(d0.getDate() + 1)) if (d0.getDay() === 1) weeks.push(new Date(d0))
   const iso = d0 => `${d0.getFullYear()}-${String(d0.getMonth() + 1).padStart(2, '0')}-${String(d0.getDate()).padStart(2, '0')}`
   const byPhase = Object.fromEntries(phases.map((ph, i) => [ph.id, i]))
+  const dayW = (W - PAD_L - PAD_R) / total
+  const labelEvery = Math.max(1, Math.ceil(48 / (dayW * 7)))   // a label needs about 48 units; skip weeks until it has them
+  const fc = d.forecast?.tasks || {}
+  const onChain = new Set((d.forecast?.chain || []).map(c => c.id))
+  const rowOf = Object.fromEntries(phases.flatMap(ph => ph.tasks.map(t => [t.id, byPhase[ph.id]])))
+  const planned = phases.flatMap(ph => ph.tasks).filter(t => fc[t.id] && !fc[t.id].done)
+  const barY = (id, k) => TOP + rowOf[id] * ROW + ROW - 7 - (k % 2) * 3
+  const tone = f => f.slack !== null && f.slack < 0 ? STATUS.overdue : 'var(--accent)'
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="block w-full" role="img" aria-label="Timeline of the phases" data-volatile style={{ fontFamily: 'inherit' }}>
-      {weeks.map(w => <g key={+w}><line x1={x(iso(w))} x2={x(iso(w))} y1={TOP - 6} y2={H - 24} stroke="rgba(var(--ink-rgb),.1)" />
-        <text x={x(iso(w)) + 3} y={TOP - 10} fontSize="11" fill="var(--ink-3)">{fmt(iso(w))}</text></g>)}
+      {(d.daysOff || []).filter(o => o.date >= from && o.date <= to).map(o => <rect key={o.date} x={x(o.date)} y={TOP - 6} width={Math.max(2, dayW)} height={H - TOP - 18} fill="rgba(var(--ink-rgb),.07)"><title>{o.name}, {fmt(o.date)}</title></rect>)}
+      {weeks.map((w, k) => <g key={+w}><line x1={x(iso(w))} x2={x(iso(w))} y1={TOP - 6} y2={H - 24} stroke="rgba(var(--ink-rgb),.1)" />
+        {k % labelEvery === 0 && <text x={x(iso(w)) + 3} y={TOP - 10} fontSize="11" fill="var(--ink-3)">{fmt(iso(w))}</text>}</g>)}
       {phases.map((ph, i) => {
         const y = TOP + i * ROW
         return (
@@ -134,6 +158,16 @@ function Timeline({ d }) {
         return <g key={o.taskId}><line x1={x(o.orderBy)} x2={x(o.needBy)} y1={y} y2={y} stroke="var(--accent)" strokeWidth="2" strokeDasharray="4 3" />
           <circle cx={x(o.orderBy)} cy={y} r="3" fill="var(--accent)"><title>{o.title}: order by {fmt(o.orderBy)} for {fmt(o.needBy)}</title></circle></g>
       })}
+      {planned.map((t, k) => {
+        const f = fc[t.id], y = barY(t.id, k)
+        return <g key={'fc' + t.id}>
+          <rect x={x(f.start)} y={y - 1.5} width={Math.max(3, x(f.finish) - x(f.start) + dayW)} height="3" rx="1.5" fill={tone(f)} opacity={onChain.has(t.id) ? 1 : .55}><title>{t.title}: {fmt(f.start)} to {fmt(f.finish)}{f.slack !== null ? `, ${roomText(f.slack)}` : ''}</title></rect>
+          {(t.after || []).filter(p => fc[p] && !fc[p].done && rowOf[p] !== undefined).map(p => {
+            const x1 = x(fc[p].finish) + dayW, y1 = barY(p, planned.findIndex(q => q.id === p)), x2 = x(f.start), mid = (x1 + x2) / 2
+            return <path key={p} d={`M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y}, ${x2} ${y}`} fill="none" stroke={tone(f)} strokeWidth="1.2" opacity=".7" />
+          })}
+        </g>
+      })}
       <line x1={x(today)} x2={x(today)} y1={TOP - 4} y2={H - 22} stroke="var(--ink)" strokeWidth="1.5" />
       <text x={x(today) + 4} y={H - 8} fontSize="11" fill="var(--ink-2)">today</text>
       {p.deadline && <><line x1={x(p.deadline)} x2={x(p.deadline)} y1={TOP - 4} y2={H - 22} stroke={STATUS.caution} strokeWidth="2" />
@@ -143,6 +177,66 @@ function Timeline({ d }) {
 }
 
 // ── the plan ──────────────────────────────────────────────────────────
+/** What the plan skips, the holidays inside it, and the days off, editable here since this is where they matter. */
+function DaysOff({ d, onChanged }) {
+  const [open, setOpen] = useState(false)
+  const [region, setRegion] = useState(d.holidayRegion || 'ZH')
+  const [text, setText] = useState(d.daysOffText || '')
+  const [busy, setBusy] = useState(false)
+  const inPlan = d.daysOff || []
+  const save = async () => {
+    setBusy(true)
+    try { await saveSettings({ holidayRegion: region, daysOff: text }); toast('Planned again around the days off.', d.project.name); setOpen(false); onChanged() }
+    catch (err) { toast('That did not work.', err.message) } finally { setBusy(false) }
+  }
+  return (
+    <div className="mt-4 text-[13px]" style={{ color: 'var(--ink-3)' }}>
+      <p className="leading-relaxed">
+        Skips weekends and {REGION_LABEL[d.holidayRegion] || REGION_LABEL.ZH}{d.daysOffText ? ', plus your days off' : ''}.
+        {inPlan.length > 0 && <> In this plan: <span className="tnum" style={{ color: 'var(--ink-2)' }}>{offRuns(inPlan)}</span>.</>}
+        {' '}<button type="button" onClick={() => setOpen(v => !v)} aria-expanded={open} className="-my-1 inline-block py-1 underline underline-offset-2" style={{ color: 'var(--ink-2)' }}>{open ? 'Close' : 'Days off'}</button>
+      </p>
+      {open && (
+        <div className="mt-3 grid gap-3 sm:grid-cols-[220px_1fr_auto] sm:items-end">
+          <label className="block"><span className="text-[12.5px]">Public holidays</span>
+            <select value={region} onChange={e => setRegion(e.target.value)} className={INP + ' mt-1 cursor-pointer'} style={inpStyle}>
+              <option value="ZH">Canton Zurich</option><option value="CH">Swiss federal only</option><option value="none">None</option>
+            </select></label>
+          <label className="block"><span className="text-[12.5px]">Company days off, dates or ranges</span>
+            <input value={text} onChange={e => setText(e.target.value)} placeholder="2026-12-24 to 2027-01-01, 2027-05-07" className={INP + ' mt-1 tnum'} style={inpStyle} /></label>
+          <button type="button" onClick={save} disabled={busy} className={btn} style={primary}>Save and plan again</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** The run of tasks that leaves the least room, from the first to the one it ends on. */
+function Chain({ d }) {
+  const chain = d.forecast?.chain || []
+  if (!chain.length) return null
+  const tight = chain.find(c => c.slack === d.forecast.slack) || chain.at(-1)
+  return (
+    <section className="panel p-6 sm:p-7" aria-label="What decides the date">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h2 className="display text-[22px] font-semibold leading-none">What decides the date.</h2>
+        <span className="text-[13.5px]" style={{ color: roomTone(d.forecast.slack) }} data-volatile>{roomText(d.forecast.slack)}{tight.limit ? ` at ${tight.title}, due ${fmt(tight.limit)}` : ''}</span>
+      </div>
+      <p className="mt-1 max-w-[70ch] text-[13px]" style={{ color: 'var(--ink-3)' }}>Each task starts the working day after what it waits for is done. A part takes what is left of its lead time; anything else its size in planned days.</p>
+      <ol className="mt-4 flex flex-col">
+        {chain.map((c, i) => (
+          <li key={c.id} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-2" style={{ borderTop: '1px solid var(--line)' }} data-volatile>
+            <span className="tnum w-5 text-[13px]" style={{ color: 'var(--ink-3)' }}>{i + 1}</span>
+            <span className="min-w-[200px] flex-1 text-[14px]">{c.title}</span>
+            <span className="tnum text-[13px]" style={{ color: 'var(--ink-2)' }}>{fmt(c.start)} to {fmt(c.finish)}, {plural(c.days, 'day')}</span>
+            {c.slack !== null && <span className="tnum text-[13px]" style={{ color: roomTone(c.slack) }}>{roomText(c.slack)}</span>}
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
 function Plan({ d, onChanged }) {
   const { project: p, slack, fit } = d
   const [phases, setPhases] = useState(() => p.phases.map(x => ({ id: x.id, name: x.name, days: x.days })))
@@ -166,7 +260,7 @@ function Plan({ d, onChanged }) {
     <section className="panel p-6 sm:p-7" aria-label="Plan">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h2 className="display text-[22px] font-semibold leading-none">The plan.</h2>
-        <span className="tnum text-[13.5px]" style={{ color: 'var(--ink-3)' }}>{plural(phases.length, 'phase')}, {plural(total, 'working day')}; weekends are skipped, holidays are not known here</span>
+        <span className="tnum text-[13.5px]" style={{ color: 'var(--ink-3)' }}>{plural(phases.length, 'phase')}, {plural(total, 'working day')}</span>
       </div>
       <ol className="mt-4 flex flex-col">
         {phases.map((ph, i) => {
@@ -189,6 +283,7 @@ function Plan({ d, onChanged }) {
           )
         })}
       </ol>
+      <DaysOff d={d} onChanged={onChanged} />
       <div className="mt-4 flex flex-wrap items-center gap-3">
         {editing ? <>
           <button onClick={() => setPhases(a => [...a, { id: crypto.randomUUID(), name: `Phase ${a.length + 1}`, days: 5 }])} className={btn} style={quiet}><Plus size={13} weight="bold" /> Phase</button>
@@ -228,16 +323,37 @@ function Orders({ orders, today }) {
   )
 }
 
-function TaskRow({ t, phases, onMove, today }) {
+function TaskRow({ t, phases, onMove, today, all = [], forecast = {}, onAfter }) {
   const due = (t.dueDate || '').slice(0, 10)
+  const after = (t.after || []).filter(id => all.some(x => x.id === id))
+  const f = forecast[t.id]
+  const choices = all.filter(x => x.id !== t.id && !after.includes(x.id) && !x.done)
+  const title = id => all.find(x => x.id === id)?.title || 'a task'
   return (
-    <li className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2" style={{ borderTop: '1px solid var(--line)' }}>
+    <li className="flex flex-wrap items-center gap-x-4 gap-y-1.5 py-2" style={{ borderTop: '1px solid var(--line)' }}>
       <span className="min-w-[200px] flex-1 text-[14px]" style={{ color: t.done ? 'var(--ink-3)' : 'var(--ink)', textDecoration: t.done ? 'line-through' : 'none' }}>{t.title}</span>
       <span className="tnum text-[13px]" style={{ color: due && due < today && !t.done ? STATUS.overdue : 'var(--ink-3)' }} data-volatile>{[due ? `due ${fmt(due)}` : null, t.effortHours ? `${t.effortHours} h` : null, t.supplier].filter(Boolean).join(', ')}</span>
       <select value={t.phase || ''} onChange={e => onMove(t.id, e.target.value || null)} aria-label={`Phase of ${t.title}`} className="rounded-[10px] px-2 py-1 text-[12.5px]" style={inpStyle}>
         <option value="">no phase</option>
         {phases.map(ph => <option key={ph.id} value={ph.id}>{ph.name}</option>)}
       </select>
+      {!t.done && choices.length > 0 && (
+        <select value="" onChange={e => e.target.value && onAfter(t.id, [...after, e.target.value])} aria-label={`${t.title} waits for`} className="rounded-[10px] px-2 py-1 text-[12.5px]" style={inpStyle}>
+          <option value="">waits for…</option>
+          {choices.map(x => <option key={x.id} value={x.id}>{x.title}</option>)}
+        </select>
+      )}
+      {(after.length > 0 || (f && !f.done)) && (
+        <div className="flex basis-full flex-wrap items-center gap-x-3 gap-y-1 pl-0.5 text-[12.5px]" data-volatile>
+          {after.map(id => (
+            <span key={id} className="inline-flex items-center gap-1 rounded-[4px] py-0.5 pl-2 pr-0.5" style={{ background: 'rgba(var(--ink-rgb),.06)', color: 'var(--ink-2)' }}>
+              after {title(id)}
+              <button type="button" onClick={() => onAfter(t.id, after.filter(x => x !== id))} aria-label={`${t.title} no longer waits for ${title(id)}`} className="inline-grid h-6 w-6 place-items-center rounded-[4px]" style={{ color: 'var(--ink-3)' }}><X size={11} weight="bold" /></button>
+            </span>
+          ))}
+          {f && !f.done && <span className="tnum" style={{ color: roomTone(f.slack) }}>done by {fmt(f.finish)}{f.slack !== null ? `, ${roomText(f.slack)}` : ''}</span>}
+        </div>
+      )}
     </li>
   )
 }
@@ -253,6 +369,10 @@ function ProjectDetail({ id, onBack }) {
   if (!d) return <main className="mx-auto col px-6"><PanelSkeleton /></main>
   const { project: p, phases, unassigned, slack, today } = d
   const move = async (taskId, phase) => { try { await assignPhase(p.id, taskId, phase); refresh(); load() } catch (err) { toast('That did not work.', err.message) } }
+  const setAfter = async (taskId, after) => { try { await patchTask(taskId, { after }); refresh(); load() } catch (err) { toast('That did not work.', err.message) } }
+  const all = [...phases.flatMap(ph => ph.tasks), ...unassigned]
+  const room = roomOf(d)
+  const row = t => <TaskRow key={t.id} t={t} phases={p.phases} onMove={move} today={today} all={all} forecast={d.forecast?.tasks || {}} onAfter={setAfter} />
   const saveHead = async () => {
     try { await patchProject(p.id, head); setEditHead(false); load(); refresh() } catch (err) { toast('That did not work.', err.message) }
   }
@@ -291,7 +411,7 @@ function ProjectDetail({ id, onBack }) {
             {p.goal && <p className="mt-3 max-w-[70ch] text-[15px] leading-relaxed" style={{ color: 'var(--ink-2)' }}>{p.goal}</p>}
             <div className="mt-5 grid grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-4" data-volatile>
               <Figure value={p.deadline ? fmt(p.deadline) : 'none'} label={p.deadline ? `${p.deadlineLabel}, ${fmtLong(p.deadline)}` : 'no deadline yet'} tone={p.deadline && p.deadline < today ? STATUS.overdue : 'var(--accent)'} />
-              <Figure value={slack.slack === null ? 'open' : slack.slack} label={slack.slack === null ? 'nothing dated yet' : slack.slack < 0 ? 'working days behind' : 'working days of room'} tone={roomTone(slack.slack)} />
+              <Figure value={room === null ? 'open' : room} label={room === null ? 'nothing dated yet' : room < 0 ? 'working days behind' : 'working days of room'} tone={roomTone(room)} />
               <Figure value={openTasks} label={openTasks === 1 ? 'open task' : 'open tasks'} />
               <Figure value={slack.late.length} label={slack.late.length === 1 ? 'task late' : 'tasks late'} tone={slack.late.length ? STATUS.overdue : undefined} />
             </div>
@@ -301,9 +421,11 @@ function ProjectDetail({ id, onBack }) {
 
       <section className="panel p-6 sm:p-7" aria-label="Timeline">
         <h2 className="display text-[22px] font-semibold leading-none">The timeline.</h2>
-        <p className="mt-1 text-[13px]" style={{ color: 'var(--ink-3)' }}>Phases as bands, due dates as dots, the dashed runs are lead times from order-by to need-by.</p>
+        <p className="mt-1 text-[13px]" style={{ color: 'var(--ink-3)' }}>Phases as bands, due dates as dots, dashed runs are lead times from order-by to need-by. Thin bars are the forecast for tasks that wait for others; shaded days are holidays and days off.</p>
         <div className="mt-4"><Timeline d={d} /></div>
       </section>
+
+      <Chain d={d} />
 
       <Plan d={d} onChanged={load} />
       <Orders orders={d.orders} today={today} />
@@ -311,18 +433,18 @@ function ProjectDetail({ id, onBack }) {
       <section className="panel p-6 sm:p-7" aria-label="Tasks by phase">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <h2 className="display text-[22px] font-semibold leading-none">The work, by phase.</h2>
-          <span className="text-[13.5px]" style={{ color: 'var(--ink-3)' }}>Every task whose project reads "{p.machine}". Pick a phase on each; new tasks join through Quick add with that project.</span>
+          <span className="text-[13.5px]" style={{ color: 'var(--ink-3)' }}>Every task whose project reads "{p.machine}". Give each a phase, and say what it waits for; new tasks join through Quick add with that project.</span>
         </div>
         {phases.map(ph => (
           <div key={ph.id} className="mt-5">
             <h3 className="text-[13px] font-medium" style={{ color: 'var(--ink-3)' }}>{ph.name}{ph.start ? <span className="tnum ml-2" data-volatile>{fmt(ph.start)} to {fmt(ph.end)}</span> : null}</h3>
-            {ph.tasks.length ? <ul className="mt-1 flex flex-col">{ph.tasks.map(t => <TaskRow key={t.id} t={t} phases={p.phases} onMove={move} today={today} />)}</ul>
+            {ph.tasks.length ? <ul className="mt-1 flex flex-col">{ph.tasks.map(row)}</ul>
               : <p className="mt-1 text-[13px]" style={{ color: 'var(--ink-3)', borderTop: '1px solid var(--line)', paddingTop: 8 }}>Nothing here yet.</p>}
           </div>
         ))}
         <div className="mt-5">
           <h3 className="text-[13px] font-medium" style={{ color: 'var(--ink-3)' }}>No phase yet</h3>
-          {unassigned.length ? <ul className="mt-1 flex flex-col">{unassigned.map(t => <TaskRow key={t.id} t={t} phases={p.phases} onMove={move} today={today} />)}</ul>
+          {unassigned.length ? <ul className="mt-1 flex flex-col">{unassigned.map(row)}</ul>
             : <p className="mt-1 text-[13px]" style={{ color: 'var(--ink-3)', borderTop: '1px solid var(--line)', paddingTop: 8 }}>Every task on {p.machine} sits in a phase.</p>}
         </div>
       </section>

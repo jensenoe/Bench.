@@ -7,14 +7,17 @@
  *   orderSuggestions(...)                  order-by dates from need-by and the learned lead times
  *   slackOf(...)                           working days of room before the plan breaks
  *   fitOf(...)                             hours per phase against the hours a phase has
+ *   forecastOf(...)                        "waits for" chains walked forward from today (roadmap 132)
+ *   phaseFor(machine)                      the phase a new task on that machine belongs in (roadmap 133)
  *
- * Working days skip weekends only; Swiss holidays are not known here (say so in the UI).
+ * Working days skip weekends, the Zurich holidays and the days off in Settings (workdays.js, roadmap 131).
  */
 import crypto from 'node:crypto'
 import * as db from './db.js'
 import * as store from './store.js'
 import * as settings from './settings.js'
 import { suggest as suggestLead } from './leadtimes.js'
+import { isOff, rules, offBetween } from './workdays.js'
 
 const wrap = fn => (req, res) => Promise.resolve().then(() => fn(req, res)).catch(err => res.status(err.status || 500).json({ error: err.message }))
 const col = db.collection('projects')
@@ -23,7 +26,8 @@ const now = () => new Date().toISOString()
 // ── working days ──────────────────────────────────────────────────────
 const noon = iso => new Date(String(iso).slice(0, 10) + 'T12:00:00')
 export const isoOf = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-const weekend = d => d.getDay() === 0 || d.getDay() === 6
+// a day nobody works: a weekend, a holiday of the canton, or a day off from Settings
+const weekend = d => isOff(isoOf(d), rules())
 /** iso moved by n working days (n may be negative); a weekend start is first moved to the nearest working day in that direction. */
 export function addWorkingDays(iso, n) {
   const d = noon(iso)
@@ -179,6 +183,10 @@ export function detail(id, today = isoOf(new Date())) {
     orders: orderSuggestions(p, p.phases, tasks),
     slack: slackOf(p, p.phases, tasks, today),
     fit: fitOf(p, p.phases, tasks, { workdayHours: Number(settings.get().workdayHours) || 8.4 }),
+    forecast: forecastOf(p, p.phases, tasks, today, { workdayHours: Number(settings.get().workdayHours) || 8.4 }),
+    daysOff: offBetween(p.phases.find(x => x.start)?.start || today, p.deadline || p.phases.at(-1)?.end || today),
+    holidayRegion: rules().region,
+    daysOffText: settings.get().daysOff || '',
     today
   }
 }
@@ -189,9 +197,84 @@ export function summaries(today = isoOf(new Date())) {
   return list().filter(p => !p.archived).map(p => {
     const mine = tasks.filter(t => belongs(t, p))
     const s = slackOf(p, p.phases, tasks, today)
+    const f = forecastOf(p, p.phases, tasks, today, { workdayHours: Number(settings.get().workdayHours) || 8.4 })
+    if (f.slack !== null && (s.slack === null || f.slack < s.slack)) s.slack = f.slack   // a chain that runs late is the plan running late
     const current = p.phases.find(ph => ph.start && ph.end && ph.start <= today && today <= ph.end) || p.phases.find(ph => ph.start && ph.start > today) || null
     return { id: p.id, name: p.name, machine: p.machine, goal: p.goal, deadline: p.deadline, deadlineLabel: p.deadlineLabel, phases: p.phases, open: mine.filter(t => !t.done).length, done: mine.filter(t => t.done).length, slack: s.slack, late: s.late.length, current: current ? current.name : null, daysLeft: p.deadline ? gap(today, p.deadline) : null }
   })
+}
+
+/**
+ * The forecast (roadmap 132). A task can wait for others (`after`, task ids on the same machine). Walked
+ * forward from today: a task starts the working day after the last thing it waits for finishes, or when its
+ * phase starts, or today, whichever is latest, and takes its length: a part with a supplier takes what is left of its lead time (the learned median,
+ * fourteen days when the supplier is new, counted from the order when there is one), anything else its
+ * size in planned days (effort over the planned share of a workday), one day when unsized. Its limit is
+ * its due date, else its phase end, else the deadline. The chain runs through the task with the least
+ * room: back through whatever held it up, and on through whatever it holds up. `slack` is that least room.
+ * Only tasks in a "waits for" pair are forecast; a project without any gets { tasks: {}, chain: [], slack: null }.
+ */
+export function forecastOf(project, phases, tasks, today = isoOf(new Date()), { workdayHours = 8.4, share = PLANNING_SHARE, suggestFn = suggestLead } = {}) {
+  const mine = tasks.filter(t => belongs(t, project))
+  const byId = Object.fromEntries(mine.map(t => [t.id, t]))
+  const preds = Object.fromEntries(mine.map(t => [t.id, (Array.isArray(t.after) ? t.after : []).filter(id => id !== t.id && byId[id])]))
+  const involved = new Set()
+  for (const [id, ps] of Object.entries(preds)) if (ps.length) { involved.add(id); ps.forEach(p => involved.add(p)) }
+  if (!involved.size) return { tasks: {}, chain: [], slack: null }
+  const phaseEnd = Object.fromEntries(phases.map(p => [p.id, p.end]))
+  const phaseStart = Object.fromEntries(phases.map(p => [p.id, p.start]))
+  const perDay = Math.max(0.5, workdayHours * share)
+  const length = t => {
+    if (t.supplier && !t.deliveredOn) {
+      const cal = Number(suggestFn({ supplier: t.supplier, needBy: null }, tasks)?.days) || 14
+      const lead = Math.max(1, Math.ceil(cal * 5 / 7))
+      return t.orderedOn ? Math.max(1, lead - Math.max(0, gap(t.orderedOn.slice(0, 10), today))) : lead
+    }
+    return t.effortHours ? Math.max(1, Math.ceil(Number(t.effortHours) / perDay)) : 1
+  }
+  const out = {}, visiting = new Set()
+  const walk = id => {
+    if (out[id]) return out[id]
+    if (visiting.has(id)) return null   // a loop in "waits for": that edge is ignored
+    visiting.add(id)
+    const t = byId[id]
+    let start = t.phase && phaseStart[t.phase] && phaseStart[t.phase] > today ? phaseStart[t.phase] : today, heldBy = null
+    for (const p of preds[id]) {
+      const f = walk(p); if (!f || f.done) continue
+      const next = addWorkingDays(f.finish, 1)
+      if (next > start) { start = next; heldBy = p }
+    }
+    start = addWorkingDays(start, 0)   // onto a working day
+    visiting.delete(id)
+    if (t.done) return (out[id] = { done: true, start: null, finish: null, days: 0, limit: null, slack: null, heldBy: null })
+    const days = length(t)
+    const finish = addWorkingDays(start, days - 1)
+    const limit = (t.dueDate || '').slice(0, 10) || (t.phase && phaseEnd[t.phase]) || project.deadline || null
+    return (out[id] = { done: false, start, finish, days, limit, slack: limit ? gap(finish, limit) : null, heldBy })
+  }
+  for (const id of involved) walk(id)
+  const scored = [...involved].filter(id => out[id] && !out[id].done && out[id].slack !== null)
+  if (!scored.length) return { tasks: out, chain: [], slack: null }
+  const byRoom = (a, b) => out[a].slack - out[b].slack || (out[b].finish > out[a].finish ? 1 : -1)
+  const least = scored.slice().sort(byRoom)[0]
+  const chain = []
+  const entry = id => ({ id, title: byId[id].title, phase: byId[id].phase || null, ...out[id] })
+  for (let id = least, n = 0; id && n < 50; id = out[id]?.heldBy, n++) chain.unshift(entry(id))
+  for (let cur = least, n = 0; n < 50; n++) {   // on through what it holds up, the tightest first
+    const next = scored.filter(k => out[k].heldBy === cur && !chain.some(c => c.id === k)).sort(byRoom)[0]
+    if (!next) break
+    chain.push(entry(next)); cur = next
+  }
+  return { tasks: out, chain, slack: out[least].slack }
+}
+
+/** The phase a new task on this machine belongs in: the one running today, else the next, else the last. Null when no project plans it. */
+export function phaseFor(machine, today = isoOf(new Date())) {
+  const m = String(machine || '').trim().toLowerCase(); if (!m) return null
+  const p = list().find(x => !x.archived && (x.machine || '').trim().toLowerCase() === m)
+  if (!p || !p.phases.length) return null
+  const ph = p.phases.find(x => x.start && x.end && x.start <= today && today <= x.end) || p.phases.find(x => x.start && x.start > today) || p.phases.at(-1)
+  return ph?.id || null
 }
 
 /** Re-plan from the deadline and, when asked, write need-by and order-by onto the parts. */

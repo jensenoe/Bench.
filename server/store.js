@@ -170,7 +170,7 @@ const now = () => new Date().toISOString()
  *   deliveredOn  the day the part arrived; with orderedOn it is one lead-time sample for the supplier
  *   links        files and pages that belong to the task, [{ id, href, label }], photographs included
  */
-export const OWN_FIELDS = ['assignedBy', 'lead', 'project', 'priority', 'effortHours', 'tags', 'checklist', 'repeat', 'supplier', 'poNumber', 'orderedOn', 'deliveredOn', 'links', 'phase']
+export const OWN_FIELDS = ['assignedBy', 'lead', 'project', 'priority', 'effortHours', 'tags', 'checklist', 'repeat', 'supplier', 'poNumber', 'orderedOn', 'deliveredOn', 'links', 'phase', 'after']
 const clampPrio = p => (p === null || p === undefined || p === '') ? null : Math.min(3, Math.max(1, Number(p) || 3))
 const normTags = t => Array.isArray(t) ? [...new Set(t.map(x => String(x).trim()).filter(Boolean))].slice(0, 12)
   : typeof t === 'string' ? normTags(t.split(/[,;]/)) : []
@@ -186,6 +186,8 @@ export const cleanLinks = (v) => Array.isArray(v) ? v.map(l => typeof l === 'str
   const label = String(l.label || '').trim() || href.split(/[\\/]/).filter(Boolean).pop() || href
   return { id: l.id || crypto.randomUUID(), href, label: label.slice(0, 120) }
 }).filter(l => l.href).slice(0, 40) : []
+/** "Waits for": up to twenty task ids, strings, no repeats. */
+const normAfter = v => Array.isArray(v) ? [...new Set(v.filter(x => typeof x === 'string' && x.trim()).map(x => x.trim()))].slice(0, 20) : []
 const ownFields = (input = {}) => ({
   assignedBy: str(input.assignedBy),
   lead: str(input.lead),
@@ -200,6 +202,7 @@ const ownFields = (input = {}) => ({
   orderedOn: dateStr(input.orderedOn),
   deliveredOn: dateStr(input.deliveredOn),
   phase: str(input.phase),   // a phase id of the project plan (roadmap 121); null when the task is unplanned
+  after: normAfter(input.after),   // task ids this one waits for (roadmap 132)
   links: cleanLinks(input.links)
 })
 
@@ -329,6 +332,7 @@ export function updateTask(id, patch) {
   for (const k of ['supplier', 'poNumber']) if (k in patch) t[k] = str(patch[k])
   if ('orderedOn' in patch) t.orderedOn = dateStr(patch.orderedOn)
   if ('phase' in patch) t.phase = str(patch.phase)
+  if ('after' in patch) t.after = normAfter(patch.after).filter(x => x !== t.id)
   if ('deliveredOn' in patch) t.deliveredOn = dateStr(patch.deliveredOn)
   if ('links' in patch) t.links = cleanLinks(patch.links)
 
