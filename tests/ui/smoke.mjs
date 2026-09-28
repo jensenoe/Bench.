@@ -80,6 +80,8 @@ try {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   for (const r of PAGES) {
     await page.goto(`${BASE}/#/${r}`, { waitUntil: 'networkidle' }); await page.waitForTimeout(800)
+    // opacity fades still run under reduced motion; measure contrast only once they have settled, never mid-fade
+    await page.waitForFunction(() => document.getAnimations().every(a => a.playState !== 'running' || a.effect?.getTiming?.().iterations === Infinity), null, { timeout: 5000 }).catch(() => {})
     const res = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze()
     check(`axe ${r || 'home'}: no accessibility violations`, res.violations.length === 0, violations(res))
   }

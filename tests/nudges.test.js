@@ -58,13 +58,17 @@ describe('when a nudge fits (roadmap 139)', () => {
 })
 
 describe('the admin approval link (roadmap 138)', () => {
-  it('names the four permissions, never Mail.Read, and sends the admin back to the native reply address', () => {
+  it('asks the admin only for the two narrow permissions, never the broad ones or Mail.Read (roadmap 140)', () => {
     const u = decodeURIComponent(A.adminConsentUrl())
     expect(u).toContain('/v2.0/adminconsent?client_id=')
-    for (const s of ['Tasks.ReadWrite', 'Files.ReadWrite', 'Calendars.Read', 'Sites.Read.All']) expect(u).toContain(`https://graph.microsoft.com/${s}`)
-    expect(u).not.toContain('Mail.Read')
+    for (const s of ['Calendars.ReadBasic', 'Sites.Selected']) expect(u).toContain(`https://graph.microsoft.com/${s}`)
+    for (const s of ['Sites.Read.All', 'Calendars.Read ', 'Mail.Read', 'Tasks.ReadWrite', 'Files.ReadWrite']) expect(u + ' ').not.toContain(s)
     expect(u).toContain('redirect_uri=https://login.microsoftonline.com/common/oauth2/nativeclient')
-    expect(A.approval().scopes.map(x => x.scope)).toEqual(['Tasks.ReadWrite', 'Files.ReadWrite', 'Calendars.Read', 'Sites.Read.All'])
-    expect(A.scopes().some(s => s.endsWith('Mail.Read'))).toBe(true)   // still asked for, on its own
+    expect(A.approval().scopes.map(x => x.scope)).toEqual(['Calendars.ReadBasic', 'Sites.Selected'])
+    expect(A.approval().self.map(x => x.scope)).toEqual(['Tasks.ReadWrite', 'Files.ReadWrite'])
+    const all = A.scopes().map(s => s.split('/').pop())
+    expect(all).not.toContain('Sites.Read.All')
+    expect(all).not.toContain('Calendars.Read')
+    expect(all).toContain('Mail.Read')   // still asked for, on its own, only with mail reading on
   })
 })

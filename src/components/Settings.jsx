@@ -333,7 +333,6 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
               ) : (
                 <>
                   <Connect auth={auth} onRefresh={onRefresh} />
-                  <p className="text-[13px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>If Microsoft answers "Need admin approval", send your admin the note below; one click on their side approves it all.</p>
                   <AdminApproval auth={auth} name={draft.name} />
                 </>
               )}

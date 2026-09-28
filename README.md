@@ -12,7 +12,7 @@
 Installing over an older Bench. keeps your board, hours and settings. `Bench-portable-…exe` on the
 same page is the no-install version: keep it in any folder and run it from there.
 
-**0.11, seventeenth beta (0.11.0-beta.17).** Everything here works on my machine and on the mocks; the
+**0.11, eighteenth beta (0.11.0-beta.18).** Everything here works on my machine and on the mocks; the
 Microsoft paths (Planner, the hours workbook, the issue list, the calendar) still want a
 first real run in the tom.fit tenant, and the issue list and calendar need a one-time admin
 approval, see below.
@@ -54,7 +54,7 @@ Administrator; `build-exe.bat plain` skips the icon stamping instead, and `build
 Bump `version` in `package.json`, commit, then tag and push:
 
 ```bash
-git tag v0.11.0-beta.17 && git push --tags
+git tag v0.11.0-beta.18 && git push --tags
 ```
 
 The *Release* workflow in `.github/workflows/release.yml` builds both exes on a Windows
@@ -132,7 +132,7 @@ without publishing and leaves the exes as a workflow artifact.
 | Tool | How it's read | Sign-in |
 |---|---|---|
 | **Phase Gate** (innovation.tom.fit) | Microsoft Planner via Graph, `/me/planner/tasks` | Connect Planner, once. Device code. |
-| **Issue tickets** (issues.tom.fit) | The site's SharePoint list, read directly through Graph with your Microsoft 365 sign-in (`Sites.Read.All`). Assignees matched on the name and email in Settings. | Connect Microsoft 365 in Settings. No separate sign-in. |
+| **Issue tickets** (issues.tom.fit) | The site's SharePoint list, read directly through Graph with your Microsoft 365 sign-in (`Sites.Selected`: only the site an admin has granted to the app). Assignees matched on the name and email in Settings. | Connect Microsoft 365 in Settings. No separate sign-in. |
 | **QMS** (tf-hw-qms) | `GET /api/tickets`, matched on your name | Tools → Sign in. SSO. |
 | **Structured BOM** (oetwil-structured-bom) | `GET /api/machine/{id}` for every machine, any `assigned_to*` matching you | Tools → Sign in. SSO. |
 
@@ -168,16 +168,23 @@ SYNC_INTERVAL_MINUTES=2
 # TIMESHEET_URL=your_onedrive_sharing_link_here   (a sharing link to the workbook; it wins over the path)
 ```
 
-The registration has *Allow public client flows* on. The app asks for `Tasks.ReadWrite` (Planner),
-`Files.ReadWrite` (the Zeiterfassung workbook), `Sites.Read.All` (the issue-ticket list) and
-`Calendars.Read` (today's meetings for the Logbook). In the tom.fit tenant an admin approves them once:
-Settings > Tools > Microsoft 365 has *Copy a note for your admin* with the one link that names exactly
-these four, and Bench. picks the approval up by itself afterwards. For that link the registration needs
-the platform *Mobile and desktop applications* with the reply address
-`https://login.microsoftonline.com/common/oauth2/nativeclient` ticked; an admin can also use Enterprise
-applications > Project Management Tool > Permissions > *Grant admin consent*, which grants what the
-registration lists under API permissions. `Mail.Read` (order confirmations, only with mail reading on) is
-asked for on its own and is not part of that approval. If you were
+The registration has *Allow public client flows* on. Everything is delegated, so Bench. sees only what you
+can see, and it asks for the least it needs:
+
+| Permission | For | Who approves |
+|---|---|---|
+| `Tasks.ReadWrite` | Planner | you, in the prompt at the first sign-in |
+| `Files.ReadWrite` | the Zeiterfassung workbook | you, in the prompt at the first sign-in |
+| `Calendars.ReadBasic` | today's meetings: subject, times, place, people; no bodies | a tom.fit admin, once |
+| `Sites.Selected` | the issue-ticket list, on the one site an admin grants to the app, read only | a tom.fit admin, once, plus the site grant |
+| `Mail.Read` | order confirmations, only with mail reading on; asked for on its own | a tom.fit admin, only if ever wanted |
+
+Settings > Tools > Microsoft 365 shows what works and has *Copy a note for your admin*: the link that names
+only the two admin permissions, the site and list IDs of the issue list, and the site grant (Graph
+`POST /sites/{site-id}/permissions` with role read for the app, or PnP `Grant-PnPAzureADAppSitePermission`).
+The registration must list the permissions it asks for under *API permissions*, and for the link it needs the
+platform *Mobile and desktop applications* with `https://login.microsoftonline.com/common/oauth2/nativeclient`
+ticked. Bench. picks the approval up by itself afterwards. If you were
 connected before the time clock existed, the pill goes back to *Connect* once: sign in
 again and consent to the second scope.
 
@@ -260,7 +267,7 @@ Bench. writes it back). The completion toast says so and offers to open the tick
 so you can close it where it counts.
 
 **Logbook from the calendar**: the calendar button on the Logbook lists today's Outlook
-meetings (`Calendars.Read`); one click starts an entry with the title, attendees, time and
+meetings (`Calendars.ReadBasic`); one click starts an entry with the title, attendees, time and
 room filled in.
 
 ## Logbook and Napkin.

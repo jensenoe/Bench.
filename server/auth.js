@@ -19,7 +19,10 @@ const TENANT_ID = process.env.AZURE_TENANT_ID || DEFAULT_TENANT_ID
 // is asked for separately and its absence never blocks the sign-in itself.
 const g = s => s.startsWith('http') ? s : `https://graph.microsoft.com/${s}`
 const CORE = ['Tasks.ReadWrite', 'Files.ReadWrite'].map(g)
-const EXTRA = ['Sites.Read.All', 'Calendars.Read'].map(g)
+// Least privilege (roadmap 140), as the tom.fit admin asked: the calendar through Calendars.ReadBasic (subject,
+// times, place, people, never bodies or attachments), the issue list through Sites.Selected, which reaches only
+// the sites an admin has granted to this app. Bench. reads exactly one list on one site.
+const EXTRA = ['Sites.Selected', 'Calendars.ReadBasic'].map(g)
 // Mail.Read is asked for on its own (roadmap 138): one refused scope fails the whole request, so an admin
 // who approves the calendar and the issue list without the mail must not leave the meetings blocked too.
 const MAIL = ['Mail.Read'].map(g)   // order confirmations and delivery notes (roadmap 113), only with mail reading on
@@ -30,22 +33,23 @@ const EXTRA_ALL = [...new Set([...EXTRA, ...ENV_EXTRA])]
 export const isConfigured = () => Boolean(CLIENT_ID)
 export const scopes = () => SCOPES
 /**
- * The admin's one click (roadmap 138). The v2 admin-consent link names the four delegated permissions
- * Bench. uses, so it grants exactly those, whatever the registration happens to list, and never Mail.Read.
- * Microsoft only sends the admin back to a reply address the registration knows: the registration needs
- * the "Mobile and desktop applications" platform with the nativeclient address ticked. A blank page there
- * with admin_consent=True in the address means it worked. After that Bench. picks the approval up by itself.
+ * The admin's part (roadmaps 138, 140). Planner and the workbook (CORE) are user-consentable in tom.fit: you accept
+ * them yourself at the first sign-in. The admin approves only the two narrow ones below, through the v2 link that
+ * names exactly those, and grants the one site read access for Sites.Selected. Microsoft sends the admin back to
+ * the nativeclient reply address, which the registration needs under "Mobile and desktop applications".
  */
 export const NATIVE_REDIRECT = 'https://login.microsoftonline.com/common/oauth2/nativeclient'
-export const APPROVAL = [
+export const SELF = [
   { scope: 'Tasks.ReadWrite', why: 'my Planner tasks' },
-  { scope: 'Files.ReadWrite', why: 'my Zeiterfassung workbook in my OneDrive' },
-  { scope: 'Calendars.Read', why: "today's meetings" },
-  { scope: 'Sites.Read.All', why: 'the issue-ticket list on SharePoint' }
+  { scope: 'Files.ReadWrite', why: 'my Zeiterfassung workbook in my OneDrive' }
+]
+export const APPROVAL = [
+  { scope: 'Calendars.ReadBasic', why: "today's meetings: subject, times, place and people, no bodies or attachments" },
+  { scope: 'Sites.Selected', why: 'the issue-ticket list, on the one site granted to the app, read only' }
 ]
 export const adminConsentUrl = () => `https://login.microsoftonline.com/${TENANT_ID}/v2.0/adminconsent?client_id=${CLIENT_ID}&scope=${encodeURIComponent(APPROVAL.map(a => g(a.scope)).join(' '))}&redirect_uri=${encodeURIComponent(NATIVE_REDIRECT)}`
 /** What the Settings panel shows and copies for the admin. */
-export const approval = () => ({ url: adminConsentUrl(), app: 'Project Management Tool', clientId: CLIENT_ID, tenantId: TENANT_ID, redirectUri: NATIVE_REDIRECT, scopes: APPROVAL })
+export const approval = () => ({ url: adminConsentUrl(), app: 'Project Management Tool', clientId: CLIENT_ID, tenantId: TENANT_ID, redirectUri: NATIVE_REDIRECT, self: SELF, scopes: APPROVAL })
 
 /**
  * Token cache on disk, so signing in survives a restart.

@@ -114,44 +114,54 @@ export function StorageLine() {
   )
 }
 
+/** One permission and its state, for AdminApproval. */
+const PermissionLine = ({ x, works, waiting }) => (
+  <li className="flex flex-wrap items-baseline gap-x-2">
+    <span className="inline-block h-2 w-2 rounded-full" aria-hidden="true" style={{ background: works ? 'var(--ok)' : waiting ? 'var(--caution)' : 'var(--ink-3)' }} />
+    <span className="tnum">{x.scope}</span><span style={{ color: 'var(--ink-3)' }}>{x.why.replace(/\bmy\b/g, 'your')}, {works ? 'works' : waiting ? 'waiting for the admin' : 'not connected yet'}</span>
+  </li>
+)
+
 /**
- * For the admin (roadmap 138). What Bench. needs from Microsoft, which parts already work, and the one
- * link an admin opens to approve all four permissions at once. The note is ready to paste into a mail or
- * a Teams chat; "Open it here" is for the admin at this desk.
+ * For the admin (roadmaps 138, 140). Planner and the workbook you approve yourself when you connect; the admin
+ * approves only Calendars.ReadBasic and Sites.Selected, and grants the one site of the issue list read access
+ * for this app. The note names the site and the list, so the admin can grant exactly that and nothing wider.
  */
 export function AdminApproval({ auth, name = '' }) {
   const [copied, setCopied] = useState(null)
   const a = auth?.approval
   if (!a) return null
-  const on = { 'Tasks.ReadWrite': auth.signedIn, 'Files.ReadWrite': auth.signedIn, 'Calendars.Read': auth.extra?.granted, 'Sites.Read.All': auth.extra?.granted }
+  const on = { 'Tasks.ReadWrite': auth.signedIn, 'Files.ReadWrite': auth.signedIn, 'Calendars.ReadBasic': auth.extra?.granted, 'Sites.Selected': auth.extra?.granted }
   const first = String(name || '').trim().split(/\s+/)[0] || ''
+  const host = String(a.site?.id || '').split(',')[0]
   const note = [
     'Hi,', '',
-    `Could you approve the app "${a.app}" for me? It is my own planning tool, registered in our tenant (client ID ${a.clientId}). It signs in as me with delegated permissions only, so it sees only what I can already see:`,
+    `Thanks for looking. I approved Planner and my workbook myself. For the calendar and the issue list, the app "${a.app}" (client ID ${a.clientId}) now asks only for these two delegated permissions:`,
     ...a.scopes.map(x => `- ${x.scope}: ${x.why}`), '',
-    'One click: open this link with your admin account, check the list, press Accept. A blank page afterwards means it worked.',
-    a.url, '',
-    'Or in the Entra admin center: Enterprise applications > Project Management Tool > Permissions > Grant admin consent.', '',
+    'The issue-ticket list is one list on one site:',
+    `- site: ${a.site?.id || 'see Bench. Settings'}`,
+    `- list: ${a.site?.list || ''}`, '',
+    'Two steps on your side:',
+    '1. Admin consent for the two permissions, with this link (it names only those two):',
+    a.url,
+    `2. Read access for the app on that one site, for Sites.Selected: POST https://graph.microsoft.com/v1.0/sites/${a.site?.id || '<site-id>'}/permissions with roles ["read"] for the application ${a.clientId}, or in PnP PowerShell Grant-PnPAzureADAppSitePermission -AppId ${a.clientId} -DisplayName "${a.app}" -Site <the site URL on ${host || 'our SharePoint'}> -Permissions Read.`, '',
     first ? `Thanks, ${first}` : 'Thanks'
   ].join('\n')
   const copy = async (text, which) => { try { await navigator.clipboard.writeText(text); setCopied(which); setTimeout(() => setCopied(null), 2500) } catch { toast('Could not copy.', 'Select the text by hand instead.') } }
   return (
     <div className="row mt-3 p-4 text-[13.5px]">
-      <p className="font-medium">For your admin.</p>
-      <p className="mt-1 leading-relaxed" style={{ color: 'var(--ink-2)' }}>Microsoft wants an admin to approve Bench. once for tom.fit. The link below asks for exactly these four, nothing else, and afterwards Bench. picks the approval up by itself.</p>
-      <ul className="mt-2 flex flex-col gap-1 text-[13px]">
-        {a.scopes.map(x => (
-          <li key={x.scope} className="flex flex-wrap items-baseline gap-x-2">
-            <span className="inline-block h-2 w-2 rounded-full" aria-hidden="true" style={{ background: on[x.scope] ? 'var(--ok)' : auth.signedIn ? 'var(--caution)' : 'var(--ink-3)' }} />
-            <span className="tnum">{x.scope}</span><span style={{ color: 'var(--ink-3)' }}>{x.why.replace(/\bmy\b/g, 'your')}, {on[x.scope] ? 'works' : auth.signedIn ? 'waiting for the approval' : 'not connected yet'}</span>
-          </li>
-        ))}
-      </ul>
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <button onClick={() => copy(note, 'note')} className="pill btn-primary inline-flex min-h-[32px] items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium">{copied === 'note' ? 'Copied' : 'Copy a note for your admin'}</button>
-        <button onClick={() => copy(a.url, 'link')} className="pill btn-quiet inline-flex min-h-[32px] items-center gap-1.5 px-3.5 py-1.5 text-[13px]">{copied === 'link' ? 'Copied' : 'Copy only the link'}</button>
-        <button onClick={() => api.openExternal(a.url)} className="-my-1 inline-block py-1 text-[13px] underline underline-offset-2" style={{ color: 'var(--ink-2)' }}>Open it here, for an admin at this desk</button>
-      </div>
+      <p className="font-medium">Permissions.</p>
+      <p className="mt-2 text-[13px]" style={{ color: 'var(--ink-3)' }}>You approve these yourself, in the Microsoft prompt when you connect:</p>
+      <ul className="mt-1 flex flex-col gap-1 text-[13px]">{(a.self || []).map(x => <PermissionLine key={x.scope} x={x} works={on[x.scope]} waiting={false} />)}</ul>
+      <p className="mt-3 text-[13px]" style={{ color: 'var(--ink-3)' }}>Your admin approves these, once, and grants the issue list's site to the app:</p>
+      <ul className="mt-1 flex flex-col gap-1 text-[13px]">{a.scopes.map(x => <PermissionLine key={x.scope} x={x} works={on[x.scope]} waiting={auth.signedIn} />)}</ul>
+      {auth.signedIn && !auth.extra?.granted && (
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <button onClick={() => copy(note, 'note')} className="pill btn-primary inline-flex min-h-[32px] items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium">{copied === 'note' ? 'Copied' : 'Copy a note for your admin'}</button>
+          <button onClick={() => copy(a.url, 'link')} className="pill btn-quiet inline-flex min-h-[32px] items-center gap-1.5 px-3.5 py-1.5 text-[13px]">{copied === 'link' ? 'Copied' : 'Copy only the link'}</button>
+          <button onClick={() => api.openExternal(a.url)} className="-my-1 inline-block py-1 text-[13px] underline underline-offset-2" style={{ color: 'var(--ink-2)' }}>Open it here, for an admin at this desk</button>
+        </div>
+      )}
     </div>
   )
 }
