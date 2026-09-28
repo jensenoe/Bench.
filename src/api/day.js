@@ -1,6 +1,8 @@
 /** The day's bookends, the free-hours line and the weekly review (server/day.js). */
 import { j, H } from './http.js'
 export const getBrief = () => fetch('/api/day/brief').then(j)
+/** The briefing under the greeting on Home: { variant, lines: [{ kind, text }], weather } */
+export const getHero = () => fetch('/api/day/hero').then(j)
 export const briefSeen = () => fetch('/api/day/brief/seen', { method: 'POST' }).then(j)
 export const applyBrief = (toActive = []) => fetch('/api/day/brief/apply', { method: 'POST', headers: H, body: JSON.stringify({ toActive }) }).then(j)
 export const getClose = () => fetch('/api/day/close').then(j)

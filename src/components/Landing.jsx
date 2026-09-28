@@ -8,6 +8,7 @@ import Week from './Week.jsx'
 import { STATUS } from '../scenes.js'
 import { openTool } from '../api.js'
 import { SHEETS, greeting } from '../copy.js'
+import { HeroWeather, useHero, heroText } from './HeroLine.jsx'
 
 const EASE = [0.16, 1, 0.3, 1]
 
@@ -63,6 +64,7 @@ export default function Landing({ scene, stats, pressing, sheetState, doorImages
   useEffect(() => { setLead(greeting(stats, scene, name, { random: true }).lead) }, [scene.key, hour, name])   // eslint-disable-line react-hooks/exhaustive-deps
   const [a, b] = lead
   const { state } = greeting(stats, scene, name, { late, hoursIn })
+  const hero = useHero()
   const [board, proc, bench, logbook, napkin, cockpit] = SHEETS
 
   return (
@@ -71,6 +73,7 @@ export default function Landing({ scene, stats, pressing, sheetState, doorImages
         <div className="on-photo mx-auto flex h-full col flex-col justify-end px-6 pb-[14vh]">
           <motion.div initial={{ opacity: 0, y: 26 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .9, ease: EASE }}
             className="glass inline-block w-fit max-w-full px-8 py-7 sm:px-10 sm:py-9">
+          <HeroWeather weather={hero?.weather} />
           <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .9, delay: .1, ease: EASE }}
             className="display max-w-[14ch] text-[48px] leading-[1.02] sm:text-[72px]"
             style={{ textShadow: 'var(--shadow-text)' }}>
@@ -78,8 +81,8 @@ export default function Landing({ scene, stats, pressing, sheetState, doorImages
             <span className="font-semibold">{b}</span>
           </motion.h1>
           <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .8, delay: .15, ease: EASE }}
-            className="mt-6 max-w-[40ch] text-[17px] leading-relaxed sm:text-[19px]" style={{ color: 'var(--ink-2)', textShadow: 'var(--shadow-text-soft)' }}>
-            {state}
+            data-volatile className="mt-6 max-w-[44ch] text-[17px] leading-relaxed sm:text-[19px]" style={{ color: 'var(--ink-2)', textShadow: 'var(--shadow-text-soft)' }}>
+            {late ? state : heroText(hero, scene)}
           </motion.p>
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .8, delay: .3, ease: EASE }} className="mt-8">
             <a href="#/board" className="pill inline-flex items-center gap-2 px-5 py-2.5 text-[13.5px] font-medium"

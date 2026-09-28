@@ -341,7 +341,8 @@ export function review(startParam) {
 
 // ── meeting ended, write it down ──────────────────────────────────────
 let calCache = { date: null, at: 0, events: [] }
-async function meetingsCached(now = new Date()) {
+/** Today's meetings, fetched at most every ten minutes; the hero line on Home reads the same cache. */
+export async function meetingsCached(now = new Date()) {
   const today = dayKey(now)
   if (calCache.date !== today || now.getTime() - calCache.at > 10 * 60_000) calCache = { date: today, at: now.getTime(), events: await meetingsSoft() }
   return calCache.events

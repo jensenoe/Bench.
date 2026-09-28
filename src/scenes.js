@@ -160,6 +160,16 @@ export function cockpitCover(d = new Date()) {
   return { src: imgs.length ? imgs[Math.floor(dayOfYear(d) / 7) % imgs.length] : '/terrain/night.jpg', fallback: '/terrain/night.jpg' }
 }
 
+/** Who took the picture on screen and which library it is from, for the quiet line under the greeting. */
+export function photoCredit(terrain) {
+  const file = String(terrain || '').split('/').pop()
+  for (const [k, v] of Object.entries(library)) {
+    if (k === '_sky') continue
+    for (const s of ['dawn', 'day', 'dusk', 'night', 'images']) for (const p of v[s] || []) if (p.file === file) return { by: p.by || null, library: v.label, scene: s }
+  }
+  return null
+}
+
 /** Credits for the settings panel. */
 export function credits() {
   const out = []
