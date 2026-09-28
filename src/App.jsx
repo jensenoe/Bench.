@@ -17,6 +17,7 @@ import OpenDay from './components/OpenDay.jsx'
 import Shortcuts from './components/Shortcuts.jsx'
 import ErrorToast from './components/ErrorToast.jsx'
 import ConfirmHost from './components/Confirm.jsx'
+import { PAGE_KEYS } from './pages.js'
 import PageSkeleton from './components/Skeleton.jsx'
 import MorningBrief from './components/MorningBrief.jsx'
 import EveningClose from './components/EveningClose.jsx'
@@ -26,7 +27,6 @@ import { Routes, paletteActions } from './routes.jsx'
 const Wall = lazy(() => import('./components/Wall.jsx'))
 
 const route = () => location.hash.replace(/^#\/?/, '').split('?')[0]
-const PAGE_KEYS = { 1: '', 2: 'board', 3: 'procurement', 4: 'tools', 5: 'logbook', 6: 'napkin', 7: 'hours', 8: 'review', 9: 'machines' }
 const SOURCE_LABEL = { planner: 'Phase Gate', issues: 'Issues', qms: 'QMS', bom: 'the BOM' }
 const inField = () => ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName) || document.activeElement?.isContentEditable
 
@@ -282,7 +282,7 @@ export default function App() {
           timeclock={timeclock} />
       </Suspense>
 
-      <Footer compact={inner} name={settings.name} version={state.version} scene={scene} glow={light && scene.light ? scene.light.glow : scene.glow} now={now} onSettings={openSettings} />
+      <Footer compact={inner} name={settings.name} version={state.version} scene={scene} glow={light && scene.light ? scene.light.glow : scene.glow} now={now} />
     </div>
   )
 }

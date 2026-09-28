@@ -203,11 +203,26 @@ try {
   await page.keyboard.press('Escape'); await page.waitForTimeout(350)
   check('Escape closes the key sheet', !(await sheet.isVisible().catch(() => false)))
 
+  // the nav (roadmap 130): three pages on top, More for the rest, and More says which page is on screen
+  const navLinks = await page.evaluate(() => [...document.querySelectorAll('nav[aria-label="Pages"] a[href^="#/"]')].map(a => a.textContent.trim()).filter(t => t && t !== 'Skip to content'))
+  check('the nav shows the wordmark, Board, Logbook and Projects', JSON.stringify(navLinks) === JSON.stringify(['Bench.', 'Board', 'Logbook', 'Projects']), JSON.stringify(navLinks))
+  const more = page.getByRole('button', { name: 'More' })
+  await more.click(); await page.waitForTimeout(350)
+  const menuLinks = await page.evaluate(() => [...document.querySelectorAll('nav[aria-label="Pages"] [id] a')].map(a => a.textContent.trim()))
+  check('More lists the other pages and the TomFit tools', ['Procurement', 'Machines', 'Hours', 'Review', 'Napkin', 'Tools', 'Playbooks', 'Cockpit'].every(t => menuLinks.some(m => m.startsWith(t))), menuLinks.join(' | '))
+  const moreSmall = await page.evaluate(() => [...document.querySelectorAll('nav[aria-label="Pages"] [id] a')].filter(a => a.getBoundingClientRect().height < 24).length)
+  check('every link in More is at least 24 px', moreSmall === 0, String(moreSmall))
+  const moreAxe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze()
+  check('axe with More open: no accessibility violations', moreAxe.violations.length === 0, violations(moreAxe))
+  await page.keyboard.press('Escape'); await page.waitForTimeout(300)
+  check('Escape closes More and gives focus back to its button', (await page.evaluate(() => document.activeElement?.getAttribute('aria-expanded'))) === 'false')
+
   // focus follows the route: pressing 7 lands on the Hours heading
   await page.keyboard.press('7'); await page.waitForTimeout(1200)
   const focused = await page.evaluate(() => ({ tag: document.activeElement?.tagName, text: document.activeElement?.textContent?.trim().slice(0, 20) }))
   check('changing page moves focus to the page heading', focused.tag === 'H1' && /Hours/.test(focused.text || ''), JSON.stringify(focused))
   check('hours page uses the mono register and the one-pixel grid', (await page.locator('table.ledger.mono').count()) === 1)
+  check('on Hours the More button reads Hours', await page.locator('nav[aria-label="Pages"] button[aria-expanded]').first().textContent().then(t => t.trim()) === 'Hours')
 
   // chips stay on one line
   await page.goto(`${BASE}/#/board`, { waitUntil: 'networkidle' }); await page.waitForTimeout(500)

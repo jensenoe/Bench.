@@ -12,7 +12,7 @@
 Installing over an older Bench. keeps your board, hours and settings. `Bench-portable-…exe` on the
 same page is the no-install version: keep it in any folder and run it from there.
 
-**0.11, twelfth beta (0.11.0-beta.12).** Everything here works on my machine and on the mocks; the
+**0.11, thirteenth beta (0.11.0-beta.13).** Everything here works on my machine and on the mocks; the
 Microsoft paths (Planner, the hours workbook, the issue list, the calendar) still want a
 first real run in the tom.fit tenant, and the issue list and calendar need a one-time admin
 approval, see below.
@@ -54,7 +54,7 @@ Administrator; `build-exe.bat plain` skips the icon stamping instead, and `build
 Bump `version` in `package.json`, commit, then tag and push:
 
 ```bash
-git tag v0.11.0-beta.12 && git push --tags
+git tag v0.11.0-beta.13 && git push --tags
 ```
 
 The *Release* workflow in `.github/workflows/release.yml` builds both exes on a Windows
@@ -66,7 +66,7 @@ without publishing and leaves the exes as a workflow artifact.
 
 - **Keyboard.** `n` adds a task from anywhere (Alt 1 to 5 picks the lane, Enter adds). `/` or
   Ctrl K searches tasks, notes, maps and pages, and `>` in the box lists actions (clock in, theme, new
-  entry, wall mode). `1` to `9` switch pages. `?` shows every key. On the Board, `j` and `k` walk the
+  entry, wall mode). `1` to `9` switch pages: Home, Board, Logbook, Projects, then Procurement, Machines, Hours, Review and Napkin. `?` shows every key. On the Board, `j` and `k` walk the
   cards, `e` opens one, `x` ticks it, Alt with arrows moves it. Ctrl Alt B opens the quick add from
   anywhere in Windows. Escape closes whatever is open.
 - **The day has a shape.** The first start of the day opens the morning brief: what came in overnight,

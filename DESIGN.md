@@ -159,7 +159,15 @@ Shadows are never black, and no component writes its own.
 ## 7. Layout
 
 One reading column, `.col`: 1120 px, 1320 from 1536, 1560 from 2200, 1760 from 3000. The nav is
-full width on purpose. Lanes: one to three columns by width, never a fourth. Minimum window 1024 px.
+full width on purpose.
+
+Navigation has one home, the nav; `src/pages.js` is the list every part reads. The wordmark is Home.
+Three text links carry the pages of a working day: Board, Logbook, Projects. Everything else sits in
+More, a disclosure (not an ARIA menu) of plain links in groups (Parts and machines, Time, Notes and
+connections, TomFit tools), each with the one line that says what the page is for and its number key.
+When the page on screen lives in More, the button carries that page's name, so the nav always says
+where you are. The footer carries no links. A new page gets one line in `pages.js`, never a link
+typed into a component. Lanes: one to three columns by width, never a fourth. Minimum window 1024 px.
 No horizontal scroll at any width; no element that only exists on hover takes layout space.
 
 Spacing sits on a 4 px grid. Inside a panel: 24 px padding (28 from sm), 16 px between the title

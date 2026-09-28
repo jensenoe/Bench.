@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import { KEY_ORDER } from '../pages.js'
 
 /**
  * The key sheet. `?` opens it from anywhere; Escape, the Close button or a click outside shuts it.
@@ -9,7 +10,7 @@ const GROUPS = [
   { title: 'Anywhere', keys: [
     ['n', 'New task'],
     ['/ or Ctrl K', 'Search tasks, notes, maps and pages'],
-    ['1 to 9', 'Home, Board, Procurement, Tools, Logbook, Napkin, Hours, Review, Machines'],
+    ['1 to 9', KEY_ORDER],
     ['> in search', 'Actions: clock in, theme, new task and more'],
     ['Ctrl Alt B', 'Quick add from anywhere in Windows'],
     ['?', 'This sheet'],

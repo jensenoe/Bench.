@@ -1,7 +1,5 @@
-import { ArrowSquareOut } from '@phosphor-icons/react'
-import { ABOUT, SHEETS } from '../copy.js'
+import { ABOUT } from '../copy.js'
 import { libraryLabel, nextChange } from '../scenes.js'
-import { openTool } from '../api.js'
 
 const Col = ({ title, children }) => (
   <div>
@@ -9,41 +7,24 @@ const Col = ({ title, children }) => (
     <ul className="mt-3 flex flex-col gap-2 text-[13.5px]">{children}</ul>
   </div>
 )
-const TOOLS = [
-  { label: 'Cockpit', url: 'https://cockpit.tom.fit/dashboard' },
-  { label: 'Issue tickets', url: 'https://issues.tom.fit/' },
-  { label: 'QMS', url: 'https://tf-hw-qms.vercel.app/' },
-  { label: 'Structured BOM', url: 'https://oetwil-structured-bom.vercel.app/' },
-  { label: 'Innovation dashboard', url: 'https://innovation.tom.fit/dashboard.html' }
-]
 const ver = v => v ? `v${String(v).replace(/-beta\.(\d+)/, ' beta $1')}` : ''
 
 /**
  * The footer is the last thing on every page, so it gets the same care as the first:
- * a large wordmark and one honest sentence on the left, a small directory on the right,
+ * a large wordmark and one honest sentence on the left, what the light is doing on the right,
  * the scene's glow bleeding in from above, and the first name set very large and very faint,
  * clipped inside the column so it reads as a mark rather than a mistake.
- * Work pages get the one-line version: the page ends where the work ends.
+ * Work pages get the one-line version: the page ends where the work ends. No links: the nav and its
+ * More menu are the one place pages live (roadmap 130), and the TomFit tools moved into More.
  */
-export default function Footer({ name, version, scene, glow, now = new Date(), onSettings, compact = false }) {
+export default function Footer({ name, version, scene, glow, now = new Date(), compact = false }) {
   const first = (name || '').split(/\s+/)[0] || 'Bench'
   const nx = nextChange(now), nextHour = `${String(nx.getHours() % 24).padStart(2, '0')}:${String(nx.getMinutes()).padStart(2, '0')}`
-  const pages = SHEETS.filter(s => !s.external)
 
   if (compact) return (
     <footer className="mt-16" style={{ borderTop: '1px solid var(--line)' }}>
       <div className="mx-auto col flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-6 py-5 text-[13px]" style={{ color: 'var(--ink-3)' }}>
         <span className="display text-[17px] font-semibold tracking-tight" style={{ color: 'var(--ink)' }}>Bench<span style={{ color: 'var(--accent)' }}>.</span></span>
-        <nav aria-label="Footer" className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <a href="#/" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Home</a>
-          {pages.map(s => <a key={s.id} href={`#/${s.id}`} className="-my-1 inline-block py-1 hover:underline underline-offset-2">{s.title}</a>)}
-          <a href="#/hours" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Hours</a>
-          <a href="#/machines" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Machines</a>
-          <a href="#/review" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Review</a>
-          <a href="#/projects" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Projects</a>
-          <a href="#/playbooks" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Playbooks</a>
-          <button onClick={onSettings} className="-my-1 inline-block py-1 hover:underline underline-offset-2">Settings</button>
-        </nav>
         <span className="tnum flex flex-wrap gap-x-4"><span>{scene?.label || 'Day'} light</span><span>next picture {nextHour}</span>{version ? <span>{ver(version)}</span> : null}</span>
       </div>
     </footer>
@@ -66,20 +47,7 @@ export default function Footer({ name, version, scene, glow, now = new Date(), o
             <p className="mt-6 max-w-[46ch] text-[13.5px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>{ABOUT.footer}</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:col-span-6 md:pt-3">
-            <Col title="Pages">
-              <li><a href="#/" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Home</a></li>
-              {pages.map(s => <li key={s.id}><a href={`#/${s.id}`} className="-my-1 inline-block py-1 hover:underline underline-offset-2">{s.title}</a></li>)}
-              <li><a href="#/hours" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Hours</a></li>
-              <li><a href="#/machines" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Machines</a></li>
-              <li><a href="#/review" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Review</a></li>
-              <li><a href="#/projects" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Projects</a></li>
-              <li><a href="#/playbooks" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Playbooks</a></li>
-              <li><button onClick={onSettings} className="-my-1 inline-block py-1 hover:underline underline-offset-2" style={{ color: 'var(--ink-2)' }}>Settings</button></li>
-            </Col>
-            <Col title="Tools">
-              {TOOLS.map(t => <li key={t.label}><a href={t.url} onClick={e => { e.preventDefault(); openTool(t.url) }} className="-my-1 inline-flex items-center gap-1 py-1 hover:underline underline-offset-2">{t.label} <ArrowSquareOut size={11} weight="bold" /></a></li>)}
-            </Col>
+          <div className="md:col-span-4 md:col-start-9 md:pt-3">
             <Col title="Right now">
               <li style={{ color: 'var(--ink-2)' }}>{scene?.label || 'Day'} light</li>
               <li style={{ color: 'var(--ink-2)' }}>{libraryLabel(scene?.library)}</li>

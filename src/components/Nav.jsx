@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { ArrowsClockwise, GearSix, MagnifyingGlass } from '@phosphor-icons/react'
 import * as api from '../api.js'
-import { SHEETS } from '../copy.js'
+import { PRIMARY } from '../pages.js'
+import MoreMenu from './MoreMenu.jsx'
 import Clock from './Clock.jsx'
 import FocusTimer from './FocusTimer.jsx'
 import Bell from './Bell.jsx'
@@ -9,15 +10,17 @@ import TimeClock from './TimeClock.jsx'
 import Reminder from './Reminder.jsx'
 
 /**
- * One line. Text links, the clock, the time clock as one control, search and the gear. Sized to read
- * from a normal sitting distance on a 1080p screen.
+ * One line. The wordmark is Home; three text links for the pages of a working day (Board, Logbook,
+ * Projects) and More for everything else, grouped (roadmap 130, the list lives in pages.js). Then the
+ * clock, the time clock as one control, search and the gear. Sized to read from a normal sitting
+ * distance on a 1080p screen.
  * The fading backdrop is its own layer behind the row: a mask on the nav itself would clip anything
  * that opens below it (the time clock panel, the reminder), which is exactly what happened once.
  */
 export default function Nav({ route, auth, meta, onRefresh, now, scene, timeclock, onSettings, settingsOpen, onSearch }) {
   const [busy, setBusy] = useState(false)
   const link = (id, label, i, cls = '') => (
-    <a key={id} href={`#/${id}`} title={i !== undefined ? `Press ${i}` : undefined} className={`-my-[3px] inline-block py-[3px] text-[14px] transition-colors xl:text-[15px] 2xl:text-[16.5px] ${cls}`}
+    <a key={id} href={`#/${id}`} title={i !== undefined ? `Press ${i}` : undefined} aria-current={route === id ? 'page' : undefined} className={`-my-[3px] inline-block py-[3px] text-[14px] transition-colors xl:text-[15px] 2xl:text-[16.5px] ${cls}`}
       style={{ color: route === id ? 'var(--ink)' : 'var(--ink-3)' }}>{label}</a>
   )
 
@@ -32,12 +35,10 @@ export default function Nav({ route, auth, meta, onRefresh, now, scene, timecloc
         maskImage: 'linear-gradient(to bottom, black 45%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 45%, transparent 100%)' }} />
       <div className="relative mx-auto flex h-[88px] max-w-[1800px] items-start justify-between px-8 pt-6 2xl:h-[104px] 2xl:pt-7">
         <div className="flex shrink-0 items-baseline gap-7 whitespace-nowrap xl:gap-10 2xl:gap-14">
-          <a href="#/" className="display text-[23px] font-semibold tracking-tight 2xl:text-[27px]">Bench<span style={{ color: 'var(--accent)' }}>.</span></a>
-          <div className="hidden items-baseline gap-5 lg:flex xl:gap-7 2xl:gap-9">
-            {link('', 'Home', 1)}
-            {SHEETS.filter(s => !s.external).map((s, i) => link(s.id, s.title, i + 2))}
-            {link('machines', 'Machines', 9)}
-            {link('projects', 'Projects', undefined, 'hidden xl:inline-block')}   {/* the nav stays airy below xl; the footer and the search always have it */}
+          <a href="#/" title="Home, press 1" aria-current={route === '' ? 'page' : undefined} className="display text-[23px] font-semibold tracking-tight 2xl:text-[27px]">Bench<span style={{ color: 'var(--accent)' }}>.</span></a>
+          <div className="hidden items-baseline gap-7 md:flex xl:gap-9 2xl:gap-11">
+            {PRIMARY.map(p => link(p.id, p.title, p.key))}
+            <MoreMenu route={route} />
           </div>
         </div>
         <div className="relative flex shrink-0 items-center gap-4 whitespace-nowrap xl:gap-5 2xl:gap-6">
