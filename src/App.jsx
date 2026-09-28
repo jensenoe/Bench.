@@ -175,7 +175,9 @@ export default function App() {
       const before = state?.tasks.find(t => t.id === id)
       const r = await api.patchTask(id, patch)
       if (patch.done === true && before && !before.done) {
-        const c = cheer({ withNudge: settings.nudges !== false })
+        const c = cheer({ withNudge: false })
+        const n = settings.nudges !== false ? (await api.nudge('tick').catch(() => null))?.nudge : null
+        if (n) { c.nudge = n.text; c.nudgeKind = n.kind; c.onLater = () => api.nudgeLater().catch(() => {}) }
         const TOOL = { issues: 'Issues', qms: 'QMS', bom: 'the BOM' }
         const tool = before.url && TOOL[before.source] ? { label: TOOL[before.source], url: before.url } : null
         const next = r?.task?.spawned

@@ -42,6 +42,7 @@ const phone = await import('./phone.js')             // the phone view on the wo
 const hero = await import('./hero.js')               // the briefing under the greeting on Home (roadmap 119)
 const commute = await import('./commute.js')         // the drive home with live traffic (roadmap 120)
 const projects = await import('./projects.js')       // plans with phases and a deadline (roadmap 121)
+const nudges = await import('./nudges.js')           // water and coffee at the right moments (roadmap 139)
 
 const PORT = Number(process.env.PORT || 5178)
 const app = express()
@@ -100,6 +101,7 @@ app.get('/api/state', wrap(async (_req, res) => {
       lastError: auth.getLastSignInError(),
       extra: auth.extraStatus(),                 // issue list + calendar: granted, or waiting on an admin
       adminConsentUrl: auth.adminConsentUrl(),
+      approval: auth.approval(),                 // the admin's one click: link, app, the four permissions (roadmap 138)
       canWriteBack: auth.isConfigured() && auth.scopes().some(s => s.includes('ReadWrite'))
     }
   })
@@ -216,6 +218,7 @@ phone.registerRoutes(app)
 hero.registerRoutes(app)
 commute.registerRoutes(app)
 projects.registerRoutes(app)
+nudges.registerRoutes(app)
 updates.registerRoutes(app)                          // /api/updates and the background download (roadmap 76)
 
 // Serve the built frontend when it exists (npm run build && npm start)
@@ -253,6 +256,7 @@ timeclock.setDigestSource(() => {
 })
 timeclock.startScheduler()
 day.start()
+nudges.start()
 core.start()
 inbox.start()
 mail.start()

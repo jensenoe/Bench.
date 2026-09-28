@@ -147,7 +147,7 @@ export async function run({ fetchImpl = fetch, now = new Date() } = {}) {
   const s = load()
   s.lastRun = now.toISOString()
   if (!settings.get().mailRead) { s.reason = 'off'; save(); return { ok: false, reason: 'off', applied: [] } }
-  const token = await getTokenSilent('extra')
+  const token = await getTokenSilent('mail')   // its own request, never bundled with the calendar (roadmap 138)
   if (!token) { s.reason = (await getAccount()) ? 'needs-admin-consent' : 'needs-signin'; save(); return { ok: false, reason: s.reason, applied: [] } }
   try {
     const messages = await readMessages(token, { fetchImpl, now })

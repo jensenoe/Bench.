@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Pause, Play, Stop } from '@phosphor-icons/react'
 import * as focus from '../focus.js'
-import { getState, patchTask } from '../api.js'
+import { getState, patchTask, nudge as askNudge, nudgeLater } from '../api.js'
 
 const toast = (text, by) => window.dispatchEvent(new CustomEvent('bench:toast', { detail: { text, by, plain: true } }))
 
@@ -49,7 +49,8 @@ async function finish(done) {
     const task = (await getState().catch(() => null))?.tasks?.find(t => t.id === taskId)
     if (task && !task.done) await patchTask(taskId, { effortHours: focus.addEffort(task.effortHours, minutes) })
   } catch (err) { window.bench?.log?.(`focus: could not book ${minutes} min on ${taskId}: ${err.message}`) }
-  toast('Focus done.', `${minutes} minutes on ${title}`)
+  const n = (await askNudge('focus').catch(() => null))?.nudge
+  window.dispatchEvent(new CustomEvent('bench:toast', { detail: { text: 'Focus done.', by: `${minutes} minutes on ${title}`, plain: true, ...(n ? { nudge: n.text, nudgeKind: n.kind, onLater: () => nudgeLater().catch(() => {}) } : {}) } }))
   try { window.bench?.notify?.({ title: 'Focus done.', body: title, route: '#/board' }) } catch { /* not the desktop */ }
   window.dispatchEvent(new Event('bench:refresh'))
 }

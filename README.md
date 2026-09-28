@@ -12,7 +12,7 @@
 Installing over an older Bench. keeps your board, hours and settings. `Bench-portable-…exe` on the
 same page is the no-install version: keep it in any folder and run it from there.
 
-**0.11, sixteenth beta (0.11.0-beta.16).** Everything here works on my machine and on the mocks; the
+**0.11, seventeenth beta (0.11.0-beta.17).** Everything here works on my machine and on the mocks; the
 Microsoft paths (Planner, the hours workbook, the issue list, the calendar) still want a
 first real run in the tom.fit tenant, and the issue list and calendar need a one-time admin
 approval, see below.
@@ -54,7 +54,7 @@ Administrator; `build-exe.bat plain` skips the icon stamping instead, and `build
 Bump `version` in `package.json`, commit, then tag and push:
 
 ```bash
-git tag v0.11.0-beta.16 && git push --tags
+git tag v0.11.0-beta.17 && git push --tags
 ```
 
 The *Release* workflow in `.github/workflows/release.yml` builds both exes on a Windows
@@ -170,8 +170,14 @@ SYNC_INTERVAL_MINUTES=2
 
 The registration has *Allow public client flows* on. The app asks for `Tasks.ReadWrite` (Planner),
 `Files.ReadWrite` (the Zeiterfassung workbook), `Sites.Read.All` (the issue-ticket list) and
-`Calendars.Read` (today's meetings for the Logbook); all four are user-consentable, and
-Microsoft asks once for each new one. If you were
+`Calendars.Read` (today's meetings for the Logbook). In the tom.fit tenant an admin approves them once:
+Settings > Tools > Microsoft 365 has *Copy a note for your admin* with the one link that names exactly
+these four, and Bench. picks the approval up by itself afterwards. For that link the registration needs
+the platform *Mobile and desktop applications* with the reply address
+`https://login.microsoftonline.com/common/oauth2/nativeclient` ticked; an admin can also use Enterprise
+applications > Project Management Tool > Permissions > *Grant admin consent*, which grants what the
+registration lists under API permissions. `Mail.Read` (order confirmations, only with mail reading on) is
+asked for on its own and is not part of that approval. If you were
 connected before the time clock existed, the pill goes back to *Connect* once: sign in
 again and consent to the second scope.
 

@@ -19,15 +19,33 @@ const TENANT_ID = process.env.AZURE_TENANT_ID || DEFAULT_TENANT_ID
 // is asked for separately and its absence never blocks the sign-in itself.
 const g = s => s.startsWith('http') ? s : `https://graph.microsoft.com/${s}`
 const CORE = ['Tasks.ReadWrite', 'Files.ReadWrite'].map(g)
-const EXTRA = ['Sites.Read.All', 'Calendars.Read', 'Mail.Read'].map(g)   // Mail.Read: order confirmations and delivery notes (roadmap 113)
+const EXTRA = ['Sites.Read.All', 'Calendars.Read'].map(g)
+// Mail.Read is asked for on its own (roadmap 138): one refused scope fails the whole request, so an admin
+// who approves the calendar and the issue list without the mail must not leave the meetings blocked too.
+const MAIL = ['Mail.Read'].map(g)   // order confirmations and delivery notes (roadmap 113), only with mail reading on
 const ENV_EXTRA = (process.env.GRAPH_SCOPES || '').split(/[,\s]+/).filter(Boolean).map(g).filter(s => !CORE.includes(s))
-const SCOPES = [...new Set([...CORE, ...EXTRA, ...ENV_EXTRA])]
+const SCOPES = [...new Set([...CORE, ...EXTRA, ...MAIL, ...ENV_EXTRA])]
 const EXTRA_ALL = [...new Set([...EXTRA, ...ENV_EXTRA])]
 
 export const isConfigured = () => Boolean(CLIENT_ID)
 export const scopes = () => SCOPES
-/** Link for a tenant admin: one click grants the whole app for everyone in the tenant. */
-export const adminConsentUrl = () => `https://login.microsoftonline.com/${TENANT_ID}/adminconsent?client_id=${CLIENT_ID}`
+/**
+ * The admin's one click (roadmap 138). The v2 admin-consent link names the four delegated permissions
+ * Bench. uses, so it grants exactly those, whatever the registration happens to list, and never Mail.Read.
+ * Microsoft only sends the admin back to a reply address the registration knows: the registration needs
+ * the "Mobile and desktop applications" platform with the nativeclient address ticked. A blank page there
+ * with admin_consent=True in the address means it worked. After that Bench. picks the approval up by itself.
+ */
+export const NATIVE_REDIRECT = 'https://login.microsoftonline.com/common/oauth2/nativeclient'
+export const APPROVAL = [
+  { scope: 'Tasks.ReadWrite', why: 'my Planner tasks' },
+  { scope: 'Files.ReadWrite', why: 'my Zeiterfassung workbook in my OneDrive' },
+  { scope: 'Calendars.Read', why: "today's meetings" },
+  { scope: 'Sites.Read.All', why: 'the issue-ticket list on SharePoint' }
+]
+export const adminConsentUrl = () => `https://login.microsoftonline.com/${TENANT_ID}/v2.0/adminconsent?client_id=${CLIENT_ID}&scope=${encodeURIComponent(APPROVAL.map(a => g(a.scope)).join(' '))}&redirect_uri=${encodeURIComponent(NATIVE_REDIRECT)}`
+/** What the Settings panel shows and copies for the admin. */
+export const approval = () => ({ url: adminConsentUrl(), app: 'Project Management Tool', clientId: CLIENT_ID, tenantId: TENANT_ID, redirectUri: NATIVE_REDIRECT, scopes: APPROVAL })
 
 /**
  * Token cache on disk, so signing in survives a restart.
@@ -89,7 +107,7 @@ export async function getTokenSilent(tier = 'core') {
   if (process.env.BENCH_TEST_TOKEN) return process.env.BENCH_TEST_TOKEN   // local tests against a mock Graph only
   const account = await getAccount()
   if (!account) return null
-  const scopes = tier === 'extra' ? [...CORE, ...EXTRA_ALL] : CORE
+  const scopes = tier === 'extra' ? [...CORE, ...EXTRA_ALL] : tier === 'mail' ? MAIL : CORE
   try {
     const res = await client().acquireTokenSilent({ account, scopes })
     if (tier === 'extra') extraState = { checked: true, granted: true, reason: null }
@@ -111,7 +129,7 @@ export async function signIn({ tier = 'core' } = {}) {
 
   let failed = null
   const promise = client().acquireTokenByDeviceCode({
-    scopes: tier === 'extra' ? [...CORE, ...EXTRA_ALL] : CORE,
+    scopes: tier === 'extra' ? [...CORE, ...EXTRA_ALL] : tier === 'mail' ? [...CORE, ...MAIL] : CORE,
     deviceCodeCallback: (res) => {
       if (!res?.userCode) return
       pendingDeviceCode = {

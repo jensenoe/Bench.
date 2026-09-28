@@ -29,6 +29,9 @@ export const createEntry = (body) => fetch('/api/logbook', { method: 'POST', hea
 export const patchEntry = (id, body) => fetch(`/api/logbook/${id}`, { method: 'PATCH', headers: H, body: JSON.stringify(body) }).then(j)
 export const removeEntry = (id) => fetch(`/api/logbook/${id}`, { method: 'DELETE' }).then(j)
 export const duplicateEntry = (id) => fetch(`/api/logbook/${id}/duplicate`, { method: 'POST', headers: H, body: '{}' }).then(j)
+/** Water and coffee (server/nudges.js, roadmap 139): { nudge: { kind, text } | null } for 'tick' or 'focus'. */
+export const nudge = (moment) => fetch('/api/nudge', { method: 'POST', headers: H, body: JSON.stringify({ moment }) }).then(j)
+export const nudgeLater = () => fetch('/api/nudge/later', { method: 'POST' }).then(j)
 export const actionToBoard = (id, aid) => fetch(`/api/logbook/${id}/actions/${aid}/to-board`, { method: 'POST' }).then(j)
 export const getMaps = () => fetch('/api/napkin').then(j)
 export const createMap = (body) => fetch('/api/napkin', { method: 'POST', headers: H, body: JSON.stringify(body) }).then(j)

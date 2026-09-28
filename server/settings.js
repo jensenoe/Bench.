@@ -29,7 +29,7 @@ export const DEFAULTS = {
   lunchAt: '12:00',
   lunchEnds: '12:30',
   roundMinutes: 5,
-  nudges: true,             // water / coffee line under the completion toast
+  nudges: true,             // water and coffee at natural pauses, at most four a day (server/nudges.js, roadmap 139)
   updateToken: '',          // optional GitHub token with read access to the repo, so the update check can see releases
   density: 'comfortable',   // comfortable | compact: one-line cards on wide screens
   inboxDir: '',             // a folder Bench watches for photographs (OneDrive camera roll); empty means off

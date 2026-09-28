@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { X, Copy, Check, ArrowSquareOut } from '@phosphor-icons/react'
+import { X, ArrowSquareOut } from '@phosphor-icons/react'
 import * as api from '../api.js'
 import { getBackups, backupNow, restoreBackup, downloadUpdate, toast, refresh as askRefresh } from '../api/extras.js'
 import { ALL_SCENES, COLLECTIONS, CADENCES, credits, libraryFor, libraryLabel, nextLibrary } from '../scenes.js'
@@ -8,7 +8,7 @@ import { ABOUT } from '../copy.js'
 import { fmtDate } from '../lanes.js'
 import Connect from './Connect.jsx'
 import Health from './Health.jsx'
-import { MailReading, PhoneView, StorageLine, DriveHome } from './SettingsIntegrations.jsx'
+import { MailReading, PhoneView, StorageLine, DriveHome, AdminApproval } from './SettingsIntegrations.jsx'
 import { ask } from './Confirm.jsx'
 import { Bar } from './Skeleton.jsx'
 
@@ -86,7 +86,6 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
   const [startup, setStartup] = useState(null)
   const [draft, setDraft] = useState(settings)
   const [needsRelaunch, setNeedsRelaunch] = useState(false)
-  const [linkCopied, setLinkCopied] = useState(false)
   const [probe, setProbe] = useState(null)      // result of the workbook check
   const [upd, setUpd] = useState(null)          // result of the update check
   const [dl, setDl] = useState(null)            // the background download: { busy } or { error }
@@ -102,7 +101,6 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
   const fail = (text) => (e) => toast(text, e?.message ? `${e.message}. Try again.` : 'Try again.')
   const checkWorkbook = async () => { setProbe({ busy: true }); try { setProbe(await api.probeWorkbook()) } catch (e) { setProbe({ ok: false, message: e.message }) } }
   const checkUpdates = async () => { setUpd({ busy: true }); try { setUpd(await api.checkUpdates(true)) } catch (e) { setUpd({ reason: e.message }) } }
-  const copyLink = async (t) => { try { await navigator.clipboard.writeText(t); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2500) } catch { toast('Copy did not work.', 'Windows kept the clipboard closed. Try again.') } }
   // /api/backups answers { dir, files, mirror }; the list is what the panel shows. A list that did not load
   // is not "no copies yet": it says so and offers Try again.
   const loadBackups = async () => { try { const r = await getBackups(); setBackups(Array.isArray(r) ? r : (r?.files || [])); setBackupsErr(null) } catch (e) { setBackups([]); setBackupsErr(e.message) } }
@@ -323,19 +321,21 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
                   {auth.extra?.granted ? (
                     <p className="text-[13px]" style={{ color: 'var(--ink-3)' }}>Issue list and calendar are on too.</p>
                   ) : (
-                    <div className="row p-4 text-[13.5px]">
-                      <p className="leading-relaxed">The issue-ticket list and today's meetings need a one-time approval from a tom.fit admin. Send them the link, and once they have clicked it press Grant.</p>
-                      <div className="mt-3 flex flex-wrap items-center gap-3">
-                        <button onClick={() => copyLink(auth.adminConsentUrl)} className="pill btn-quiet inline-flex items-center gap-1.5 px-3.5 py-2 text-[13.5px]">
-                          {linkCopied ? <><Check size={12} weight="bold" /> Copied</> : <><Copy size={12} weight="bold" /> Copy the approval link</>}
-                        </button>
-                        <Connect auth={auth} onRefresh={onRefresh} tier="extra" label="Grant" quiet className="inline-block" />
-                      </div>
-                    </div>
+                    <>
+                      <AdminApproval auth={auth} name={draft.name} />
+                      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]" style={{ color: 'var(--ink-3)' }}>
+                        <span>Approved already? Sign in once more to switch it on now.</span>
+                        <Connect auth={auth} onRefresh={onRefresh} tier="extra" label="Sign in again" quiet className="inline-block" />
+                      </p>
+                    </>
                   )}
                 </>
               ) : (
-                <Connect auth={auth} onRefresh={onRefresh} />
+                <>
+                  <Connect auth={auth} onRefresh={onRefresh} />
+                  <p className="text-[13px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>If Microsoft answers "Need admin approval", send your admin the note below; one click on their side approves it all.</p>
+                  <AdminApproval auth={auth} name={draft.name} />
+                </>
               )}
             </Sec>
             <Sec title="Photographs from the phone">
@@ -372,7 +372,8 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
                 </div>
               )}
               {startup !== null && <Toggle on={startup} onChange={async () => { try { setStartup(await window.bench.startup(!startup)) } catch (e) { fail('Windows did not take the change.')(e) } }} label="Starts with Windows" />}
-              <Toggle on={draft.nudges !== false} onChange={() => saveNow({ nudges: draft.nudges === false })} label="Water and coffee reminders after a task" />
+              <Toggle on={draft.nudges !== false} onChange={() => saveNow({ nudges: draft.nudges === false })} label="Water and coffee nudges" />
+              <p className="-mt-1 text-[13px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>At natural pauses: a ticked task, the end of a focus session, before a long meeting, after ninety minutes without a break. Coffee in the morning and the early-afternoon dip, none after three; water only on a warm day. At most four a day, never off the clock, in a meeting or in the quiet hours. Not now pushes the next one back an hour.</p>
               <div className="flex flex-wrap items-center gap-4 text-[13px]">
                 <a href="/api/settings/export" download="bench-settings.json" className={link}>Export settings</a>
                 {/* A button, so the keyboard reaches it: a label around a hidden file input is not a Tab stop. */}

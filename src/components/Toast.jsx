@@ -14,7 +14,7 @@ const runUndo = (undo) => Promise.resolve().then(undo).catch(e => {
   window.dispatchEvent(new CustomEvent('bench:toast', { detail: { text: 'Undo did not work.', by: e?.message || 'Try Recent changes on the Board.', plain: true } }))
 })
 export default function Toast({ item, onDismiss }) {
-  const icon = item?.nudge ? (/coffee|kettle|espresso|cup/i.test(item.nudge) ? <Coffee size={13} weight="bold" /> : /water|glass|litre|drink|sip|bottle|refill|hydrat/i.test(item.nudge) ? <Drop size={13} weight="bold" /> : <ArrowUp size={13} weight="bold" />) : null
+  const icon = item?.nudgeKind ? (item.nudgeKind === 'coffee' || item.nudgeKind === 'tea' ? <Coffee size={13} weight="bold" /> : item.nudgeKind === 'pause' ? <ArrowUp size={13} weight="bold" /> : <Drop size={13} weight="bold" />) : item?.nudge ? (/coffee|kettle|espresso|cup/i.test(item.nudge) ? <Coffee size={13} weight="bold" /> : /water|glass|litre|drink|sip|bottle|refill|hydrat/i.test(item.nudge) ? <Drop size={13} weight="bold" /> : <ArrowUp size={13} weight="bold" />) : null
   return (
     <AnimatePresence>
       {item && (
@@ -26,7 +26,8 @@ export default function Toast({ item, onDismiss }) {
           <p className="display text-[17px] font-semibold leading-snug tracking-tight">{item.text}</p>
           {item.by && <p className={`mt-1 ${item.plain ? 'text-[13.5px] truncate' : 'text-[13px]'}`} style={{ color: item.plain ? 'var(--ink-2)' : 'var(--ink-3)' }}>{item.by}</p>}
           {item.nudge && (
-            <p className="mt-3 flex items-center gap-2 text-[13.5px]" style={{ color: 'var(--accent)' }}>{icon}<span style={{ color: 'var(--ink-2)' }}>{item.nudge}</span></p>
+            <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13.5px]" style={{ color: 'var(--accent)' }}>{icon}<span style={{ color: 'var(--ink-2)' }}>{item.nudge}</span>
+              {item.onLater && <button type="button" onClick={e => { e.stopPropagation(); item.onLater(); onDismiss() }} className="-my-1 ml-1 inline-block py-1 text-[13px] underline-offset-2 hover:underline" style={{ color: 'var(--ink-3)' }}>Not now</button>}</p>
           )}
           {item.tool && (
             <span role="link" tabIndex={0} onClick={e => { e.stopPropagation(); openExternal(item.tool.url) }} onKeyDown={e => e.key === 'Enter' && openExternal(item.tool.url)}
