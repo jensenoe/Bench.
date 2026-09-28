@@ -179,8 +179,18 @@ h1:focus-visible, h2:focus-visible { outline-offset: 8px; border-radius: 4px; }
 @keyframes twinkle { 0%,100% { opacity:.55 } 50% { opacity:1 } }
 .twinkle { animation: twinkle 6s ease-in-out infinite; }
 
-/* tactile */
+/* tactile: every pill answers the pointer (a touch lighter in the dark, a touch darker on paper), then gives 1px on press.
+   Rows lift their hairline. 0.2 s, transforms and filters only; the reduced-motion block below zeroes the durations. */
+.pill:is(button, a, [role=button]) { transition: background-color .2s, border-color .2s, color .2s, transform .2s, filter .2s; }
+.pill:is(button, a, [role=button]):not(:disabled):hover { filter: brightness(1.08); }
+:root[data-theme="light"] .pill:is(button, a, [role=button]):not(:disabled):hover { filter: brightness(.97); }
+li.row.group { transition: border-color .2s, background-color .2s; }
+li.row.group:hover { border-color: var(--line-2); }
 button:active, a.pill:active { transform: translateY(1px); }
+p { text-wrap: pretty; }
+/* keyboard users' first stop: off screen until it has focus, then a pill at the top left over the nav */
+.skip { position: fixed; top: 12px; left: 12px; z-index: 100; padding: 8px 16px; font-size: 13px; font-weight: 500; background: var(--ink); color: var(--bg); transform: translateY(-200%); }
+.skip:focus-visible { transform: none; }
 
 @layer base {
   input, textarea, select, button { font: inherit; color: inherit; }

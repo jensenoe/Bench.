@@ -3,6 +3,7 @@ import { Play, Plus, Trash } from '@phosphor-icons/react'
 import { getPlaybooks, applyPlaybook, removePlaybook, playbookFromMachine } from '../api/playbooks.js'
 import { getMachines } from '../api/machines.js'
 import { PanelSkeleton } from './Skeleton.jsx'
+import { ask } from './Confirm.jsx'
 import { LANES } from '../copy.js'
 
 /**
@@ -46,7 +47,7 @@ function Playbook({ p, machines, onChanged }) {
     } catch (err) { toast('That did not work.', err.message) } finally { setBusy(false) }
   }
   const remove = async () => {
-    if (!confirm(`Delete the playbook "${p.name}"? Tasks already created stay on the board.`)) return
+    if (!(await ask(`Delete the playbook "${p.name}"? Tasks already created stay on the board.`))) return
     setBusy(true)
     try { await removePlaybook(p.id); toast('Deleted.', p.name); onChanged() }
     catch (err) { toast('That did not work.', err.message) } finally { setBusy(false) }

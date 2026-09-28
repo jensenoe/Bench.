@@ -7,6 +7,7 @@ import { LANES } from '../copy.js'
 import { STATUS } from '../scenes.js'
 import { daysSince, daysUntil, fmtDate } from '../lanes.js'
 import * as focus from '../focus.js'
+import { ask } from './Confirm.jsx'
 
 const LANE_ORDER = ['today', 'innovation', 'waiting', 'active', 'parked']
 const ORIGIN = { issues: 'Issues', qms: 'QMS', bom: 'BOM', planner: 'Planner' }
@@ -116,7 +117,7 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true, fo
     else if (e.altKey && (k === 'ArrowLeft' || k === 'ArrowRight')) {
       const next = LANE_ORDER[LANE_ORDER.indexOf(task.lane) + (k === 'ArrowRight' ? 1 : -1)]
       if (next) { e.preventDefault(); onPatch(task.id, { lane: next }) }
-    } else if (k === 'Delete') { e.preventDefault(); if (confirm(`Remove "${task.title}"?`)) onDelete(task.id) }
+    } else if (k === 'Delete') { e.preventDefault(); ask(`Remove "${task.title}"?`, { yes: 'Remove' }).then(ok => ok && onDelete(task.id)) }
   }
   const startFocus = () => focus.start({ taskId: task.id, title: task.title, minutes: focusMinutes(focusProp) })
 

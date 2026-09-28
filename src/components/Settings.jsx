@@ -9,6 +9,7 @@ import { fmtDate } from '../lanes.js'
 import Connect from './Connect.jsx'
 import Health from './Health.jsx'
 import { MailReading, PhoneView, StorageLine, DriveHome } from './SettingsIntegrations.jsx'
+import { ask } from './Confirm.jsx'
 
 const TABS = [
   { key: 'you', label: 'You' },
@@ -84,7 +85,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
   const loadBackups = async () => { try { const r = await getBackups(); setBackups(Array.isArray(r) ? r : (r?.files || [])) } catch { setBackups([]) } }
   const doBackup = async () => { setBackupNote('Writing.'); try { await backupNow(); await loadBackups(); setBackupNote('Done. Today has a fresh copy.') } catch (e) { setBackupNote(`Not written: ${e.message}`) } }
   const doRestore = async (b) => {
-    if (!confirm(`Restore ${b.name} from ${fmtDate(b.at)}? The board goes back to that copy. Everything changed since then is lost.`)) return
+    if (!(await ask(`Restore ${b.name} from ${fmtDate(b.at)}? The board goes back to that copy. Everything changed since then is lost.`, { yes: 'Restore' }))) return
     setBackupNote('Restoring.')
     try { await restoreBackup(b.file); askRefresh(); onRefresh?.(); toast('Restored.', `${b.name} from ${fmtDate(b.at)}.`); setBackupNote(`Restored ${b.name} from ${fmtDate(b.at)}.`) }
     catch (e) { setBackupNote(`Not restored: ${e.message}`) }
@@ -244,7 +245,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
                 <p className="text-[13px]" style={{ color: 'var(--ink-3)' }}>
                   {clock.sheet && <>Today writes to {clock.sheet.name} row {clock.sheet.row}. </>}
                   {clock.unclosed && <span style={{ color: 'var(--caution)' }}>{clock.unclosed.date} was never clocked out. </span>}
-                  {clock.events.length > 0 && <button onClick={() => { if (confirm("Forget today's punches here? The sheet keeps what was written.")) timeclock.reset() }} className={link}>Reset today</button>}
+                  {clock.events.length > 0 && <button onClick={() => ask("Forget today's punches here? The sheet keeps what was written.", { yes: 'Forget' }).then(ok => ok && timeclock.reset())} className={link}>Reset today</button>}
                 </p>
               )}
             </Sec>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PanelSkeleton } from './Skeleton.jsx'
+import { ask } from './Confirm.jsx'
 import { Plus, X, ArrowsOut, Export, ArrowRight } from '@phosphor-icons/react'
 import * as api from '../api.js'
 
@@ -258,7 +259,7 @@ export default function Napkin() {
 
   const newMap = async () => { const m = await api.createMap({ title: 'New map' }); await load(); open(m); setEditing(m.root) }
   const rename = async (title) => { if (!map || title === map.title) return; const m = await api.patchMap(map.id, { title }); setMaps(list => list.map(x => x.id === m.id ? m : x)) }
-  const removeMap = async () => { if (!map || !confirm(`Delete "${map.title}"?`)) return; await api.removeMap(map.id); const list = await load(); list.length ? open(list[0]) : (setSel(null), setNodes(null)) }
+  const removeMap = async () => { if (!map || !(await ask(`Delete "${map.title}"?`))) return; await api.removeMap(map.id); const list = await load(); list.length ? open(list[0]) : (setSel(null), setNodes(null)) }
 
   if (!maps) return <main className="mx-auto col px-6"><PanelSkeleton rows={3} /></main>
 

@@ -16,6 +16,7 @@ import QuickAdd from './components/QuickAdd.jsx'
 import OpenDay from './components/OpenDay.jsx'
 import Shortcuts from './components/Shortcuts.jsx'
 import ErrorToast from './components/ErrorToast.jsx'
+import ConfirmHost from './components/Confirm.jsx'
 import PageSkeleton from './components/Skeleton.jsx'
 import MorningBrief from './components/MorningBrief.jsx'
 import EveningClose from './components/EveningClose.jsx'
@@ -263,6 +264,7 @@ export default function App() {
         onSettings={() => setSettingsOpen(v => !v)} settingsOpen={settingsOpen} onSearch={() => setSearchOpen(true)} />
       <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} settings={settings} onSave={saveSettings} auth={state.auth} timeclock={timeclock} onRefresh={refresh} />
       <Toast item={toast} onDismiss={() => setToast(null)} />
+      <ConfirmHost />
       <Search open={searchOpen} onClose={() => setSearchOpen(false)} tasks={state.tasks}
         actions={paletteActions({ settings, punch, saveSettings, openQuickAdd: () => setQuickOpen(true), openBrief: () => setBriefOpen(true), openClose: () => setCloseOpen(true), openKeys: () => setKeysOpen(true) })} />
       <Shortcuts open={keysOpen} onClose={() => setKeysOpen(false)} />

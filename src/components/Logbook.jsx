@@ -3,6 +3,7 @@ import { PanelSkeleton } from './Skeleton.jsx'
 import { motion, AnimatePresence } from 'motion/react'
 import { Plus, X, ArrowRight, Check, MagnifyingGlass, CalendarBlank, Copy } from '@phosphor-icons/react'
 import DateField from './DateField.jsx'
+import { ask } from './Confirm.jsx'
 import * as api from '../api.js'
 import { fmtDate } from '../lanes.js'
 
@@ -81,7 +82,7 @@ export default function Logbook({ onRefresh }) {
 
   const add = async () => { const e = await api.createEntry({ title: 'Meeting', date: new Date().toISOString().slice(0, 10) }); await load(); setSel(e.id) }
   const save = async (patch) => { if (!entry) return; const e = await api.patchEntry(entry.id, patch); setEntries(list => list.map(x => x.id === e.id ? e : x)) }
-  const remove = async () => { if (!entry || !confirm(`Delete "${entry.title}"?`)) return; await api.removeEntry(entry.id); const list = await load(); setSel(list[0]?.id || null) }
+  const remove = async () => { if (!entry || !(await ask(`Delete "${entry.title}"?`))) return; await api.removeEntry(entry.id); const list = await load(); setSel(list[0]?.id || null) }
   /** A recurring meeting: a new entry with the same title, people, project and tags, dated today. */
   const template = async () => { if (!entry) return; const e = await api.duplicateEntry(entry.id); await load(); setSel(e.id) }
 

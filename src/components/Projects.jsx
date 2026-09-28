@@ -4,6 +4,7 @@ import { getProjects, getProject, createProject, patchProject, removeProject, sc
 import { getMachines } from '../api/machines.js'
 import DateField from './DateField.jsx'
 import { PanelSkeleton } from './Skeleton.jsx'
+import { ask } from './Confirm.jsx'
 import { STATUS } from '../scenes.js'
 
 /**
@@ -256,7 +257,7 @@ function ProjectDetail({ id, onBack }) {
     try { await patchProject(p.id, head); setEditHead(false); load(); refresh() } catch (err) { toast('That did not work.', err.message) }
   }
   const remove = async () => {
-    if (!confirm(`Delete the project "${p.name}"? Its tasks stay on the board, only the plan goes.`)) return
+    if (!(await ask(`Delete the project "${p.name}"? Its tasks stay on the board, only the plan goes.`))) return
     try { await removeProject(p.id); toast('Deleted.', p.name); onBack() } catch (err) { toast('That did not work.', err.message) }
   }
   const openTasks = phases.reduce((s, ph) => s + ph.tasks.filter(t => !t.done).length, 0) + unassigned.filter(t => !t.done).length

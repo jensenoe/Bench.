@@ -24,6 +24,8 @@ export default function Nav({ route, auth, meta, onRefresh, now, scene, timecloc
   return (
     // on-photo: the nav always sits on a photograph, so its fog and its ink stay the night ones in the light theme too
     <nav aria-label="Pages" className="on-photo fixed inset-x-0 top-0 z-50">
+      {/* keyboard users' first stop (roadmap 127): inside the nav landmark, visible only while it has focus */}
+      <a href="#/" className="skip pill" onClick={e => { e.preventDefault(); const h = document.querySelector('main h1, header h1, h1, main'); if (h) { h.setAttribute('tabindex', '-1'); h.focus() } }}>Skip to content</a>
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[150px] 2xl:h-[170px]" style={{
         background: 'linear-gradient(to bottom, rgba(var(--veil),.82) 0%, rgba(var(--veil),.45) 50%, transparent 100%)',
         backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',

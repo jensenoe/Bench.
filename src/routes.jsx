@@ -36,6 +36,7 @@ const Aside = ({ n, label, tone }) => (
     <span className="ml-2 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>{label}</span>
   </div>
 )
+const KNOWN = new Set(['', 'board', 'procurement', 'tools', 'logbook', 'napkin', 'hours', 'review', 'machines', 'playbooks', 'projects'])
 const page = (key, node) => (
   <motion.div key={key} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: .4, ease: EASE }}>{node}</motion.div>
 )
@@ -149,6 +150,13 @@ export function Routes({
         <TerrainHeader compact scene={sceneAt(timeKey, now, 7)} title="Hours" line="The month as the Zeiterfassung sheet sees it, with what still waits to be written." />
         <div className="relative"><Hours clock={timeclock.clock} /></div>
       </>)}
+      {!KNOWN.has(r) && !onLunch && page('lost', <main className="mx-auto col px-6 pt-[140px] pb-24">
+        <div className="panel max-w-[560px] px-7 py-6">
+          <h1 className="display text-[34px] font-semibold leading-none tracking-tight">No such page.</h1>
+          <p className="mt-3 text-[14px] leading-relaxed" style={{ color: 'var(--ink-2)' }}>Nothing lives at {location.hash || '#/'}. The pages are in the nav, and 1 to 9 on the keyboard.</p>
+          <a href="#/" className="pill mt-5 inline-flex items-center px-5 py-2.5 text-[13px] font-medium" style={{ background: 'var(--ink)', color: 'var(--bg)' }}>Home</a>
+        </div>
+      </main>)}
     </AnimatePresence>
   )
 }

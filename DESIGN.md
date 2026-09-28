@@ -126,6 +126,11 @@ day panel a blue one.
   chips use `STATUS.muted` (ink at .7), one grey, not three.
 - Checkbox: the drawn circle or square is 13 to 18 px; the button around it is 24 px, always.
 - Dimming: never by opacity on text. Use `--ink-3`, so it still passes contrast.
+- Confirm: never the browser's dialog. `ask()` from Confirm.jsx puts the question in the error toast's
+  panel at the bottom centre: one word and a period as the headline ("Delete."), the sentence that says
+  what goes and what stays, one primary pill, a quiet "Keep". Escape keeps; focus returns.
+- Hover: every pill answers the pointer with a brightness step (lighter in the dark, darker on paper),
+  rows lift their hairline to `--line-2`, text links underline. 0.2 s. Then 1 px down on press.
 - Toast: bottom right, one line of plain words, at most one link, read by the live region. A
   refused write (Today is full) is a toast. A fault is the error toast: bottom centre, "Something
   broke." with the message, Retry and Dismiss, role alert, stays until dealt with. Never a bare pill.

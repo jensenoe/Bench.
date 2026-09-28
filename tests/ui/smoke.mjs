@@ -282,6 +282,17 @@ try {
   const counts = await api('GET', '/api/counts')
   check('GET /api/counts answers with today, open, the cap and the clock', counts.status === 200 && counts.body.todayCap === 5 && typeof counts.body.today === 'number' && typeof counts.body.open === 'number' && counts.body.clock?.status === 'out', JSON.stringify(counts.body))
 
+  // the in-app confirm (roadmap 127): Delete on a focused card asks in Bench's own panel, Keep leaves the card
+  await page.goto(`${BASE}/#/board`); await page.reload(); await page.waitForTimeout(800)
+  const firstCard = page.locator('li.row.group').first()
+  await firstCard.focus(); await page.keyboard.press('Delete'); await page.waitForTimeout(300)
+  const confirmBox = page.getByRole('alertdialog')
+  check('Delete on a card opens the confirm panel, not the browser dialog', await confirmBox.count() === 1, await confirmBox.textContent().catch(() => ''))
+  await page.keyboard.press('Escape'); await page.waitForTimeout(300)
+  check('Escape keeps the card', await confirmBox.count() === 0 && await page.locator('li.row.group').count() > 0)
+  await page.goto(`${BASE}/#/nowhere`); await page.waitForTimeout(600)
+  check('an unknown route shows the lost page', await page.getByRole('heading', { name: 'No such page.' }).count() === 1)
+
   check('no console errors across the run', errors.length === 0, [...errors.slice(0, 3), ...failedUrls.slice(0, 4)].join(' | '))
 } catch (err) {
   failures.push('exception'); console.error(err)
