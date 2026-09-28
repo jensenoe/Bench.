@@ -111,7 +111,7 @@ function FromMachine({ machines, onChanged }) {
       </label>
       <button type="submit" disabled={busy || !key} className={btn} style={primary}>Make the playbook</button>
       <button type="button" onClick={() => setOpen(false)} className="min-h-6 px-2 text-[13px] underline-offset-2 hover:underline" style={{ color: 'var(--ink-3)' }}>Not now</button>
-      <p className="basis-full text-[13px]" style={{ color: 'var(--ink-3)' }}>Titles, lanes, sizes and checklists are copied, unticked. Order dates become offsets from the earliest one. Tickets from the tools are left out.</p>
+      <p className="basis-full text-[13px]" style={{ color: 'var(--ink-3)' }}>The playbook copies titles, lanes, sizes and checklists, unticked. Order dates become offsets from the earliest one. Tickets from the tools stay out.</p>
     </form>
   )
 }

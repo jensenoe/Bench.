@@ -77,7 +77,7 @@ export default function Lunch({ clock, punch, now, scene }) {
             <>
               <h1 className="display text-[clamp(48px,8vw,104px)] font-semibold leading-[.95] tracking-tight">{clock?.status === 'out' ? 'Day closed.' : 'Not clocked in.'}</h1>
               <p className="mt-5 max-w-[46ch] text-[15px] leading-relaxed" style={{ color: 'var(--ink-2)' }}>
-                {clock?.status === 'out' ? `Out at ${fmt(clock.events.filter(e => e.kind === 'out').at(-1)?.at)}. ${hm(workedMs(clock, now))} today.` : 'Clock in from the top bar and the break can be recorded from here.'}
+                {clock?.status === 'out' ? `Out at ${fmt(clock.events.filter(e => e.kind === 'out').at(-1)?.at)}. ${hm(workedMs(clock, now))} today.` : 'Clock in from the top bar, then record the break from here.'}
               </p>
               <a href="#/" className="mt-8 inline-block text-[13px] underline-offset-2 hover:underline" style={{ color: 'var(--ink-3)' }}>Back to the board</a>
             </>

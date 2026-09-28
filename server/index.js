@@ -66,7 +66,7 @@ app.get('/api/settings/export', wrap((_req, res) => {
 }))
 app.post('/api/settings/import', wrap((req, res) => {
   const body = req.body?.settings && typeof req.body.settings === 'object' ? req.body.settings : req.body
-  if (!body || typeof body !== 'object') return res.status(400).json({ error: 'That is not a Bench settings file.' })
+  if (!body || typeof body !== 'object') return res.status(400).json({ error: 'That is not a Bench. settings file.' })
   const { setupDone: _done, updateToken: _token, trafficKey: _traffic, ...rest } = body
   settings.update(rest)
   timeclock.invalidate()

@@ -43,7 +43,7 @@ export const COACH = {
   procurement: [
     { title: 'What this page is for.', body: 'Parts with a lead time. Anything you have to order weeks before the build needs it. Open any task, set its Order by date, and it appears here with the date and a countdown; add the supplier and the PO number once it is ordered.' },
     { title: 'Order by.', body: 'The last day an order can still go out and land in time. Inside 14 days it turns amber, past the date red. Ordered on, once set, turns the line green and stops the countdown.' },
-    { title: 'Home keeps an eye on it.', body: 'The landing page shows how many order dates fall inside a week, so you do not have to come here to be warned. This card will not come back; Settings can reset it.' }
+    { title: 'Home keeps an eye on it.', body: 'The landing page shows how many order dates fall inside a week, so you do not have to come here for the warning. This card will not come back; Settings can reset it.' }
   ],
   board: [
     { title: 'Five lanes, one cap.', body: 'Today holds five. When it is full, something leaves before anything arrives. That is the whole rule, and it is what keeps the list honest. Drag a card from lane to lane; the lane lights up when it will take it.' },
@@ -54,16 +54,16 @@ export const COACH = {
   logbook: [
     { title: 'One entry per meeting.', body: 'Title, date, who was there, the project. Then the notes, as they happened. A recurring meeting starts from its last entry: same title, people and project, dated today.' },
     { title: 'Decisions and actions apart.', body: 'Decisions are one per line. Actions have an owner and a tick box; the arrow sends one to the board as a task that remembers which meeting it came from.' },
-    { title: 'Search finds the sentence.', body: 'The search box looks through titles, notes, names and projects. Everything is saved to the shared folder as you type.' }
+    { title: 'Search finds the sentence.', body: 'The search box looks through titles, notes, names and projects. Bench. saves to the shared folder as you type.' }
   ],
   machines: [
-    { title: 'One page per machine.', body: 'Nothing is typed here. A machine appears as soon as a task carries its name as the project, the BOM lists parts for it, or a Logbook entry is filed under it. Everything that hangs on it is gathered: open work by lane, orders, tickets from the tools, entries, maps.' },
+    { title: 'One page per machine.', body: 'You type nothing here. A machine appears as soon as a task carries its name as the project, the BOM lists parts for it, or a Logbook entry names it. The page gathers everything that hangs on it: open work by lane, orders, tickets from the tools, entries, maps.' },
     { title: 'Spellings and mentions.', body: '"M14" and "Machine 14" are two machines until you merge them with "Same machine as" at the bottom of the detail page; Rename sets the name everyone sees. Mentions are tasks that name the machine in their title but carry no project yet; Assign puts them on it.' },
     { title: 'The passport.', body: 'The Passport panel is the machine\'s history on one timeline: created, ordered, delivered, ticket opened and closed, meetings and their decisions. Print gives a black-on-white page for the QMS or the customer. Playbooks apply a standard task set to a new machine in one go.' }
   ],
   projects: [
     { title: 'Planned from the date that matters.', body: 'A project is a machine, its deadline (FAT, delivery, handover) and the phases before it, Design to Handover to start with. Type the phase lengths in working days and the dates fall out backwards from the deadline: the last phase ends on it, every phase before ends the working day before the next begins.' },
-    { title: 'The tasks join by themselves.', body: 'Every task whose Project field reads the machine\'s name belongs to the project. Give each one a phase, here or in the task editor, and the timeline shows its due date inside the phase band. Parts with a supplier get an order-by date from the lead times Bench has learned; Write the dates onto the parts puts them on the tasks.' },
+    { title: 'The tasks join by themselves.', body: 'Every task whose Project field reads the machine\'s name belongs to the project. Give each one a phase, here or in the task editor, and the timeline shows its due date inside the phase band. Parts with a supplier get an order-by date from the lead times Bench. has learned; Write the dates onto the parts puts them on the tasks.' },
     { title: 'Room and fit.', body: 'Slack is the working days between the latest due date in a phase and the end of that phase; negative means the plan is already broken there. Fit compares the sized hours in a phase with the planned time it holds (about six tenths of a workday, the rest is the bench as it comes). The hero on Home says when a deadline is close or the plan is behind.' }
   ],
   napkin: [

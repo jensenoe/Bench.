@@ -109,11 +109,11 @@ function makeApi(fetchImpl, base) {
   const call = async (method, url, body) => {
     let res
     try { res = await fetchImpl(base + url, { method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined }) }
-    catch (err) { throw new ToolError(`Bench is not running at ${base} (${err.message}). Start Bench first.`) }
+    catch (err) { throw new ToolError(`Bench. is not running at ${base} (${err.message}). Start it first.`) }
     const text = await res.text()
     let json = null
     try { json = text ? JSON.parse(text) : null } catch { json = null }
-    if (!res.ok) throw new ToolError(json?.error || `Bench answered ${res.status}.`)
+    if (!res.ok) throw new ToolError(json?.error || `Bench. answered ${res.status}.`)
     return json
   }
   return { get: url => call('GET', url), post: (url, body) => call('POST', url, body), patch: (url, body) => call('PATCH', url, body) }
@@ -136,7 +136,7 @@ function implementations(api) {
       try { return compactTask(await api.post('/api/tasks', body)) }
       catch (err) {
         // Today is full: the task still lands, in Active, and the answer says so.
-        if (body.lane === 'today' && /Today is full/i.test(err.message)) { const t = await api.post('/api/tasks', { ...body, lane: 'active' }); return { ...compactTask(t), note: 'Today is full, so it landed in Active.' } }
+        if (body.lane === 'today' && /Today is full/i.test(err.message)) { const t = await api.post('/api/tasks', { ...body, lane: 'active' }); return { ...compactTask(t), note: 'Today is full, so it went to Active.' } }
         throw err
       }
     },
@@ -225,7 +225,7 @@ export function createHandler({ fetch: fetchImpl = globalThis.fetch, base = `htt
     if (!msg || typeof msg !== 'object' || Array.isArray(msg) || msg.jsonrpc !== '2.0' || typeof msg.method !== 'string') return rpcError(msg?.id, CODES.invalidRequest, 'Invalid request.')
     const { id, method, params = {} } = msg
     const isNotification = id === undefined
-    if (method === 'initialize') return rpcResult(id, { protocolVersion: PROTOCOL_VERSION, capabilities: { tools: { listChanged: false } }, serverInfo: SERVER_INFO, instructions: 'Bench is a personal project board. Tools read and create; nothing is deleted. Dates are YYYY-MM-DD.' })
+    if (method === 'initialize') return rpcResult(id, { protocolVersion: PROTOCOL_VERSION, capabilities: { tools: { listChanged: false } }, serverInfo: SERVER_INFO, instructions: 'Bench. is a personal project board. Tools read and create; none deletes. Dates are YYYY-MM-DD.' })
     if (method === 'notifications/initialized') { initialized = true; return null }
     if (method.startsWith('notifications/')) return null
     if (method === 'ping') return rpcResult(id, {})

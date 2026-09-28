@@ -112,7 +112,7 @@ export function createApp({ pin, mainBase = mainBaseDefault, inboxDir = inboxDef
     const r = await fetchImpl(base() + url, { method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined })
     const text = await r.text()
     let json = null; try { json = text ? JSON.parse(text) : null } catch { /* not json */ }
-    if (!r.ok) throw Object.assign(new Error(json?.error || `Bench answered ${r.status}.`), { status: r.status })
+    if (!r.ok) throw Object.assign(new Error(json?.error || `Bench. answered ${r.status}.`), { status: r.status })
     return json
   }
 
@@ -247,7 +247,7 @@ async function api(method, url, body) {
   const r = await fetch(url, { method, headers: body ? H : {}, body: body ? JSON.stringify(body) : undefined })
   if (r.status === 401) { location.reload(); throw new Error('PIN needed.') }
   const j = await r.json().catch(() => ({}))
-  if (!r.ok) throw new Error(j.error || ('Bench answered ' + r.status))
+  if (!r.ok) throw new Error(j.error || ('Bench. answered ' + r.status))
   return j
 }
 async function load() {

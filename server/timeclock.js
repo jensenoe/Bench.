@@ -204,9 +204,9 @@ export function plainError(err) {
   if (/Graph 404/.test(m) && /drive\/root|\/shares\//.test(m)) return `Workbook not found: ${workbookLabel()}. Check the path in Settings.`
   if (/^No sheet for/.test(m)) return `${m}. The month sheet is missing or named differently.`
   if (/Graph 404/.test(m)) return 'Excel could not find the sheet or the cell. Check the workbook layout.'
-  if (/Graph 423|locked/i.test(m)) return 'The workbook is locked, probably open in Excel somewhere. The punch will be written on the next try.'
-  if (/Graph 429|throttl/i.test(m)) return 'Microsoft asked us to slow down. The punch will be written on the next try.'
-  if (/fetch failed|ENOTFOUND|ECONN|ETIMEDOUT|network/i.test(m)) return 'Offline. The punch is kept and written when the connection is back.'
+  if (/Graph 423|locked/i.test(m)) return 'The workbook is locked, probably open in Excel somewhere. Bench. writes the punch on the next try.'
+  if (/Graph 429|throttl/i.test(m)) return 'Microsoft asked Bench. to slow down. It writes the punch on the next try.'
+  if (/fetch failed|ENOTFOUND|ECONN|ETIMEDOUT|network/i.test(m)) return 'Offline. Bench. keeps the punch and writes it when the connection is back.'
   return m
 }
 

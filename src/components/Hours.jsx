@@ -24,7 +24,7 @@ const mark = (d) =>
           : d.in ? { word: 'written', tone: 'var(--ok)' } : null
 /** Why the sheet check did not run, in one plain line. */
 const driftNote = (r) => !r || r.ok ? null
-  : r.reason === 'needs-signin' ? 'The sheet was not compared: connect Microsoft 365 and Bench checks it against the workbook.'
+  : r.reason === 'needs-signin' ? 'The sheet is not compared yet: connect Microsoft 365 and Bench. checks it against the workbook.'
     : `The sheet was not compared: ${r.reason}`
 const FIELD = { in: 'In', out: 'Out', break: 'Break' }
 
@@ -83,7 +83,7 @@ export default function Hours({ clock }) {
         )}
         {drift?.ok && differs.size > 0 && (
           <p className="px-6 py-3 text-[13px]" style={{ borderTop: '1px solid var(--line)', color: 'var(--caution)' }}>
-            The sheet and Bench disagree on {differs.size} {differs.size === 1 ? 'day' : 'days'}. Hover a marked row for both values; the sheet stays the record.
+            The sheet and Bench. disagree on {differs.size} {differs.size === 1 ? 'day' : 'days'}. Hover a marked row for both values; the sheet stays the record.
           </p>
         )}
 
@@ -119,7 +119,7 @@ export default function Hours({ clock }) {
                       {m && <span className="inline-flex items-center gap-2" title={m.title} style={{ color: m.tone }}>
                         <span aria-hidden="true" className="inline-block h-[7px] w-[7px]" style={{ background: m.tone }} />{m.word}</span>}
                       {diff && <span className="ml-3 inline-flex items-center gap-2" style={{ color: 'var(--caution)' }}
-                        title={diff.map(r => `${FIELD[r.field]}: Bench ${r.bench}, sheet ${r.sheet || 'empty'}`).join('. ') + '.'}>
+                        title={diff.map(r => `${FIELD[r.field]}: Bench. ${r.bench}, sheet ${r.sheet || 'empty'}`).join('. ') + '.'}>
                         <span aria-hidden="true" className="inline-block h-[7px] w-[7px] rounded-full" style={{ background: 'var(--caution)' }} />Sheet differs</span>}
                     </td>
                   </tr>
@@ -129,7 +129,7 @@ export default function Hours({ clock }) {
           </table>
         )}
         <p className="px-6 py-4 text-[13px] leading-relaxed" style={{ borderTop: '1px solid var(--line)', color: 'var(--ink-3)' }}>
-          Written means every punch of that day reached the workbook. Waiting means Bench still holds it, usually because Microsoft 365 was not connected at the time; it writes on the next connection. The sheet itself stays the record; this page is the receipt.
+          Written means every punch of that day reached the workbook. Waiting means Bench. still holds it, usually because Microsoft 365 was not connected at the time; it writes on the next connection. The sheet itself stays the record; this page is the receipt.
         </p>
       </section>
     </main>

@@ -73,7 +73,7 @@ function checkBackups() {
   const newestData = Math.max(0, ...backup.NAMES.map(n => { try { return fs.statSync(path.join(DATA_DIR, `${n}.json`)).mtimeMs } catch { return 0 } }))
   const newest = files[0]
   if (newest && new Date(newest.at).getTime() >= newestData - 60_000) return { key: 'backups', label: 'Backups', ok: true, detail: `Nothing changed since the last copy on ${newest.date}.` }
-  return { key: 'backups', label: 'Backups', ok: false, detail: newest ? `Newest copy is from ${newest.date}.` : 'No backup yet. One is written on the first save of a day.' }
+  return { key: 'backups', label: 'Backups', ok: false, detail: newest ? `Newest copy is from ${newest.date}.` : 'No backup yet. Bench. writes one on the first save of a day.' }
 }
 function checkMirror(m365ok) {
   const m = backup.mirrorStatus()

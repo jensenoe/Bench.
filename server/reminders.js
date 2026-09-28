@@ -101,7 +101,7 @@ function chaseTick(today) {
 }
 
 // ── Monday drift ──────────────────────────────────────────────────────
-export const driftMessage = (n) => ({ title: 'The sheet.', body: `The sheet and Bench disagree on ${n} ${n === 1 ? 'day' : 'days'}. The Hours page marks them.`, route: '#/hours' })
+export const driftMessage = (n) => ({ title: 'The sheet.', body: `The sheet and Bench. disagree on ${n} ${n === 1 ? 'day' : 'days'}. The Hours page marks them.`, route: '#/hours' })
 async function driftTick(today) {
   if (today.getDay() !== 1 || today.getHours() < 7 || today.getHours() >= 12) return false
   const m = load()

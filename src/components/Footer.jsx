@@ -90,7 +90,7 @@ export default function Footer({ name, version, scene, glow, now = new Date(), o
         </div>
 
         <div className="relative flex flex-wrap items-center justify-between gap-3 py-6 text-[13px]" style={{ borderTop: '1px solid var(--line)', color: 'var(--ink-3)' }}>
-          <span>Made at TomFit by Noël, for his own bench first.</span>
+          <span>Made at TomFit, for my own bench first. Noël.</span>
           <span className="tnum flex flex-wrap gap-x-4"><span>Photographs from Pexels and Unsplash</span>{version ? <span>{ver(version)}</span> : null}</span>
         </div>
       </div>

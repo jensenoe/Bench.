@@ -128,9 +128,9 @@ export function resolveFile(name) {
   const dir = dirOf()
   if (!dir) throw bad('No inbox folder is set.', 404)
   const safe = safeName(name)
-  if (!safe) throw bad('Not a picture name I can serve.')
+  if (!safe) throw bad('That is not a picture name Bench. can serve.')
   const full = path.join(dir, safe)
-  if (path.dirname(full) !== path.resolve(dir)) throw bad('Not a picture name I can serve.')
+  if (path.dirname(full) !== path.resolve(dir)) throw bad('That is not a picture name Bench. can serve.')
   if (!fs.existsSync(full)) throw bad('That picture is not in the folder any more.', 404)
   return full
 }
@@ -147,7 +147,7 @@ export function attach({ name, taskId, label } = {}) {
 }
 
 export function dismiss({ name } = {}) {
-  if (!safeName(name)) throw bad('Not a picture name I know.')
+  if (!safeName(name)) throw bad('That is not a picture name Bench. knows.')
   const s = loadSeen(); s.dismissed[name] = new Date().toISOString(); pruneSeen(); saveSeen()
   scan()
   return { ok: true }

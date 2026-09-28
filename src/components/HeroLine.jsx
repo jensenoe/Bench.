@@ -59,7 +59,7 @@ export function useHero() {
  */
 const QUIET = {
   dawn: ['The hall is cold and the light is coming. Nothing needs you yet.', 'Blue hour. The bench waits without asking.', 'First light finds the tools before it finds the work.', 'Quiet still. Let the coffee catch up.', 'The valley is asleep. You have the hall to yourself.'],
-  day: ['Good light for fine work.', 'The board is where you left it. Nothing has caught fire.', 'One thing, then the next. The rest keeps.', 'A steady hum in the hall, and a bench that knows you.', 'Nothing here is urgent. Most things are simply next.', 'The hall smells of oil and coffee. A good sign.'],
+  day: ['Good light for fine work.', 'The board is where you left it. Nothing has caught fire.', 'One thing, then the next. The rest keeps.', 'A steady hum in the hall, and a bench that knows you.', 'Nothing here is urgent. Most things are next, not now.', 'The hall smells of oil and coffee. A good sign.'],
   lunch: ['The bench keeps. Eat something warm.', 'Half the day is done. Sit down for the other half.', 'Tools down. The board will not notice.'],
   dusk: ['The last good light. Finish the cut, leave the rest.', 'Long shadows across the bench. Nothing here needs the night.', 'The hall is going quiet. So can you.', 'Low sun on the rails. A good hour to tidy the bench.'],
   night: ['Lamp on, the world off. The bench can hold what you leave on it.', 'Only the fans are running. Nothing here is urgent.', 'The night keeps its own hours. Yours ended a while ago.', 'The hall is dark and honest. Tomorrow is soon enough.']

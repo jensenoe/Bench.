@@ -163,7 +163,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
           {/* You */}
           <div {...panelProps('you')}>
             <Sec first>
-              <Field draft={draft} set={set} save={save} label="Name, as the tools spell it" k="name" placeholder="Noël Jensen" hint="Used for the greeting and to find what Issues, QMS and the BOM assign to you." />
+              <Field draft={draft} set={set} save={save} label="Name, as the tools spell it" k="name" placeholder="Noël Jensen" hint="For the greeting, and to match what Issues, QMS and the BOM assign to you." />
               <Field draft={draft} set={set} save={save} label="Work email" k="email" type="email" placeholder="name@tom.fit" hint="Some tools list people by address." />
             </Sec>
             <Sec title="The day">
@@ -281,7 +281,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
             </Sec>
             <Sec title="Photographs from the phone">
               <Field draft={draft} set={set} save={save} label="Folder to watch" k="inboxDir" mono placeholder="C:\Users\you\OneDrive\Pictures\Camera Roll"
-                hint="OneDrive's camera roll folder works well: the phone uploads a picture, Bench sees it within half a minute and offers it on the Board, to go onto a task as a link. Pictures from the last fourteen days. Empty means off." />
+                hint="OneDrive's camera roll folder works well: the phone uploads a picture, Bench. sees it within half a minute and offers it on the Board, to go onto a task as a link. Pictures from the last fourteen days. Empty means off." />
               {info?.chooseFolder && <button onClick={async () => { const r = await window.bench.chooseFolder?.(); if (r?.path) saveNow({ inboxDir: r.path }) }} className={`text-[13px] ${link}`}>Choose a folder</button>}
             </Sec>
             <Sec title="Order confirmations and delivery notes">
@@ -294,7 +294,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
               <DriveHome draft={draft} set={set} save={save} settings={settings} />
             </Sec>
             <Sec title="Introductions">
-              <p className="text-[13.5px]" style={{ color: 'var(--ink-3)' }}>The short walk-throughs on the Board, Procurement, Logbook and Napkin show once. <button onClick={() => { try { for (const k of Object.keys(localStorage)) if (k.startsWith('bench.coach.')) localStorage.removeItem(k) } catch { /* ignore */ } }} className={link} style={{ color: 'var(--ink-2)' }}>Show them again</button>.</p>
+              <p className="text-[13.5px]" style={{ color: 'var(--ink-3)' }}>The short walk-throughs on the Board, Procurement, Logbook, Napkin, Machines and Projects show once. <button onClick={() => { try { for (const k of Object.keys(localStorage)) if (k.startsWith('bench.coach.')) localStorage.removeItem(k) } catch { /* ignore */ } }} className={link} style={{ color: 'var(--ink-2)' }}>Show them again</button>.</p>
             </Sec>
           </div>
 
@@ -333,7 +333,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
             <Sec title="Backups.">
               <p className="text-[13px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>A copy of the board, once a day before the first write, kept thirty days. Restore puts one back in place of what is there now.</p>
               {backups === null ? <Note>Looking.</Note>
-                : backups.length === 0 ? <Note>No copies yet. The first one is written the first time the board changes on a new day.</Note>
+                : backups.length === 0 ? <Note>No copies yet. Bench. writes the first one the first time the board changes on a new day.</Note>
                 : (
                   <ul className="flex flex-col gap-1.5 text-[13px]">
                     {backups.slice(0, 12).map(b => (
@@ -364,7 +364,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
               <p className="text-[12.5px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>
                 Photographs from Pexels and Unsplash, free licences. {credits().slice(0, 12).join(', ')} and others.{info ? ` Bench. v${String(info.version).replace(/-beta\.(\d+)/, ' beta $1')}.` : ''}
               </p>
-              {info?.logFile && <p className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Something went wrong? <button onClick={() => window.bench.openLog()} className={link} style={{ color: 'var(--ink-2)' }}>Open bench.log</button> and send it along.</p>}
+              {info?.logFile && <p className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>If something broke, <button onClick={() => window.bench.openLog()} className={link} style={{ color: 'var(--ink-2)' }}>open bench.log</button> and send it along.</p>}
               <div className="row p-4 text-[13.5px]">
                 <div className="flex flex-wrap items-center gap-3">
                   <button onClick={checkUpdates} disabled={upd?.busy} className="pill px-3.5 py-1.5 text-[13.5px] font-medium disabled:opacity-50" style={{ background: 'var(--ink)', color: 'var(--bg)' }}>{upd?.busy ? 'Asking GitHub' : 'Check for updates'}</button>
@@ -372,18 +372,18 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
                 </div>
                 {upd && !upd.busy && !upd.downloaded && (
                   <p className="mt-2 leading-relaxed" style={{ color: upd.newer ? 'var(--accent)' : 'var(--ink-3)' }}>
-                    {upd.newer ? <>Bench {upd.latest} is out; you have {upd.current}. {upd.download && <><button onClick={download} disabled={dl?.busy} className={`${link} disabled:opacity-50`} style={{ color: 'var(--ink)' }}>{dl?.busy ? 'Downloading' : 'Download it here'}</button> or </>}<button onClick={() => api.openExternal(upd.download || upd.url)} className={link} style={{ color: 'var(--ink)' }}>open the installer page</button>.{dl?.error && <span style={{ color: 'var(--caution)' }}> Download failed: {dl.error}.</span>}</>
+                    {upd.newer ? <>Bench. {upd.latest} is out; you have {upd.current}. {upd.download && <><button onClick={download} disabled={dl?.busy} className={`${link} disabled:opacity-50`} style={{ color: 'var(--ink)' }}>{dl?.busy ? 'Downloading' : 'Download it here'}</button> or </>}<button onClick={() => api.openExternal(upd.download || upd.url)} className={link} style={{ color: 'var(--ink)' }}>open the installer page</button>.{dl?.error && <span style={{ color: 'var(--caution)' }}> Download failed: {dl.error}.</span>}</>
                       : upd.reason === 'private' ? 'The repository is private, so GitHub will not say without a token. Paste one below, or open the releases page.'
                       : upd.reason === 'bad-token' ? 'GitHub did not accept the token.'
                       : upd.reason === 'offline' ? 'Could not reach GitHub.'
-                      : upd.reason === 'no-release' ? 'No release has been published yet.'
+                      : upd.reason === 'no-release' ? 'No release yet.'
                       : upd.reason ? `Could not check: ${upd.reason}.`
                       : `You have the latest, ${upd.current}.`}
                   </p>
                 )}
                 {upd?.downloaded && (
                   <p className="mt-2 leading-relaxed" style={{ color: 'var(--accent)' }}>
-                    Bench {upd.downloaded.version} is downloaded.{' '}
+                    Bench. {upd.downloaded.version} is downloaded.{' '}
                     <button onClick={() => window.bench?.installUpdateNow?.(upd.downloaded.path)} className={link} style={{ color: 'var(--ink)' }}>Install now</button>
                     <span style={{ color: 'var(--ink-3)' }}> or </span>
                     <button onClick={() => window.bench?.installUpdate?.(upd.downloaded.path)} className={link} style={{ color: 'var(--ink)' }}>Installs when you quit</button>

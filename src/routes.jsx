@@ -187,6 +187,6 @@ export function paletteActions({ settings, punch, saveSettings, openQuickAdd, op
     { label: 'Playbooks', hint: 'Standard task sets per machine', run: () => { location.hash = '#/playbooks' } },
     { label: 'Projects', hint: 'Plan a machine backwards from its deadline', run: () => { location.hash = '#/projects' } },
     { label: 'Next theme', hint: 'Skip to the next picture library today', run: () => saveSettings({ libraryShift: (Number(settings.libraryShift) || 0) + 1 }) },
-    { label: 'Check for updates', hint: 'Ask GitHub now', run: () => api.checkUpdates(true).then(u => toast(u.newer ? `Bench ${u.latest} is out.` : `Bench ${u.current} is the latest.`)).catch(() => {}) }
+    { label: 'Check for updates', hint: 'Ask GitHub now', run: () => api.checkUpdates(true).then(u => toast(u.newer ? `Bench. ${u.latest} is out.` : `Bench. ${u.current} is the latest.`)).catch(() => {}) }
   ]
 }

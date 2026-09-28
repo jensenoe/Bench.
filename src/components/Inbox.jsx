@@ -39,7 +39,7 @@ function Shot({ file, tasks, onDone }) {
   return (
     <li className="row flex gap-4 p-3">
       <button onClick={() => openLink(file.path || file.url)} aria-label={`Open ${file.name}`} title={file.name}
-        className="relative block h-[88px] w-[88px] shrink-0 overflow-hidden rounded-md" style={{ background: 'var(--bg-2)' }}>
+        className="relative block h-[88px] w-[88px] shrink-0 overflow-hidden rounded-[12px]" style={{ background: 'var(--bg-2)' }}>
         <img src={file.url} alt="" className="h-full w-full object-cover" loading="lazy" />
       </button>
       <div className="min-w-0 flex-1">
@@ -53,7 +53,7 @@ function Shot({ file, tasks, onDone }) {
             placeholder="Which task?" aria-label={`Task for ${file.name}`} role="combobox" aria-expanded={open && hits.length > 0} aria-autocomplete="list"
             className="field w-full px-2.5 py-1.5 text-[13px]" />
           {open && hits.length > 0 && (
-            <ul role="listbox" className="panel absolute inset-x-0 top-full z-20 mt-1 max-h-[200px] overflow-y-auto p-1" style={{ boxShadow: 'var(--shadow-panel)' }}>
+            <ul role="listbox" className="panel absolute inset-x-0 top-full z-20 mt-1 max-h-[200px] overflow-y-auto p-1" style={{ boxShadow: 'var(--shadow-pop)' }}>
               {hits.map(t => (
                 <li key={t.id} role="option" aria-selected={pick?.id === t.id}>
                   <button onMouseDown={e => e.preventDefault()} onClick={() => choose(t)} className="block w-full truncate rounded-md px-2.5 py-1.5 text-left text-[13px] hover:bg-[rgba(var(--ink-rgb),.06)]">{t.title}</button>

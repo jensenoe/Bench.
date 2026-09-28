@@ -133,7 +133,7 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true, fo
       <div className="flex items-start gap-3">
 
         <motion.button role="checkbox" aria-checked={task.done} whileTap={{ scale: .85 }}
-          aria-label={`${task.done ? 'Reopen' : 'Complete'} ${task.title}`}
+          aria-label={`${task.done ? 'Reopen' : 'Tick'} ${task.title}`}
           onClick={() => onPatch(task.id, { done: !task.done })}
           className="-mt-[1px] -ml-[3px] grid h-6 w-6 shrink-0 place-items-center">
           <span className="grid h-[18px] w-[18px] place-items-center rounded-full border transition-colors"
@@ -192,7 +192,7 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true, fo
       </div>
       {/* On hover, on focus, while editing: the rest, as a small toolbar riding the card's top edge so it covers neither title nor chips. */}
       <div className={`row absolute -top-4 right-10 z-10 items-center gap-1 px-1.5 py-1 ${editing ? 'flex' : 'hidden group-hover:flex group-focus-within:flex'}`}
-        style={{ borderColor: 'var(--line-2)', boxShadow: '0 8px 24px color-mix(in srgb, var(--glow-dark) 60%, transparent)' }}>
+        style={{ borderColor: 'var(--line-2)', boxShadow: 'var(--shadow-pop)' }}>
         {!task.done && task.lane !== 'today' && (
           <button onClick={() => onPatch(task.id, { lane: 'today' })} aria-label="Pull to Today" title="Pull to Today"
             className="pill inline-flex h-6 items-center px-2 text-[12px] font-medium" style={{ border: '1px solid var(--line-2)', color: 'var(--ink-2)' }}>Today</button>

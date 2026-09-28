@@ -109,12 +109,20 @@ library needs at least six pictures per scene.
 
 ## 5. Shape
 
-Panels 20 px, rows and cards 12 px, fields 10 px, buttons and nav items full pill, checkboxes and keycaps 4 px.
-Nothing else. Borders are hairlines from `--line`; a panel never has both a border and a shadow
-in the dark theme. Shadows: `--shadow-panel` for floating panels (search, time clock, toasts),
-nothing on resting panels. Shadows are never black: they are the scene's night glow (`--glow-dark`)
-at 72 percent in the dark theme, 24 percent on paper, so a dusk panel throws a plum shadow and a
-day panel a blue one.
+Panels 20 px, rows and cards 12 px, fields 10 px, buttons and nav items full pill, checkboxes,
+keycaps and chips 4 px. Nothing else: `rounded-md` and `rounded-sm` are mapped to 4 px in the theme,
+so a Tailwind utility cannot leave the lock. Phone thumbnails are cards, 12 px.
+
+Borders are hairlines from `--line`. Depth in the dark theme is a bevel, not a shadow: panels and
+rows carry a 1 px inset highlight along the top edge (ink at .05 and .04), so they read as plates
+standing in the room rather than flat fills. A resting panel never throws a drop shadow in the dark
+theme; on paper it gets a 1 px contact shadow in the scene's colour and no bevel, and a row nothing.
+
+Floating things take `--shadow-panel` (dialogs, sheets, search, toasts) or `--shadow-pop` (the
+popovers under the nav, the card toolbar). Each is a contact layer in the page's own dark (`--veil`),
+then one or two diffuse layers of the scene's night glow (`--glow-dark`) at 55 to 72 percent in the
+dark theme and 12 to 22 on paper, so a dusk panel throws a plum shadow and a day panel a blue one.
+Shadows are never black, and no component writes its own.
 
 ## 6. Components
 
@@ -130,7 +138,8 @@ day panel a blue one.
   panel at the bottom centre: one word and a period as the headline ("Delete."), the sentence that says
   what goes and what stays, one primary pill, a quiet "Keep". Escape keeps; focus returns.
 - Hover: every pill answers the pointer with a brightness step (lighter in the dark, darker on paper),
-  rows lift their hairline to `--line-2`, text links underline. 0.2 s. Then 1 px down on press.
+  rows lift their hairline to `--line-2`, text links underline, a field's border eases to the accent.
+  0.2 s on `--ease`, never a jump. Then 1 px down on press.
 - Toast: bottom right, one line of plain words, at most one link, read by the live region. A
   refused write (Today is full) is a toast. A fault is the error toast: bottom centre, "Something
   broke." with the message, Retry and Dismiss, role alert, stays until dealt with. Never a bare pill.
@@ -153,12 +162,23 @@ One reading column, `.col`: 1120 px, 1320 from 1536, 1560 from 2200, 1760 from 3
 full width on purpose. Lanes: one to three columns by width, never a fourth. Minimum window 1024 px.
 No horizontal scroll at any width; no element that only exists on hover takes layout space.
 
+Spacing sits on a 4 px grid. Inside a panel: 24 px padding (28 from sm), 16 px between the title
+block and the rows, 8 px between rows, 12 by 16 px inside a row. 16 px between panels. Home breathes
+at 64 to 112 px between sections; work pages never do, the board is dense on purpose.
+
+Layers, by z-index: page content 10 and 20, the nav 50, popovers under the nav 60, toasts 70, the
+confirm 75, sheets and dialogs 80, the skip link 100. Nothing else.
+
 ## 8. Motion
 
 - Ambient: pictures drift 3 percent over 90 and 120 s, stars twinkle over 6 s. The hero parallaxes
   on scroll. That is all the ambient motion there is.
 - Interaction: `motion/react` with ease `[0.16, 1, 0.3, 1]`, 0.4 to 0.7 s for panels arriving,
   0.2 s for hovers. Transforms and opacity only; never animate width, height or position.
+- The same curve everywhere: CSS transitions use `--ease` and `--quick` (0.2 s), and Tailwind's
+  `transition-*` utilities are set to the same numbers in the theme, so nothing runs on `ease`,
+  `ease-out` or `ease-in-out`. The exceptions are the ambient loops, which must be symmetric to
+  alternate, and the toast's timer bar, which is a clock and runs linear.
 - `MotionConfig reducedMotion="user"` and the `prefers-reduced-motion` block switch everything off.
   The picture still changes; it just does not move.
 
@@ -169,6 +189,13 @@ copy, docs or comments. Dates through `shortDate` and `fmtDate` ("Tue 22 Sep"), 
 Errors say what happened and what to do, in one sentence each. No exclamation marks, no "Oops".
 The middle dot joins at most two things on a line. Three or more become separate spans with a gap,
 or a comma list.
+
+Active voice: Bench. does the thing, or you do; "is written", "are matched" and "can be switched off"
+are signs to rewrite. Sentence case everywhere, buttons and tabs included. British spelling (colour,
+licence, labelled). None of "easy", "simple", "quick", "just", "very", "really", "simply". The product
+is "Bench." with its period when it is the name in prose ("Bench. reads the sheet"); the wordmark in
+the nav and footer carries the period as the accent. A task is ticked or reopened, a step ticked or
+unticked, never "completed".
 
 The hero speaks softly. Its title lines (copy-pack.json) are short, warm and specific to the hour, never
 a slogan: "Kettle on, lights low", "Low sun through the hall". Under it, the briefing says one or two

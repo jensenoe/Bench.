@@ -120,7 +120,7 @@ export function download({ fetchImpl = fetch } = {}) {
 async function doDownload({ fetchImpl }) {
   const info = await check({ fetchImpl })
   if (info.reason) throw fail(info.reason === 'offline' ? 'GitHub is not reachable right now.' : `Cannot see the releases (${info.reason}).`)
-  if (!info.newer) throw fail(`Bench ${info.current} is the latest.`)
+  if (!info.newer) throw fail(`Bench. ${info.current} is the latest.`)
   if (!info.asset) throw fail(`Release ${info.latest} has no installer yet.`)
   const name = path.basename(info.asset.name)
   if (!/^[\w.-]+\.exe$/i.test(name)) throw fail(`Unexpected installer name: ${name}`)

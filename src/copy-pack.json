@@ -448,7 +448,7 @@
         "Tickets, quality, parts, gates."
       ],
       "bodies": [
-        "Issue tickets, the QMS, the structured BOM and Phase Gate are read directly from the TomFit tools, no export step.",
+        "Bench. reads Issue tickets, the QMS, the structured BOM and Phase Gate straight from the TomFit tools, no export step.",
         "Sign in once per tool and Bench. pulls your open items from Issue tickets, QMS, structured BOM and Phase Gate.",
         "The four TomFit tools stay the system of record; Bench. only reads what is assigned to you and shows it on the board.",
         "Each tool keeps its own login, you sign in once, and from then on your items appear here without copying."
@@ -492,19 +492,19 @@
       "bodies": [
         "Mind maps that lay themselves out. One idea in the middle, branches on both sides, Tab for a child, Enter for the next thought.",
         "For the part of the work that is not a list yet. Draw the shape of a problem, fold what is settled, come back when it is time to decide.",
-        "A quick canvas for thinking out loud. Every branch is editable in place and the map keeps itself tidy.",
+        "A small canvas for thinking out loud. You edit every branch in place and the map keeps itself tidy.",
         "Where a wiring concept, a supplier question or a test plan starts, before any of it is a task."
       ]
     }
   },
   "about": {
-    "short": "The day was spread across five tools. This is the one place it all shows at once.",
-    "long": "Bench. exists because the pieces of the day were spread across five tools, and none of them showed the whole bench at once. It runs locally and keeps everything in a folder you choose. Noël built it at TomFit for his own bench first; if it helps yours too, good.",
+    "short": "Five tools each held a piece of the day. This is the one place it all shows at once.",
+    "long": "Bench. exists because five tools each held a piece of the day, and none of them showed the whole bench at once. It runs locally and keeps everything in a folder you choose. Noël here: I built it at TomFit for my own bench first; if it helps yours too, good.",
     "footer": "Runs on this machine, nothing in a cloud of its own. The board lives in a folder you choose; your hours, sign-ins and settings stay in your own profile. It talks to Microsoft 365 and the TomFit tools, and to nothing else."
   },
   "firstRun": {
     "title": "Before we start.",
-    "body": "Your name, as the tools spell it, for the greeting and to match what Issues, QMS and the BOM assign to you. A work email too, because the tools sometimes list people by address. Nothing is sent anywhere.",
+    "body": "Your name, as the tools spell it, for the greeting and to match what Issues, QMS and the BOM assign to you. A work email too, because the tools sometimes list people by address. Nothing leaves the machine.",
     "nameLabel": "Name, as the tools spell it",
     "emailLabel": "Work email",
     "cta": "Next",

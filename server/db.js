@@ -142,7 +142,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
   migrate(to).then(r => {
     console.log(`Copied into ${r.to} in ${r.dir}:`)
     for (const [k, n] of Object.entries(r.copied)) console.log(`  ${k}: ${n === null ? 'nothing to copy' : `${n} document${n === 1 ? '' : 's'}`}`)
-    if (r.to === 'sqlite') console.log('Start Bench with BENCH_STORAGE=sqlite to use it.')
-    else console.log('Start Bench without BENCH_STORAGE (or with BENCH_STORAGE=json) to use the files.')
+    if (r.to === 'sqlite') console.log('Start Bench. with BENCH_STORAGE=sqlite to use it.')
+    else console.log('Start Bench. without BENCH_STORAGE (or with BENCH_STORAGE=json) to use the files.')
   }).catch(err => { console.error(err.message); process.exit(1) })
 }

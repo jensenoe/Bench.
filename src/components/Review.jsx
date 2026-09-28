@@ -61,7 +61,7 @@ export default function Review() {
           <Panel title="Done" n={r.done.length} empty="Nothing ticked this week.">
             {r.done.map(t => <Row key={t.id} title={t.title} meta={t.project} lead={shortDate(new Date(t.completedAt)).slice(0, 3)} />)}
           </Panel>
-          <Panel title="Slipped" n={r.slipped.length} empty="Nothing slipped. Every due date in the week was met or moved.">
+          <Panel title="Slipped" n={r.slipped.length} empty="Nothing slipped. Every due date held, or you moved it in time.">
             {r.slipped.map(t => <Row key={t.id} title={t.title} meta={`due ${fmtDate(t.dueDate)}`} tone="var(--late)" />)}
           </Panel>
           <Panel title="Hours" n={worked ? hm(worked) : null} empty={worked || r.hoursByProject.length ? null : 'Nothing on the clock and no sized tasks ticked.'}>
@@ -76,7 +76,7 @@ export default function Review() {
           <Panel title="Innovation" n={r.innovation.length} empty="Innovation did not move this week.">
             {r.innovation.map(t => <Row key={t.id} title={t.title} meta={t.done ? 'done' : `touched ${fmtDate(t.lastTouched)}`} tone={t.done ? 'var(--ok)' : null} />)}
           </Panel>
-          <Panel title="Orders" n={r.orders.length} empty="Nothing was ordered this week.">
+          <Panel title="Orders" n={r.orders.length} empty="Nothing ordered this week.">
             {r.orders.map(t => <Row key={t.id} title={t.title} meta={[t.supplier, t.poNumber].filter(Boolean).join(', ') || fmtDate(t.orderedOn)} lead={shortDate(new Date(t.orderedOn + 'T12:00:00')).slice(0, 3)} />)}
           </Panel>
           <Panel title="Logbook" n={r.logbook.length} empty="Nothing written this week.">
@@ -133,7 +133,7 @@ function Cost() {
         {withCost ? ` Cost at ${c.hourlyRate.toLocaleString('de-CH')} CHF an hour, the rate in Settings.` : ' Set an hourly rate in Settings > Hours and a cost column appears.'}
       </p>
       {err && <p role="alert" className="mt-3 text-[13.5px]" style={{ color: 'var(--late)' }}>{err}</p>}
-      {c && c.byMachine.length === 0 && <p className="mt-3 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>No sized tasks were ticked in these months. Give a task a size before you tick it and it counts here.</p>}
+      {c && c.byMachine.length === 0 && <p className="mt-3 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>No sized tasks ticked in these months. Give a task a size before you tick it and it counts here.</p>}
       {c && c.byMachine.length > 0 && (
         <div className="mt-4 overflow-x-auto">
           <table className="w-full border-collapse text-left">

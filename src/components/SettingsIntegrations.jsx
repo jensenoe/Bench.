@@ -33,7 +33,7 @@ export function MailReading({ on, onToggle }) {
   return (
     <>
       <Switch on={on} onChange={onToggle} label="Read the mail for order confirmations and delivery notes"
-        hint="Every half hour the last seven days of Outlook are matched against tasks with a supplier and a PO number: a confirmation sets ordered on, a delivery note sets delivered on. Subjects and previews only, never the bodies, nothing leaves the machine." />
+        hint="Every half hour Bench. matches the last seven days of Outlook against tasks with a supplier and a PO number: a confirmation sets ordered on, a delivery note sets delivered on. Subjects and previews only, never the bodies, and nothing leaves the machine." />
       {on && st && (
         <div className="flex flex-wrap items-center gap-3">
           <button onClick={async () => { setBusy(true); try { await runMail(); await load() } finally { setBusy(false) } }} disabled={busy} className={pill} style={{ border: '1px solid var(--line-2)' }}>{busy ? 'Reading…' : 'Read the mail now'}</button>
@@ -69,7 +69,7 @@ export function PhoneView({ draft, set, save, saveNow }) {
       {on && info && (
         info.on ? <Note>On. Type <span className="tnum" style={{ color: 'var(--ink)' }}>{info.url}</span> on the phone{info.addresses?.length > 1 ? `, or one of ${info.addresses.join(', ')}` : ''}. The phone has to be on the same network.</Note>
           : !info.configured ? <Note tone="var(--caution)">Set a PIN to switch it on.</Note>
-            : <Note tone="var(--caution)">Not running yet. Bench picks the change up within half a minute; if it stays off, port 5199 is taken or the firewall said no.</Note>
+            : <Note tone="var(--caution)">Not running yet. Bench. picks the change up within half a minute; if it stays off, port 5199 is taken or the firewall said no.</Note>
       )}
     </>
   )
@@ -83,7 +83,7 @@ export function DriveHome({ draft, set, save, settings }) {
   const reason = r => r === 'no-key' ? 'Paste a TomTom key first.' : r === 'no-home' ? 'Say where home is first.' : r === 'bad-key' ? 'TomTom did not accept the key.' : r === 'offline' ? 'Could not reach TomTom.' : r === 'no-route' ? 'No road between the two.' : r ? `Could not check: ${r}.` : null
   return (
     <>
-      <Note>Bench says how long the drive home takes, with the traffic as it is, from half past three while you are clocked in, and the drive in before half past eight. Work is Oetwil am See. It needs a free TomTom key (developer.tomtom.com, 2,500 calls a day, Bench uses about forty); the key stays in your own profile and is never exported.</Note>
+      <Note>Bench. says how long the drive home takes, with the traffic as it is, from half past three while you are clocked in, and the drive in before half past eight. Work is Oetwil am See. It needs a free TomTom key (developer.tomtom.com, 2,500 calls a day, Bench. uses about forty); the key stays in your own profile and is never exported.</Note>
       <label className="block text-[13px]" style={{ color: 'var(--ink-3)' }}>Home
         <input value={draft.homePlace ?? ''} placeholder="Neerach" onChange={e => set('homePlace', e.target.value)} onBlur={() => save('homePlace')} onKeyDown={e => { if (e.key === 'Enter') { save('homePlace'); e.target.blur() } }} className="field mt-1 w-full px-2.5 py-2 text-[13px]" style={{ color: 'var(--ink)' }} />
       </label>
@@ -107,7 +107,7 @@ export function StorageLine() {
     <>
       <Note>Storage: {s.engine === 'sqlite' ? <>SQLite, <span className="tnum">{s.path}</span>.</> : <>JSON files in <span className="tnum">{s.dir}</span>.</>}</Note>
       {s.wanted && s.wanted !== s.engine && <Note tone="var(--caution)">{s.wanted} was asked for but {s.error || 'it could not be loaded'}; running on {s.engine}.</Note>}
-      {s.migrate && <Note>To move: stop Bench, run <span className="tnum">{s.migrate}</span>, then start with the other engine in machine.json.</Note>}
+      {s.migrate && <Note>To move: stop Bench. and run <span className="tnum">{s.migrate}</span>, then start with the other engine in machine.json.</Note>}
     </>
   )
 }

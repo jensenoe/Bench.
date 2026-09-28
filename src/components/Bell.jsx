@@ -74,13 +74,13 @@ export default function Bell() {
       <AnimatePresence>
         {open && (
           <motion.div key="panel" role="dialog" aria-label="Notifications" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: .18 }}
-            className="panel absolute right-0 top-full z-[60] mt-2 w-[360px] p-4 text-[13.5px]" style={{ boxShadow: 'var(--shadow-panel)' }}>
+            className="panel absolute right-0 top-full z-[60] mt-2 w-[360px] p-4 text-[13.5px]" style={{ boxShadow: 'var(--shadow-pop)' }}>
             <div className="flex items-baseline justify-between">
               <span className="display text-[17px] font-semibold">Notifications.</span>
               <span className="tnum text-[13px]" style={{ color: 'var(--ink-3)' }}>{unread ? `${unread} unread` : items.length ? 'all read' : ''}</span>
             </div>
             {items.length === 0
-              ? <p className="mt-3 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>Nothing yet. What Bench tells you lands here as well.</p>
+              ? <p className="mt-3 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>Nothing yet. What Bench. tells you lands here as well.</p>
               : (
                 <ul className="mt-3 flex max-h-[60vh] flex-col gap-1 overflow-y-auto">
                   {items.map(n => (

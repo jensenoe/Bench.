@@ -4,6 +4,15 @@
   --font-display: "Outfit Variable", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Work Sans Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  /* Tailwind's own defaults, bent to the house rules: every transition-* utility runs on the one
+     curve at 0.2 s (DESIGN.md, section 8), and a stray rounded-md or rounded-sm still lands on the
+     4 px step of the shape lock (section 5) instead of 6 or 2. ease-bench is the same curve as a utility. */
+  --default-transition-duration: 200ms;
+  --default-transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-bench: cubic-bezier(0.16, 1, 0.3, 1);
+  --radius-sm: 4px;
+  --radius-md: 4px;
 }
 
 /* ──────────────────────────────────────────────────────────────────
@@ -11,7 +20,7 @@
    page and one accent; it does not tint the whole surface.
 
    Shape lock: section panels 20px, rows 12px, inputs 10px,
-   buttons and nav items full pill. Nothing else.
+   buttons and nav items full pill, chips 4px. Nothing else.
    ────────────────────────────────────────────────────────────────── */
 :root {
   --col: 1120px;   /* one reading column for every page; wider on big screens */
@@ -31,7 +40,13 @@
   --shadow-text-soft: 0 1px 4px rgba(0,0,0,.5);
   --photo-filter: saturate(.88) contrast(1.04);
   --glow-dark: #1B2A3C;           /* the scene's night glow, in both themes, for shadows (App.jsx writes it) */
-  --shadow-panel: 0 30px 80px color-mix(in srgb, var(--glow-dark) 72%, transparent), 0 2px 12px rgba(0,0,0,.28);
+  /* Floating things throw three layers: a contact layer in the page's own dark, then the scene's night glow,
+     diffuse. Never black. --shadow-panel for dialogs, sheets, search and toasts; --shadow-pop for popovers
+     under the nav and the card toolbar. The inset line is the same 1 px bevel resting panels carry. */
+  --shadow-panel: inset 0 1px 0 rgba(var(--ink-rgb),.05), 0 2px 10px rgba(var(--veil),.5), 0 12px 32px color-mix(in srgb, var(--glow-dark) 55%, transparent), 0 32px 80px color-mix(in srgb, var(--glow-dark) 72%, transparent);
+  --shadow-pop:   inset 0 1px 0 rgba(var(--ink-rgb),.05), 0 1px 6px rgba(var(--veil),.45), 0 10px 28px color-mix(in srgb, var(--glow-dark) 60%, transparent);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);   /* the one curve, for CSS transitions; motion/react gets the same numbers */
+  --quick: .2s;                            /* hovers, presses, focus */
 
   --page-bg: var(--bg); --page-veil: var(--veil); --page-ink: var(--ink); --page-ink-rgb: var(--ink-rgb);   /* the page behind a photo, unaffected by .on-photo */
 
@@ -71,7 +86,8 @@
   --shadow-text: none;
   --shadow-text-soft: none;
   --photo-filter: saturate(.92) contrast(1.02);
-  --shadow-panel: 0 20px 50px color-mix(in srgb, var(--glow-dark) 24%, transparent), 0 1px 0 rgba(22,22,26,.06);
+  --shadow-panel: 0 1px 2px color-mix(in srgb, var(--glow-dark) 12%, transparent), 0 8px 24px color-mix(in srgb, var(--glow-dark) 14%, transparent), 0 24px 60px color-mix(in srgb, var(--glow-dark) 22%, transparent);
+  --shadow-pop:   0 1px 2px color-mix(in srgb, var(--glow-dark) 12%, transparent), 0 8px 24px color-mix(in srgb, var(--glow-dark) 18%, transparent);
   --page-bg: #F3F1EC; --page-veil: 243,241,236; --page-ink: #16161A; --page-ink-rgb: 22,22,26;
   /* the same four meanings, dark enough to read as type on paper */
   --late:     #B9432F;
@@ -81,7 +97,9 @@
   --late-ink: #FFF6F4;
   color-scheme: light;
 }
-:root[data-theme="light"] .panel { box-shadow: 0 1px 2px rgba(22,22,26,.04); }
+/* Paper has no bevel: a resting panel gets a 1 px contact shadow in the scene's colour, a row nothing. */
+:root[data-theme="light"] .panel { box-shadow: 0 1px 2px color-mix(in srgb, var(--glow-dark) 10%, transparent); }
+:root[data-theme="light"] .row { box-shadow: none; }
 
 /* A panel that sits inside a photo area but belongs to the page (the header aside). */
 .off-photo {
@@ -138,12 +156,15 @@ h1:focus-visible, h2:focus-visible { outline-offset: 8px; border-radius: 4px; }
 @media (min-width: 3000px) { :root { --col: 1760px; } }   /* ultrawide: still one column, wider lanes, no 800 px margins */
 .col { max-width: var(--col); }
 
-.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; }
-.row   { background: var(--row);   border: 1px solid var(--line); border-radius: 12px; }
+/* In the dark a panel and a row carry a 1 px inset highlight along the top edge: a machined bevel, so
+   surfaces read as plates and not as flat fills. It is not a drop shadow; resting panels never throw one. */
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; box-shadow: inset 0 1px 0 rgba(var(--ink-rgb),.05); }
+.row   { background: var(--row);   border: 1px solid var(--line); border-radius: 12px; box-shadow: inset 0 1px 0 rgba(var(--ink-rgb),.04); }
 .pill  { border-radius: 9999px; }
 
 .field {
   background: var(--bg-2); border: 1px solid var(--line-2); border-radius: 10px; color: var(--ink);
+  transition: border-color var(--quick) var(--ease), background-color var(--quick) var(--ease);
 }
 .field:focus { border-color: var(--accent); outline: none; }
 
@@ -180,11 +201,11 @@ h1:focus-visible, h2:focus-visible { outline-offset: 8px; border-radius: 4px; }
 .twinkle { animation: twinkle 6s ease-in-out infinite; }
 
 /* tactile: every pill answers the pointer (a touch lighter in the dark, a touch darker on paper), then gives 1px on press.
-   Rows lift their hairline. 0.2 s, transforms and filters only; the reduced-motion block below zeroes the durations. */
-.pill:is(button, a, [role=button]) { transition: background-color .2s, border-color .2s, color .2s, transform .2s, filter .2s; }
+   Rows lift their hairline. 0.2 s on the one curve, transforms and filters only; the reduced-motion block below zeroes the durations. */
+.pill:is(button, a, [role=button]) { transition: background-color var(--quick) var(--ease), border-color var(--quick) var(--ease), color var(--quick) var(--ease), transform var(--quick) var(--ease), filter var(--quick) var(--ease); }
 .pill:is(button, a, [role=button]):not(:disabled):hover { filter: brightness(1.08); }
 :root[data-theme="light"] .pill:is(button, a, [role=button]):not(:disabled):hover { filter: brightness(.97); }
-li.row.group { transition: border-color .2s, background-color .2s; }
+li.row.group { transition: border-color var(--quick) var(--ease), background-color var(--quick) var(--ease); }
 li.row.group:hover { border-color: var(--line-2); }
 button:active, a.pill:active { transform: translateY(1px); }
 p { text-wrap: pretty; }

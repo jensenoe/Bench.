@@ -120,7 +120,7 @@ export default function MorningBrief({ open, onClose, onChanged }) {
             {b && driftDays > 0 && (
               <Section title="The sheet differs" n={driftDays}>
                 <li className="text-[13.5px]" style={{ color: 'var(--caution)' }}>
-                  The sheet and Bench disagree on {driftDays === 1 ? 'one day' : `${driftDays} days`}.{' '}
+                  The sheet and Bench. disagree on {driftDays === 1 ? 'one day' : `${driftDays} days`}.{' '}
                   <a href="#/hours" onClick={later} className="-my-1 inline-block py-1 underline underline-offset-2" style={{ color: 'var(--ink-2)' }}>The Hours page marks them</a>
                 </li>
               </Section>

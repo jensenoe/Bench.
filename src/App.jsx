@@ -154,8 +154,8 @@ export default function App() {
     api.checkUpdates().then(u => {
       if (!on) return
       // A downloaded installer waits for the next quit (roadmap 76); otherwise the plain "it is out" line.
-      if (u?.downloaded && window.bench?.installUpdateNow) showToast({ text: `Bench ${u.downloaded.version} is ready.`, by: 'It installs itself the next time Bench quits.', plain: true, link: { label: 'Install now', onClick: () => window.bench.installUpdateNow(u.downloaded.path) } }, 14000)
-      else if (u?.newer) showToast({ text: `Bench ${u.latest} is out.`, by: `You have ${u.current}. Settings > About has the download.`, plain: true, link: { label: 'Download the installer', url: u.download || u.url } }, 12000)
+      if (u?.downloaded && window.bench?.installUpdateNow) showToast({ text: `Bench. ${u.downloaded.version} is ready.`, by: 'It installs itself the next time Bench. quits.', plain: true, link: { label: 'Install now', onClick: () => window.bench.installUpdateNow(u.downloaded.path) } }, 14000)
+      else if (u?.newer) showToast({ text: `Bench. ${u.latest} is out.`, by: `You have ${u.current}. Settings > About has the download.`, plain: true, link: { label: 'Download the installer', url: u.download || u.url } }, 12000)
     }).catch(() => {})
     return () => { on = false }
   }, [state?.settings?.setupDone])   // eslint-disable-line react-hooks/exhaustive-deps

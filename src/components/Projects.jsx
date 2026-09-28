@@ -315,13 +315,13 @@ function ProjectDetail({ id, onBack }) {
         </div>
         {phases.map(ph => (
           <div key={ph.id} className="mt-5">
-            <h3 className="text-[13px] font-medium uppercase tracking-wide" style={{ color: 'var(--ink-3)' }}>{ph.name}{ph.start ? <span className="tnum ml-2 normal-case tracking-normal" data-volatile>{fmt(ph.start)} to {fmt(ph.end)}</span> : null}</h3>
+            <h3 className="text-[13px] font-medium" style={{ color: 'var(--ink-3)' }}>{ph.name}{ph.start ? <span className="tnum ml-2" data-volatile>{fmt(ph.start)} to {fmt(ph.end)}</span> : null}</h3>
             {ph.tasks.length ? <ul className="mt-1 flex flex-col">{ph.tasks.map(t => <TaskRow key={t.id} t={t} phases={p.phases} onMove={move} today={today} />)}</ul>
               : <p className="mt-1 text-[13px]" style={{ color: 'var(--ink-3)', borderTop: '1px solid var(--line)', paddingTop: 8 }}>Nothing here yet.</p>}
           </div>
         ))}
         <div className="mt-5">
-          <h3 className="text-[13px] font-medium uppercase tracking-wide" style={{ color: 'var(--ink-3)' }}>No phase yet</h3>
+          <h3 className="text-[13px] font-medium" style={{ color: 'var(--ink-3)' }}>No phase yet</h3>
           {unassigned.length ? <ul className="mt-1 flex flex-col">{unassigned.map(t => <TaskRow key={t.id} t={t} phases={p.phases} onMove={move} today={today} />)}</ul>
             : <p className="mt-1 text-[13px]" style={{ color: 'var(--ink-3)', borderTop: '1px solid var(--line)', paddingTop: 8 }}>Every task on {p.machine} sits in a phase.</p>}
         </div>

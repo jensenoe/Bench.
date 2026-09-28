@@ -64,7 +64,7 @@ export default function Suppliers() {
     setBusy(true)
     try {
       const r = await runMail()
-      if (!r.ok) toast('The mail was not read.', r.reason === 'off' ? 'Turn it on in Settings > Tools.' : r.reason === 'needs-admin-consent' ? 'Mail.Read needs the admin approval.' : r.reason === 'needs-signin' ? 'Connect Microsoft 365 first.' : r.reason)
+      if (!r.ok) toast('Bench. could not read the mail.', r.reason === 'off' ? 'Turn it on in Settings > Tools.' : r.reason === 'needs-admin-consent' ? 'Mail.Read needs the admin approval.' : r.reason === 'needs-signin' ? 'Connect Microsoft 365 first.' : r.reason)
       else toast(r.applied.length ? `${plural(r.applied.length, 'date')} set from the mail.` : 'Nothing new in the mail.', `${r.read} messages read.`)
       refresh()
     } catch (e) { toast('That did not work.', e.message) } finally { setBusy(false) }
@@ -73,11 +73,11 @@ export default function Suppliers() {
   if (rows === null) return null
   if (rows.length === 0 && !mail?.on) return null
   const mailLine = !mail ? null
-    : !mail.on ? 'Bench does not read the mail. Settings > Tools turns on order confirmations and delivery notes from Outlook.'
+    : !mail.on ? 'Bench. does not read the mail. Settings > Tools turns on order confirmations and delivery notes from Outlook.'
     : mail.reason === 'needs-admin-consent' ? 'Reading the mail waits on the admin approval for Mail.Read.'
     : mail.reason === 'needs-signin' ? 'Reading the mail needs the Microsoft 365 sign-in.'
     : mail.reason && mail.reason !== 'off' ? `The last read failed: ${mail.reason}`
-    : mail.lastRun ? `Mail read at ${hhmm(mail.lastRun)}, ${plural(mail.matched, 'date')} set so far.` : 'The mail is read every 30 minutes; the first pass is due shortly.'
+    : mail.lastRun ? `Mail read at ${hhmm(mail.lastRun)}, ${plural(mail.matched, 'date')} set so far.` : 'Bench. reads the mail every half hour; the first pass is due shortly.'
 
   return (
     <section className="panel p-6 sm:p-7" aria-label="Suppliers">
