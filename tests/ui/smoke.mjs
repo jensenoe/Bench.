@@ -297,6 +297,17 @@ try {
   const counts = await api('GET', '/api/counts')
   check('GET /api/counts answers with today, open, the cap and the clock', counts.status === 200 && counts.body.todayCap === 5 && typeof counts.body.today === 'number' && typeof counts.body.open === 'number' && counts.body.clock?.status === 'out', JSON.stringify(counts.body))
 
+  // open actions across meetings (roadmap 135): an action from a second entry shows in the view, ticking it ticks the entry
+  const standup = (await api('POST', '/api/logbook', { title: 'Standup', actions: [{ text: 'Send the drawing to Anna', due: '2026-10-02' }] })).body
+  await page.goto(`${BASE}/#/logbook`); await page.reload(); await page.waitForTimeout(900)
+  await page.getByRole('tab', { name: /Open actions/ }).click(); await page.waitForTimeout(300)
+  check('Open actions lists an action from another meeting', await page.getByText('Send the drawing to Anna').isVisible().catch(() => false))
+  const actionsAxe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze()
+  check('axe on Open actions: no accessibility violations', actionsAxe.violations.length === 0, violations(actionsAxe))
+  await page.getByRole('tabpanel', { name: 'Open actions' }).getByRole('checkbox', { name: 'Tick Send the drawing to Anna' }).click(); await page.waitForTimeout(500)
+  const standupAfter = (await api('GET', '/api/logbook')).body.find(e => e.id === standup.id)
+  check('ticking it there ticks it in its entry', standupAfter?.actions?.[0]?.done === true, JSON.stringify(standupAfter?.actions))
+
   // the in-app confirm (roadmap 127): Delete on a focused card asks in Bench's own panel, Keep leaves the card
   await page.goto(`${BASE}/#/board`); await page.reload(); await page.waitForTimeout(800)
   const firstCard = page.locator('li.row.group').first()

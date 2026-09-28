@@ -12,7 +12,7 @@
 Installing over an older Bench. keeps your board, hours and settings. `Bench-portable-…exe` on the
 same page is the no-install version: keep it in any folder and run it from there.
 
-**0.11, fourteenth beta (0.11.0-beta.14).** Everything here works on my machine and on the mocks; the
+**0.11, fifteenth beta (0.11.0-beta.15).** Everything here works on my machine and on the mocks; the
 Microsoft paths (Planner, the hours workbook, the issue list, the calendar) still want a
 first real run in the tom.fit tenant, and the issue list and calendar need a one-time admin
 approval, see below.
@@ -54,7 +54,7 @@ Administrator; `build-exe.bat plain` skips the icon stamping instead, and `build
 Bump `version` in `package.json`, commit, then tag and push:
 
 ```bash
-git tag v0.11.0-beta.14 && git push --tags
+git tag v0.11.0-beta.15 && git push --tags
 ```
 
 The *Release* workflow in `.github/workflows/release.yml` builds both exes on a Windows
@@ -94,7 +94,8 @@ without publishing and leaves the exes as a workflow artifact.
   phase running today. The hero says
   when a plan is behind or a deadline is close.
 - **Playbooks, passport, suppliers.** `#/playbooks` applies a standard task set to a machine and makes a
-  template from a finished one. Each machine has a printable passport, its whole history on one page.
+  template from a finished one. A new project can start from a playbook: its phases and its tasks arrive in
+  one go, each task in its phase, and a playbook applied to a planned machine sorts its tasks the same way. Each machine has a printable passport, its whole history on one page.
   With mail reading on, order confirmations and delivery notes in Outlook set the order and delivery
   dates by themselves, and Procurement shows the suppliers' lead times and hit rate.
 - **The phone.** Settings > Tools > Phone view with a PIN serves a small page on the workshop network:

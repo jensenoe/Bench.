@@ -11,6 +11,11 @@
  *   POST   /api/playbooks/from-machine       { key, name, machineType? } -> the new template
  *
  * A task meant for Today lands in Active when Today is full: the cap is the board's rule, not the template's.
+ *
+ * Phases (roadmap 134): a template may carry the phases of a plan ([{ name, days }]) and each task the name
+ * of its phase. A project started from the template takes those phases; a template applied to a machine
+ * that has a plan puts each task into its phase (by that name, else by its words, phasematch.js). A
+ * template made from a planned machine keeps the machine's phases and where each task sat.
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -19,6 +24,7 @@ import { fileURLToPath } from 'node:url'
 import * as store from './store.js'
 import * as machines from './machines.js'
 import { backupOnce } from './backup.js'
+import { matchPhase, planOf } from './phasematch.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DATA_DIR = process.env.BENCH_DATA_DIR || path.join(__dirname, '..', 'data')
@@ -38,13 +44,13 @@ export const STARTER = {
   name: 'Commissioning, standard',
   machineType: 'any',
   tasks: [
-    { title: 'Incoming inspection', lane: 'active', effortHours: 2, checklist: ['Delivery note against the order', 'Transport damage', 'Serial numbers noted', 'Photos in the inbox'] },
-    { title: 'Mechanical assembly check', lane: 'active', effortHours: 4, checklist: ['Torques per the drawing', 'Guards and covers', 'Alignment', 'Lubrication'] },
-    { title: 'Electrical check', lane: 'active', effortHours: 3, checklist: ['Wiring against the schematic', 'Earth continuity', 'Insulation', 'Sensor addresses'] },
-    { title: 'Safety relay test', lane: 'active', effortHours: 2, checklist: ['E-stop from every station', 'Guard switches', 'Reset behaviour', 'Test protocol signed'] },
-    { title: 'Software load', lane: 'active', effortHours: 2, checklist: ['Release version noted', 'Parameters from the type sheet', 'Backup taken'] },
-    { title: 'FAT protocol', lane: 'active', effortHours: 4, checklist: ['Dry run', 'Run with material', 'Deviations listed', 'Customer signature'] },
-    { title: 'Handover note', lane: 'active', effortHours: 1, checklist: ['Logbook entry', 'Open points to the board', 'Manuals handed over'] }
+    { title: 'Incoming inspection', lane: 'active', effortHours: 2, phase: 'Mechanical assembly', checklist: ['Delivery note against the order', 'Transport damage', 'Serial numbers noted', 'Photos in the inbox'] },
+    { title: 'Mechanical assembly check', lane: 'active', effortHours: 4, phase: 'Mechanical assembly', checklist: ['Torques per the drawing', 'Guards and covers', 'Alignment', 'Lubrication'] },
+    { title: 'Electrical check', lane: 'active', effortHours: 3, phase: 'Electrical', checklist: ['Wiring against the schematic', 'Earth continuity', 'Insulation', 'Sensor addresses'] },
+    { title: 'Safety relay test', lane: 'active', effortHours: 2, phase: 'Test', checklist: ['E-stop from every station', 'Guard switches', 'Reset behaviour', 'Test protocol signed'] },
+    { title: 'Software load', lane: 'active', effortHours: 2, phase: 'Software', checklist: ['Release version noted', 'Parameters from the type sheet', 'Backup taken'] },
+    { title: 'FAT protocol', lane: 'active', effortHours: 4, phase: 'Test', checklist: ['Dry run', 'Run with material', 'Deviations listed', 'Customer signature'] },
+    { title: 'Handover note', lane: 'active', effortHours: 1, phase: 'Handover', checklist: ['Logbook entry', 'Open points to the board', 'Manuals handed over'] }
   ]
 }
 
@@ -81,6 +87,7 @@ function cleanTask(t) {
   const ob = offset(t.orderBy); if (ob) out.orderBy = ob
   const supplier = str(t.supplier); if (supplier) out.supplier = supplier
   const notes = str(t.notes); if (notes) out.notes = notes.slice(0, 2000)
+  const phase = str(t.phase); if (phase) out.phase = phase.slice(0, 60)
   return out
 }
 /** A template as the file keeps it. Null when it has no name or no usable task. */
@@ -89,7 +96,8 @@ export function clean(p) {
   const name = str(p.name); if (!name) return null
   const tasks = (Array.isArray(p.tasks) ? p.tasks : []).map(cleanTask).filter(Boolean).slice(0, 80)
   if (!tasks.length) return null
-  return { id: str(p.id) || crypto.randomUUID(), name: name.slice(0, 120), machineType: str(p.machineType) || 'any', tasks }
+  const phases = (Array.isArray(p.phases) ? p.phases : []).map(x => ({ name: String(str(x?.name) || '').slice(0, 60), days: Math.max(1, Math.min(200, Math.round(Number(x?.days) || 1))) })).filter(x => x.name).slice(0, 20)
+  return { id: str(p.id) || crypto.randomUUID(), name: name.slice(0, 120), machineType: str(p.machineType) || 'any', tasks, ...(phases.length ? { phases } : {}) }
 }
 
 /**
@@ -110,15 +118,17 @@ export function tasksFor(template, project, today = localDate()) {
  * dates as offsets from the earliest order-by among them. Done tasks count too; a finished commissioning is
  * exactly what the next one should look like. Tickets from the tools are left out: they are not standard work.
  */
-export function templateFrom(tasks, { name, machineType = 'any' } = {}) {
+export function templateFrom(tasks, { name, machineType = 'any', plan = null } = {}) {
+  const phaseName = id => plan?.phases?.find(p => p.id === id)?.name || null
   const own = tasks.filter(t => (t.source || 'local') === 'local' && t.title)
   const dates = own.map(t => t.orderBy).filter(Boolean).map(d => d.slice(0, 10)).sort()
   const first = dates[0] || null
   const out = clean({
     name, machineType,
+    phases: plan?.phases?.map(p => ({ name: p.name, days: p.days })) || [],
     tasks: own.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map(t => ({
       title: t.title, lane: t.lane === 'today' ? 'today' : LANES.includes(t.lane) ? t.lane : 'active', effortHours: t.effortHours ?? null,
-      checklist: (t.checklist || []).map(c => c.text), supplier: t.supplier || null,
+      checklist: (t.checklist || []).map(c => c.text), supplier: t.supplier || null, phase: phaseName(t.phase),
       orderBy: t.orderBy && first ? `+${Math.max(0, daysBetween(first, t.orderBy.slice(0, 10)))}` : null
     }))
   })
@@ -151,19 +161,25 @@ export function apply(id, project, today = localDate()) {
   const proj = str(project)
   if (!proj) throw bad('Which machine? Give the project name.')
   const created = []
-  for (const input of tasksFor(p, proj, today)) {
+  const plan = planOf(proj)   // a planned machine: each task goes into its phase
+  let placed = 0
+  const inputs = tasksFor(p, proj, today)
+  for (let i = 0; i < inputs.length; i++) {
+    const phase = plan ? matchPhase({ ...inputs[i], phase: p.tasks[i]?.phase }, plan.phases) : null
+    if (phase) placed++
+    const input = { ...inputs[i], phase }
     let t
     try { t = store.createTask(input) }
     catch (err) { if (err instanceof store.CapError && input.lane === 'today') t = store.createTask({ ...input, lane: 'active' }); else throw err }
     created.push(t.id)
   }
-  return { created, project: proj, playbook: { id: p.id, name: p.name } }
+  return { created, placed, project: proj, playbook: { id: p.id, name: p.name } }
 }
 export function fromMachine({ key, name, machineType } = {}) {
   const m = machines.list().find(x => x.key === machines.resolveKey(key, machines.readAliases().aliases))
   if (!m) throw bad('That machine is not on the list.', 404)
   const ids = new Set(m.tasks)
-  const p = templateFrom(store.allTasks().filter(t => ids.has(t.id)), { name: str(name) || `${m.name}, as built`, machineType: str(machineType) || m.name })
+  const p = templateFrom(store.allTasks().filter(t => ids.has(t.id)), { name: str(name) || `${m.name}, as built`, machineType: str(machineType) || m.name, plan: planOf(m.name) })
   return save(p)
 }
 

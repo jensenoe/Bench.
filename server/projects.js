@@ -18,6 +18,7 @@ import * as store from './store.js'
 import * as settings from './settings.js'
 import { suggest as suggestLead } from './leadtimes.js'
 import { isOff, rules, offBetween } from './workdays.js'
+import * as playbooks from './playbooks.js'
 
 const wrap = fn => (req, res) => Promise.resolve().then(() => fn(req, res)).catch(err => res.status(err.status || 500).json({ error: err.message }))
 const col = db.collection('projects')
@@ -277,6 +278,19 @@ export function phaseFor(machine, today = isoOf(new Date())) {
   return ph?.id || null
 }
 
+/**
+ * A project started from a playbook (roadmap 134): the playbook's phases (or the seven starters), planned
+ * back from the deadline, and its tasks created on the machine and placed into their phases in one go.
+ * Returns { project, created, placed }.
+ */
+export function createFromPlaybook(input = {}, playbookId) {
+  const pb = playbooks.list().find(x => x.id === playbookId)
+  if (!pb) throw Object.assign(new Error('That playbook is gone.'), { status: 404 })
+  const p = create({ ...input, machine: String(input.machine || '').trim() || input.name, phases: pb.phases?.length ? pb.phases : STARTER_PHASES })
+  const r = playbooks.apply(pb.id, p.machine)
+  return { project: p, created: r.created.length, placed: r.placed, playbook: pb.name }
+}
+
 /** Re-plan from the deadline and, when asked, write need-by and order-by onto the parts. */
 export function schedule(id, { apply = false } = {}) {
   const p = list().find(x => x.id === id); if (!p) return null
@@ -295,7 +309,11 @@ export function schedule(id, { apply = false } = {}) {
 
 export function registerRoutes(app) {
   app.get('/api/projects', wrap((_req, res) => res.json(summaries())))
-  app.post('/api/projects', wrap((req, res) => res.json(create(req.body || {}))))
+  app.post('/api/projects', wrap((req, res) => {
+    const { playbookId, ...body } = req.body || {}
+    if (playbookId) { const r = createFromPlaybook(body, playbookId); return res.json({ ...r.project, fromPlaybook: { name: r.playbook, created: r.created, placed: r.placed } }) }
+    res.json(create(body))
+  }))
   app.get('/api/projects/:id', wrap((req, res) => { const d = detail(req.params.id); d ? res.json(d) : res.status(404).json({ error: 'not found' }) }))
   app.patch('/api/projects/:id', wrap((req, res) => { const p = update(req.params.id, req.body || {}); p ? res.json(p) : res.status(404).json({ error: 'not found' }) }))
   app.delete('/api/projects/:id', wrap((req, res) => res.json({ deleted: remove(req.params.id) })))

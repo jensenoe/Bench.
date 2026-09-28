@@ -128,7 +128,7 @@ export function Routes({
           aside={<Aside n={logCount} label={logCount === 1 ? 'entry' : 'entries'} tone="var(--accent)" />} />
         <div className="relative">
           <Coach id="logbook" steps={COACH.logbook} />
-          <Logbook onRefresh={refresh} />
+          <Logbook onRefresh={refresh} tasks={state.tasks} />
         </div>
       </>)}
 

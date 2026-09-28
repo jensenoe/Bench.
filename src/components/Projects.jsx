@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, Plus, Trash, ArrowsClockwise, PencilSimple, X } from '@phosphor-icons/react'
 import { getProjects, getProject, createProject, patchProject, removeProject, scheduleProject, assignPhase } from '../api/projects.js'
 import { getMachines } from '../api/machines.js'
+import { getPlaybooks } from '../api/playbooks.js'
 import DateField from './DateField.jsx'
 import { PanelSkeleton } from './Skeleton.jsx'
 import { ask } from './Confirm.jsx'
@@ -76,16 +77,22 @@ function ProjectCard({ p }) {
 
 function NewProject({ machines, onCreated }) {
   const [open, setOpen] = useState(false)
-  const [f, setF] = useState({ name: '', machine: '', goal: '', deadline: '', deadlineLabel: 'FAT' })
+  const [f, setF] = useState({ name: '', machine: '', goal: '', deadline: '', deadlineLabel: 'FAT', playbookId: '' })
   const [busy, setBusy] = useState(false)
+  const [books, setBooks] = useState([])
+  useEffect(() => { if (open) getPlaybooks().then(b => setBooks(Array.isArray(b) ? b : [])).catch(() => {}) }, [open])
   const set = (k, v) => setF(s => ({ ...s, [k]: v }))
+  const book = books.find(b => b.id === f.playbookId)
   const submit = async (e) => {
     e.preventDefault()
     if (!f.name.trim()) return
     setBusy(true)
     try {
-      const p = await createProject({ ...f, machine: f.machine.trim() || f.name.trim() })
-      toast('Planned from the deadline.', p.name); setOpen(false); setF({ name: '', machine: '', goal: '', deadline: '', deadlineLabel: 'FAT' }); onCreated(p)
+      const { playbookId, ...rest } = f
+      const p = await createProject({ ...rest, machine: f.machine.trim() || f.name.trim(), ...(playbookId ? { playbookId } : {}) })
+      const fb = p.fromPlaybook
+      toast('Planned from the deadline.', fb ? `${p.name}: ${plural(fb.created, 'task')} from ${fb.name}, ${fb.placed === fb.created ? 'each in its phase' : `${fb.placed} in their phases`}.` : p.name)
+      setOpen(false); setF({ name: '', machine: '', goal: '', deadline: '', deadlineLabel: 'FAT', playbookId: '' }); onCreated(p); refresh()
     } catch (err) { toast('That did not work.', err.message) } finally { setBusy(false) }
   }
   if (!open) return <button onClick={() => setOpen(true)} className={btn} style={primary}><Plus size={13} weight="bold" /> New project</button>
@@ -100,12 +107,17 @@ function NewProject({ machines, onCreated }) {
         <DateField className="mt-1" value={f.deadline} onChange={v => set('deadline', v || '')} placeholder="pick the day" /></div>
       <label className="block"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>What that date is</span>
         <select value={f.deadlineLabel} onChange={e => set('deadlineLabel', e.target.value)} className={INP + ' mt-1 cursor-pointer'} style={inpStyle}>{LABELS.map(l => <option key={l}>{l}</option>)}</select></label>
+      <label className="block sm:col-span-2"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Start from</span>
+        <select value={f.playbookId} onChange={e => set('playbookId', e.target.value)} className={INP + ' mt-1 cursor-pointer'} style={inpStyle}>
+          <option value="">Seven standard phases, no tasks</option>
+          {books.map(b => <option key={b.id} value={b.id}>{b.name}: {b.phases?.length ? plural(b.phases.length, 'phase') : 'the seven phases'}, {plural(b.tasks.length, 'task')}</option>)}
+        </select></label>
       <label className="block sm:col-span-2"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Goal, one sentence</span>
         <input value={f.goal} onChange={e => set('goal', e.target.value)} placeholder="Runs the full test protocol before the customer arrives." className={INP + ' mt-1'} style={inpStyle} /></label>
       <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
         <button type="submit" disabled={busy || !f.name.trim()} className={btn} style={primary}>Create and plan</button>
         <button type="button" onClick={() => setOpen(false)} className={btn} style={quiet}>Cancel</button>
-        <span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Seven phases to start with, Design to Handover. Change them on the next page.</span>
+        <span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>{book ? `The phases and the ${plural(book.tasks.length, 'task')} of ${book.name}, each task in its phase.` : 'Seven phases to start with, Design to Handover. Change them on the next page.'}</span>
       </div>
     </form>
   )

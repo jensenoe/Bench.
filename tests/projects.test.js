@@ -200,3 +200,44 @@ describe('the forecast inside the plan', () => {
     expect(f.slack).toBe(Math.min(f.tasks.a.slack, f.tasks.b.slack, f.tasks.c.slack))
   })
 })
+
+const PM = await import('../server/phasematch.js')
+const PB = await import('../server/playbooks.js')
+
+describe('playbooks into the plan (roadmap 134)', () => {
+  const phases = P.STARTER_PHASES.map((p, i) => ({ ...p, id: 'p' + i }))
+  const id = n => phases.find(p => p.name === n).id
+  it('matches by the playbook phase name first, then by the words', () => {
+    expect(PM.matchPhase({ title: 'Anything', phase: 'software' }, phases)).toBe(id('Software'))
+    expect(PM.matchPhase({ title: 'Frame drawings' }, phases)).toBe(id('Design'))
+    expect(PM.matchPhase({ title: 'Linear rails', supplier: 'Misumi' }, phases)).toBe(id('Procurement'))
+    expect(PM.matchPhase({ title: 'Safety relay test' }, phases)).toBe(id('Electrical'))
+    expect(PM.matchPhase({ title: 'FAT protocol' }, phases)).toBe(id('Test'))
+    expect(PM.matchPhase({ title: 'Weld the frame' }, phases)).toBe(id('Mechanical assembly'))
+    expect(PM.matchPhase({ title: 'Handover note' }, phases)).toBe(id('Handover'))
+    expect(PM.matchPhase({ title: 'Coffee with the customer' }, phases)).toBe(null)
+    expect(PM.matchPhase({ title: 'FAT protocol' }, [])).toBe(null)
+  })
+  it('a project from the starter playbook gets its phases and every task placed', () => {
+    const r = P.createFromPlaybook({ name: 'Press 12', deadline: '2026-12-18' }, 'commissioning-standard')
+    expect(r.project.machine).toBe('Press 12')
+    expect(r.created).toBe(7)
+    expect(r.placed).toBe(7)
+    const d = P.detail(r.project.id, '2026-10-01')
+    expect(d.unassigned).toHaveLength(0)
+    expect(d.phases.find(p => p.name === 'Test').tasks.map(t => t.title).sort()).toEqual(['FAT protocol', 'Safety relay test'])
+    P.remove(r.project.id)
+  })
+  it('applying a playbook to a planned machine places the tasks, to an unplanned one leaves them be', () => {
+    const p = P.create({ name: 'Row 4', machine: 'Row 4', deadline: '2026-12-18' })
+    expect(PB.apply('commissioning-standard', 'Row 4').placed).toBe(7)
+    expect(PB.apply('commissioning-standard', 'Nobody plans this').placed).toBe(0)
+    P.remove(p.id)
+  })
+  it('a template made from a planned machine keeps the phases and where each task sat', () => {
+    const plan = { phases: [{ id: 'x', name: 'Build', days: 8 }, { id: 'y', name: 'Prove', days: 3 }] }
+    const t = PB.templateFrom([{ id: '1', title: 'Weld', phase: 'x', source: 'local' }, { id: '2', title: 'Run it', phase: 'y', source: 'local' }], { name: 'As built', plan })
+    expect(t.phases).toEqual([{ name: 'Build', days: 8 }, { name: 'Prove', days: 3 }])
+    expect(t.tasks.map(x => x.phase)).toEqual(['Build', 'Prove'])
+  })
+})

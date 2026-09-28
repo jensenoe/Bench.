@@ -9,13 +9,16 @@ import { fmtDate } from '../lanes.js'
 
 /**
  * Logbook: one entry per meeting. The list on the left, the page on the right.
- * Actions can be sent to the board with one click and keep a link back here.
+ * Actions can be sent to the board with one click and keep a link back here. The list has a second view,
+ * Open actions (roadmap 135): every unticked action from every meeting, the dated ones first, each with the
+ * meeting it came from and whether it sits on the board. Ticking one there ticks it in its entry.
  * Saves on blur; nothing to remember.
  */
 const fmt = (d) => d ? fmtDate(d) : ''
 const INP = 'field w-full px-2.5 py-2 text-[13px]'
 
-export default function Logbook({ onRefresh }) {
+export default function Logbook({ onRefresh, tasks = [] }) {
+  const [view, setView] = useState('entries')   // 'entries' | 'actions'
   const [entries, setEntries] = useState(null)
   const [sel, setSel] = useState(null)
   const [q, setQ] = useState('')
@@ -79,6 +82,19 @@ export default function Logbook({ onRefresh }) {
     return t ? entries.filter(e => [e.title, e.project, e.notes, ...(e.attendees || []), ...(e.tags || [])].join(' ').toLowerCase().includes(t)) : entries
   }, [entries, q])
   const entry = entries?.find(e => e.id === sel) || null
+  const openActions = useMemo(() => {
+    if (!entries) return []
+    const t = q.trim().toLowerCase()
+    return entries.flatMap(e => (e.actions || []).filter(a => !a.done).map(a => ({ ...a, entryId: e.id, entryTitle: e.title, entryDate: e.date, project: e.project })))
+      .filter(a => !t || [a.text, a.owner, a.entryTitle, a.project].join(' ').toLowerCase().includes(t))
+      .sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999') || (b.entryDate || '').localeCompare(a.entryDate || ''))
+  }, [entries, q])
+  const tick = async (a) => {
+    const e = entries.find(x => x.id === a.entryId); if (!e) return
+    const saved = await api.patchEntry(e.id, { actions: e.actions.map(x => x.id === a.id ? { ...x, done: true } : x) })
+    setEntries(list => list.map(x => x.id === saved.id ? saved : x))
+  }
+  const today = new Date().toISOString().slice(0, 10)
 
   const add = async () => { const e = await api.createEntry({ title: 'Meeting', date: new Date().toISOString().slice(0, 10) }); await load(); setSel(e.id) }
   const save = async (patch) => { if (!entry) return; const e = await api.patchEntry(entry.id, patch); setEntries(list => list.map(x => x.id === e.id ? e : x)) }
@@ -118,6 +134,36 @@ export default function Logbook({ onRefresh }) {
               ))}
             </div>
           )}
+          <div role="tablist" aria-label="What the list shows" className="flex gap-1 px-3 pt-2">
+            {[['entries', 'Entries'], ['actions', `Open actions${openActions.length ? ` ${openActions.length}` : ''}`]].map(([k, label]) => (
+              <button key={k} role="tab" aria-selected={view === k} onClick={() => setView(k)} className="pill min-h-[28px] px-3 py-1 text-[12.5px] font-medium transition-colors"
+                style={view === k ? { background: 'rgba(var(--ink-rgb),.1)', color: 'var(--ink)' } : { color: 'var(--ink-3)' }}>{label}</button>
+            ))}
+          </div>
+          {view === 'actions' ? (
+            <div className="flex-1 overflow-y-auto p-2" role="tabpanel" aria-label="Open actions">
+              {!openActions.length && <p className="px-3 py-6 text-center text-[13.5px]" style={{ color: 'var(--ink-3)' }}>{q.trim() ? 'Nothing matches.' : 'Nothing open from any meeting.'}</p>}
+              {openActions.map(a => {
+                const task = a.taskId ? tasks.find(t => t.id === a.taskId) : null
+                const late = a.due && a.due < today
+                return (
+                  <div key={a.id} className="flex items-start gap-1.5 rounded-[10px] px-1.5 py-1.5" style={{ background: a.entryId === sel ? 'rgba(var(--ink-rgb),.08)' : 'transparent' }}>
+                    <button role="checkbox" aria-checked="false" aria-label={`Tick ${a.text}`} onClick={() => tick(a)} className="grid h-6 w-6 shrink-0 place-items-center rounded-full">
+                      <span className="block h-3.5 w-3.5 rounded-full" style={{ border: '1.5px solid var(--ink-3)' }} />
+                    </button>
+                    <button onClick={() => setSel(a.entryId)} className="min-w-0 flex-1 py-0.5 text-left">
+                      <span className="block text-[13px] leading-snug">{a.text}</span>
+                      <span className="mt-0.5 block text-[12.5px] leading-snug" style={{ color: 'var(--ink-3)' }}>
+                        {[a.entryTitle, a.owner].filter(Boolean).join(', ')}
+                        {a.due && <span className="tnum" style={{ color: late ? 'var(--late)' : 'var(--ink-3)' }}>{`, due ${fmt(a.due)}`}</span>}
+                        {task && <span style={{ color: task.done ? 'var(--ok)' : 'var(--ink-3)' }}>{task.done ? ', done on the board' : ', on the board'}</span>}
+                      </span>
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
           <div className="flex-1 overflow-y-auto p-2">
             {!filtered.length && <p className="px-3 py-6 text-center text-[13.5px]" style={{ color: 'var(--ink-3)' }}>{entries.length ? 'Nothing matches.' : 'No entries yet. The plus starts one.'}</p>}
             {groups.map(([k, list]) => (
@@ -142,6 +188,7 @@ export default function Logbook({ onRefresh }) {
               </div>
             ))}
           </div>
+          )}
         </aside>
 
         <AnimatePresence mode="wait">
@@ -279,7 +326,7 @@ function Links({ entry, save }) {
 function ActionText({ a, onCommit }) {
   const [v, setV] = useState(a.text)
   useEffect(() => { setV(a.text) }, [a.text])
-  return <input value={v} onChange={e => setV(e.target.value)} onBlur={() => v.trim() && v !== a.text && onCommit(v.trim())} onKeyDown={e => e.key === 'Enter' && e.target.blur()}
+  return <input aria-label="Action" value={v} onChange={e => setV(e.target.value)} onBlur={() => v.trim() && v !== a.text && onCommit(v.trim())} onKeyDown={e => e.key === 'Enter' && e.target.blur()}
     className="min-w-0 flex-1 bg-transparent text-[13px] outline-none" style={{ textDecoration: a.done ? 'line-through' : 'none' }} />
 }
 

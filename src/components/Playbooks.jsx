@@ -56,7 +56,7 @@ function Playbook({ p, machines, onChanged }) {
     <section className="panel p-6 sm:p-7" aria-label={p.name}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h2 className="display text-[22px] font-semibold leading-none">{p.name}.</h2>
-        <span className="tnum text-[13.5px]" style={{ color: 'var(--ink-3)' }}>{plural(p.tasks.length, 'task')}{hours ? `, ${hours} h` : ''}{p.machineType && p.machineType !== 'any' ? `, ${p.machineType}` : ''}</span>
+        <span className="tnum text-[13.5px]" style={{ color: 'var(--ink-3)' }}>{plural(p.tasks.length, 'task')}{hours ? `, ${hours} h` : ''}{p.phases?.length ? `, ${plural(p.phases.length, 'phase')}` : ''}{p.machineType && p.machineType !== 'any' ? `, ${p.machineType}` : ''}</span>
       </div>
       <ul className="mt-4 flex flex-col">{p.tasks.map((t, i) => <TaskLine key={i} t={t} />)}</ul>
       <div className="mt-4 flex flex-wrap items-center gap-2">
