@@ -43,7 +43,9 @@ export const DEFAULTS = {
   phoneAccess: false,       // the phone view on the workshop network (roadmap 116)
   phonePin: '',             // four to eight digits; empty means off
   mailRead: false,          // read order confirmations and delivery notes from Outlook (roadmap 113)
-  hourlyRate: 0             // CHF per hour for the cost per machine (roadmap 115); 0 shows hours only
+  hourlyRate: 0,            // CHF per hour for the cost per machine (roadmap 115); 0 shows hours only
+  homePlace: '',            // where the drive home ends, a place name geocoded once (roadmap 120)
+  trafficKey: ''            // TomTom API key for the commute with live traffic; stays in this file, never exported
 }
 
 const ALLOWED = Object.keys(DEFAULTS)
@@ -78,6 +80,8 @@ export function update(patch = {}) {
     if ((k === 'quietFrom' || k === 'quietTo') && !/^\d{1,2}:\d{2}$/.test(String(v))) continue
     if (k === 'phonePin') v = /^\d{4,8}$/.test(String(v)) ? String(v) : ''
     if (k === 'hourlyRate') v = Math.max(0, Math.min(1000, Number(v) || 0))
+    if (k === 'homePlace') v = String(v || '').trim().slice(0, 80)
+    if (k === 'trafficKey') v = String(v || '').trim().slice(0, 120)
     if (k === 'sceneOverride') v = ['dawn', 'day', 'dusk', 'night'].includes(v) ? v : null
     if ((k === 'lunchAt' || k === 'lunchEnds') && !/^\d{1,2}:\d{2}$/.test(String(v))) continue
     if (typeof v === 'string') v = v.trim()

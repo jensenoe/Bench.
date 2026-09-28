@@ -25,7 +25,9 @@ const yesterday = new Date(Date.now() - 86400000).toISOString()
 const LEFTOVER = { id: crypto.randomUUID(), source: 'local', plannerId: null, title: 'Left from yesterday', notes: '', lane: 'today', done: false, dueDate: null, leadTimeDays: null, orderBy: null, waitingOn: null, waitingSince: null, planTitle: null, bucketName: null, createdAt: yesterday, updatedAt: yesterday, lastTouched: yesterday, completedAt: null, order: 0 }
 fs.mkdirSync(path.join(dir, 'data'), { recursive: true })
 fs.writeFileSync(path.join(dir, 'data', 'tasks.json'), JSON.stringify({ tasks: [LEFTOVER], meta: { lastSync: null, lastSyncError: null, sources: {}, version: 2 } }, null, 2))
-const server = spawn(process.execPath, [path.join(root, 'server', 'index.js')], { env: { ...process.env, BENCH_DATA_DIR: path.join(dir, 'data'), BENCH_USER_DIR: path.join(dir, 'user'), BENCH_SECRETS_DIR: path.join(dir, 'user'), PORT: String(port), SYNC_INTERVAL_MINUTES: '0' }, stdio: ['ignore', 'pipe', 'pipe'] })
+// The runner's clock is UTC and several checks depend on the hour; the server and the browser run on Zurich time.
+const TZ = 'Europe/Zurich'
+const server = spawn(process.execPath, [path.join(root, 'server', 'index.js')], { env: { ...process.env, TZ, BENCH_DATA_DIR: path.join(dir, 'data'), BENCH_USER_DIR: path.join(dir, 'user'), BENCH_SECRETS_DIR: path.join(dir, 'user'), PORT: String(port), SYNC_INTERVAL_MINUTES: '0' }, stdio: ['ignore', 'pipe', 'pipe'] })
 let serverLog = ''; server.stdout.on('data', d => { serverLog += d }); server.stderr.on('data', d => { serverLog += d })
 const BASE = `http://127.0.0.1:${port}`
 const J = { 'Content-Type': 'application/json' }
@@ -33,7 +35,10 @@ const api = async (m, u, b) => { const r = await fetch(BASE + u, { method: m, he
 for (let i = 0; i < 60; i++) { try { if ((await fetch(BASE + '/api/settings')).ok) break } catch { /* not yet */ } await new Promise(r => setTimeout(r, 250)) }
 
 const failures = []
-const check = (name, ok, detail = '') => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? '  ' + detail : ''}`); if (!ok) failures.push(name) }
+const check = (name, ok, detail = '') => {
+  console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? '  ' + detail : ''}`)
+  if (!ok) { failures.push(name); if (process.env.GITHUB_ACTIONS) console.log(`::error title=UI smoke::${name}${detail ? ': ' + detail : ''}`) }
+}
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']
 const violations = res => res.violations.map(v => { const d = v.nodes[0]?.any?.[0]?.data; return `${v.id} x${v.nodes.length} (${v.nodes[0]?.target?.[0]})${d?.contrastRatio ? ` ${d.fgColor} on ${d.bgColor} at ${d.contrastRatio}` : ''}` }).join(', ')
 // Every page but the wall has a nav; the wall has no controls at all, so its check is the other way round.
@@ -55,7 +60,7 @@ try {
   check('the seeded leftover is on the board', (await api('GET', '/api/state')).body.tasks.some(t => t.id === LEFTOVER.id && t.lane === 'today'))
 
   browser = await chromium.launch()
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })   // axe needs a page from an explicit context
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, timezoneId: TZ, locale: 'de-CH' })   // axe needs a page from an explicit context
   const page = await context.newPage()
   const errors = []
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()) })
@@ -285,5 +290,6 @@ try {
   server.kill()
   fs.rmSync(dir, { recursive: true, force: true })
 }
+if (process.env.GITHUB_STEP_SUMMARY) { try { fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\n## UI smoke test\n\n${failures.length ? failures.map(f => `- FAIL ${f}`).join('\n') : 'all good'}\n`) } catch { /* no summary */ } }
 if (failures.length) { console.error(`\n${failures.length} failed: ${failures.join(', ')}\n--- server ---\n${serverLog.slice(-2000)}`); process.exit(1) }
 console.log('\nall good')

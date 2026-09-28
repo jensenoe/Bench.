@@ -14,6 +14,7 @@ const refresh = () => window.dispatchEvent(new Event('bench:refresh'))
 
 export default function EveningClose({ open, onClose, onChanged }) {
   const [info, setInfo] = useState(null)
+  const [drive, setDrive] = useState(null)   // the drive home with the traffic as it is (roadmap 120)
   const [err, setErr] = useState(null)
   const [back, setBack] = useState(() => new Set())   // ids going back to Active
   const [note, setNote] = useState(true)
@@ -26,6 +27,7 @@ export default function EveningClose({ open, onClose, onChanged }) {
     setInfo(null); setErr(null); setBack(new Set()); setNote(true)
     let on = true
     day.getClose().then(i => on && setInfo(i)).catch(e => on && setErr(e.message))
+    setDrive(null); day.getCommute('home').then(d => on && setDrive(d)).catch(() => {})
     return () => { on = false }
   }, [open])
   useEffect(() => {
@@ -63,7 +65,7 @@ export default function EveningClose({ open, onClose, onChanged }) {
             initial={{ y: -10, scale: .98 }} animate={{ y: 0, scale: 1 }} exit={{ y: -6, scale: .98 }} transition={{ duration: .18, ease: [0.16, 1, 0.3, 1] }}
             className="panel w-full max-w-[620px] px-6 py-6 sm:px-8" style={{ boxShadow: 'var(--shadow-panel)' }} onMouseDown={e => e.stopPropagation()}>
             <h2 id="close-title" className="display text-[30px] font-semibold leading-none">Closing the day.</h2>
-            {info && <p className="tnum mt-2 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>{hm(info.worked)} on the clock, {info.ticked === 1 ? 'one task ticked' : `${info.ticked} tasks ticked`}.</p>}
+            {info && <p className="tnum mt-2 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>{hm(info.worked)} on the clock, {info.ticked === 1 ? 'one task ticked' : `${info.ticked} tasks ticked`}.{drive?.ok ? ` ${drive.text}` : ''}</p>}
 
             {!info && !err && <div className="mt-5"><PanelSkeleton rows={3} title={false} /></div>}
             {err && <p role="alert" className="mt-5 text-[13.5px]" style={{ color: 'var(--late)' }}>{err}</p>}

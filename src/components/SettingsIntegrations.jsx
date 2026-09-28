@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { j } from '../api/http.js'
 import { getMailStatus, runMail } from '../api/mail.js'
+import { getCommute } from '../api/day.js'
 
 /**
  * The Settings blocks for the eighth batch's integrations: reading the mail (roadmap 113), the phone
@@ -70,6 +71,29 @@ export function PhoneView({ draft, set, save, saveNow }) {
           : !info.configured ? <Note tone="var(--caution)">Set a PIN to switch it on.</Note>
             : <Note tone="var(--caution)">Not running yet. Bench picks the change up within half a minute; if it stays off, port 5199 is taken or the firewall said no.</Note>
       )}
+    </>
+  )
+}
+
+/** The drive home with live traffic (roadmap 120): a place, a TomTom key kept on this machine, and a test line. */
+export function DriveHome({ draft, set, save, settings }) {
+  const [est, setEst] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const test = async () => { setBusy(true); try { setEst(await getCommute('home', true)) } catch (e) { setEst({ ok: false, reason: e.message }) } finally { setBusy(false) } }
+  const reason = r => r === 'no-key' ? 'Paste a TomTom key first.' : r === 'no-home' ? 'Say where home is first.' : r === 'bad-key' ? 'TomTom did not accept the key.' : r === 'offline' ? 'Could not reach TomTom.' : r === 'no-route' ? 'No road between the two.' : r ? `Could not check: ${r}.` : null
+  return (
+    <>
+      <Note>Bench says how long the drive home takes, with the traffic as it is, from half past three while you are clocked in, and the drive in before half past eight. Work is Oetwil am See. It needs a free TomTom key (developer.tomtom.com, 2,500 calls a day, Bench uses about forty); the key stays in your own profile and is never exported.</Note>
+      <label className="block text-[13px]" style={{ color: 'var(--ink-3)' }}>Home
+        <input value={draft.homePlace ?? ''} placeholder="Neerach" onChange={e => set('homePlace', e.target.value)} onBlur={() => save('homePlace')} onKeyDown={e => { if (e.key === 'Enter') { save('homePlace'); e.target.blur() } }} className="field mt-1 w-full px-2.5 py-2 text-[13px]" style={{ color: 'var(--ink)' }} />
+      </label>
+      <label className="block text-[13px]" style={{ color: 'var(--ink-3)' }}>TomTom key
+        <input type="password" autoComplete="off" value={draft.trafficKey ?? ''} placeholder={settings.hasTrafficKey ? 'A key is saved. Paste a new one to replace it.' : 'the key from developer.tomtom.com'} onChange={e => set('trafficKey', e.target.value)} onBlur={() => save('trafficKey')} onKeyDown={e => { if (e.key === 'Enter') { save('trafficKey'); e.target.blur() } }} className="field tnum mt-1 w-full px-2.5 py-2 text-[13px]" style={{ color: 'var(--ink)' }} />
+      </label>
+      <div className="flex flex-wrap items-center gap-3">
+        <button onClick={test} disabled={busy} className={pill} style={{ border: '1px solid var(--line-2)' }}>{busy ? 'Asking…' : 'Check the drive home now'}</button>
+        {est && <Note tone={est.ok ? 'var(--ink-2)' : 'var(--caution)'}>{est.ok ? est.text : reason(est.reason)}</Note>}
+      </div>
     </>
   )
 }

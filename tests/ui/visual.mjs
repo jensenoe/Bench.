@@ -44,7 +44,8 @@ const MASK = '.photo, .grade, .grain, [data-volatile] { visibility: hidden !impo
 if (!fs.existsSync(path.join(root, 'dist', 'index.html'))) { console.error('dist/ missing: run npm run build first'); process.exit(2) }
 const port = await new Promise(r => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)) }) })
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bench-visual-'))
-const server = spawn(process.execPath, [path.join(root, 'server', 'index.js')], { env: { ...process.env, BENCH_DATA_DIR: path.join(dir, 'data'), BENCH_USER_DIR: path.join(dir, 'user'), BENCH_SECRETS_DIR: path.join(dir, 'user'), PORT: String(port), SYNC_INTERVAL_MINUTES: '0' }, stdio: ['ignore', 'pipe', 'pipe'] })
+const TZ = 'Europe/Zurich'   // the runner is on UTC; the shots must not move with the hour
+const server = spawn(process.execPath, [path.join(root, 'server', 'index.js')], { env: { ...process.env, TZ, BENCH_DATA_DIR: path.join(dir, 'data'), BENCH_USER_DIR: path.join(dir, 'user'), BENCH_SECRETS_DIR: path.join(dir, 'user'), PORT: String(port), SYNC_INTERVAL_MINUTES: '0' }, stdio: ['ignore', 'pipe', 'pipe'] })
 let serverLog = ''; server.stdout.on('data', d => { serverLog += d }); server.stderr.on('data', d => { serverLog += d })
 const BASE = `http://127.0.0.1:${port}`
 const J = { 'Content-Type': 'application/json' }
@@ -52,7 +53,7 @@ const api = async (m, u, b) => { const r = await fetch(BASE + u, { method: m, he
 for (let i = 0; i < 60; i++) { try { if ((await fetch(BASE + '/api/settings')).ok) break } catch { /* not yet */ } await new Promise(r => setTimeout(r, 250)) }
 
 const failures = []
-const say = (ok, name, detail = '') => console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? '  ' + detail : ''}`)
+const say = (ok, name, detail = '') => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${detail ? '  ' + detail : ''}`); if (!ok && process.env.GITHUB_ACTIONS) console.log(`::error title=Visual::${name}${detail ? ': ' + detail : ''}`) }
 
 /**
  * Runs in the browser: both PNGs into canvases, count the pixels whose channels differ by more than
@@ -128,7 +129,7 @@ try {
   }
 
   for (const [w, h] of VIEWPORTS) {
-    const context = await browser.newContext({ viewport: { width: w, height: h }, reducedMotion: 'reduce', deviceScaleFactor: 1 })
+    const context = await browser.newContext({ viewport: { width: w, height: h }, reducedMotion: 'reduce', deviceScaleFactor: 1, timezoneId: TZ, locale: 'de-CH' })
     // Deterministic randomness: the greeting picks a line at random, so give it the same dice every run.
     await context.addInitScript(() => { let s = 20260923; Math.random = () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646 } })
     const page = await context.newPage()

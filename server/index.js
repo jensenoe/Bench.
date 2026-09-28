@@ -40,6 +40,7 @@ const playbooks = await import('./playbooks.js')     // commissioning playbooks 
 const cost = await import('./cost.js')               // cost per machine (roadmap 115)
 const phone = await import('./phone.js')             // the phone view on the workshop network (roadmap 116)
 const hero = await import('./hero.js')               // the briefing under the greeting on Home (roadmap 119)
+const commute = await import('./commute.js')         // the drive home with live traffic (roadmap 120)
 
 const PORT = Number(process.env.PORT || 5178)
 const app = express()
@@ -50,7 +51,7 @@ const wrap = fn => (req, res) => Promise.resolve().then(() => fn(req, res))
   .catch(err => { if (!err.status) console.error(err); res.status(err.status || 500).json({ error: err.message }) })
 
 /** Settings as the UI sees them (no internal flags; the token only as a yes or no). */
-const publicSettings = () => { const { _pathSetByUser, updateToken, ...rest } = settings.get(); return { ...rest, hasUpdateToken: Boolean(updateToken), firstName: settings.displayFirstName() } }
+const publicSettings = () => { const { _pathSetByUser, updateToken, trafficKey, ...rest } = settings.get(); return { ...rest, hasUpdateToken: Boolean(updateToken), hasTrafficKey: Boolean(trafficKey), firstName: settings.displayFirstName() } }
 
 /** What the last background sync did, so the UI can say "3 new from Issues" without polling every tool. */
 let background = null
@@ -58,14 +59,14 @@ let background = null
 app.get('/api/settings', wrap((_req, res) => res.json(publicSettings())))
 /** Settings as a file to keep or to carry to another machine. The GitHub token stays out of it. */
 app.get('/api/settings/export', wrap((_req, res) => {
-  const { _pathSetByUser, updateToken: _token, setupDone: _done, ...rest } = settings.get()
+  const { _pathSetByUser, updateToken: _token, trafficKey: _traffic, setupDone: _done, ...rest } = settings.get()
   res.setHeader('Content-Disposition', 'attachment; filename="bench-settings.json"')
   res.json({ bench: 'settings', version: 1, exportedAt: new Date().toISOString(), settings: rest })
 }))
 app.post('/api/settings/import', wrap((req, res) => {
   const body = req.body?.settings && typeof req.body.settings === 'object' ? req.body.settings : req.body
   if (!body || typeof body !== 'object') return res.status(400).json({ error: 'That is not a Bench settings file.' })
-  const { setupDone: _done, updateToken: _token, ...rest } = body
+  const { setupDone: _done, updateToken: _token, trafficKey: _traffic, ...rest } = body
   settings.update(rest)
   timeclock.invalidate()
   res.json(publicSettings())
@@ -210,6 +211,7 @@ playbooks.registerRoutes(app)
 cost.registerRoutes(app)
 phone.registerRoutes(app)
 hero.registerRoutes(app)
+commute.registerRoutes(app)
 updates.registerRoutes(app)                          // /api/updates and the background download (roadmap 76)
 
 // Serve the built frontend when it exists (npm run build && npm start)

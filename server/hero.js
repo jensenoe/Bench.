@@ -14,6 +14,7 @@ import * as timeclock from './timeclock.js'
 import * as settings from './settings.js'
 import * as weather from './weather.js'
 import { meetingsCached, dayKey, hm, shortDate } from './day.js'
+import * as commute from './commute.js'
 
 const wrap = fn => (req, res) => Promise.resolve().then(() => fn(req, res)).catch(err => res.status(err.status || 500).json({ error: err.message }))
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -54,6 +55,8 @@ export function composeHero(f, now = new Date()) {
 
   const next = nextMeeting(f.meetings, now)
   if (next) push('meeting', `${next.subject} ${next.inMin === 0 ? 'now' : next.inMin === 1 ? 'in a minute' : `in ${next.inMin} minutes`}${next.location ? `, ${next.location}` : ''}.`)
+  // the drive, with live traffic, when it is that time of day (roadmap 120)
+  if (f.commute?.ok && f.commute.text) push('commute', f.commute.text)
   const d = (f.deliveries || [])[0]
   if (d) push('delivery', `${d.title} ${d.arrived ? 'arrived' : 'arrives'} today.`)
 
@@ -116,8 +119,15 @@ export async function facts(now = new Date()) {
     meetings: await meetingsCached(now),
     weekWorked: days.filter(d => d.date >= mondayKey).reduce((s, d) => s + (d.worked || 0), 0),
     lastDecision: withDecision ? { text: withDecision.decisions.at(-1), entry: withDecision.title, date: withDecision.date } : null,
-    lunchAt: settings.get().lunchAt || '12:00'
+    lunchAt: settings.get().lunchAt || '12:00',
+    commute: await commuteSoft(now, snap.status)
   }
+}
+/** The drive for this hour, or null; a missing key, no home or no network never takes the hero down. */
+async function commuteSoft(now, status) {
+  const direction = commute.directionFor(now, status)
+  if (!direction) return null
+  try { const c = await commute.estimate({ direction, now: now.getTime() }); return c?.ok ? c : null } catch { return null }
 }
 
 export async function hero(now = new Date()) {

@@ -3,6 +3,8 @@ import { j, H } from './http.js'
 export const getBrief = () => fetch('/api/day/brief').then(j)
 /** The briefing under the greeting on Home: { variant, lines: [{ kind, text }], weather } */
 export const getHero = () => fetch('/api/day/hero').then(j)
+/** The drive with live traffic: { ok, minutes, usual, delay, worst, text } or { ok:false, reason } */
+export const getCommute = (direction = 'home', force = false) => fetch(`/api/commute?direction=${direction}${force ? '&force=1' : ''}`).then(j)
 export const briefSeen = () => fetch('/api/day/brief/seen', { method: 'POST' }).then(j)
 export const applyBrief = (toActive = []) => fetch('/api/day/brief/apply', { method: 'POST', headers: H, body: JSON.stringify({ toActive }) }).then(j)
 export const getClose = () => fetch('/api/day/close').then(j)

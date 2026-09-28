@@ -14,7 +14,7 @@ same page is the no-install version: keep it in any folder and run it from there
 
 ---
 
-**0.11, seventh beta (0.11.0-beta.7).** Everything here works on my machine and on the mocks; the
+**0.11, eighth beta (0.11.0-beta.8).** Everything here works on my machine and on the mocks; the
 Microsoft paths (Planner, the hours workbook, the issue list, the calendar) still want a
 first real run in the tom.fit tenant, and the issue list and calendar need a one-time admin
 approval, see below.
@@ -58,7 +58,7 @@ Administrator; `build-exe.bat plain` skips the icon stamping instead, and `build
 Bump `version` in `package.json`, commit, then tag and push:
 
 ```bash
-git tag v0.11.0-beta.8 && git push --tags
+git tag v0.11.0-beta.9 && git push --tags
 ```
 
 The *Release* workflow in `.github/workflows/release.yml` builds both exes on a Windows
@@ -96,6 +96,7 @@ without publishing and leaves the exes as a workflow artifact.
   dates by themselves, and Procurement shows the suppliers' lead times and hit rate.
 - **The phone.** Settings > Tools > Phone view with a PIN serves a small page on the workshop network:
   the brief, Today ticks, the clock, quick add, and a camera button that drops a photo into the inbox.
+- **The drive home.** With a place and a free TomTom key in Settings > Tools, the hero says how long the drive home takes with the traffic as it is, from half past three, and the drive in before half past eight; the evening close repeats it.
 - **The bell.** Every notification Bench sent is in the bell in the nav, so nothing said once is lost.
   Quiet hours in Settings > You keep the evening and the weekend silent.
 - **Drag and drop.** Cards move between lanes by dragging; the lane lights up when it will take the

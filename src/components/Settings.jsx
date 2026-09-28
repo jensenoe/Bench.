@@ -8,7 +8,7 @@ import { ABOUT } from '../copy.js'
 import { fmtDate } from '../lanes.js'
 import Connect from './Connect.jsx'
 import Health from './Health.jsx'
-import { MailReading, PhoneView, StorageLine } from './SettingsIntegrations.jsx'
+import { MailReading, PhoneView, StorageLine, DriveHome } from './SettingsIntegrations.jsx'
 
 const TABS = [
   { key: 'you', label: 'You' },
@@ -288,6 +288,9 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
             </Sec>
             <Sec title="The phone">
               <PhoneView draft={draft} set={set} save={save} saveNow={saveNow} />
+            </Sec>
+            <Sec title="The drive home">
+              <DriveHome draft={draft} set={set} save={save} settings={settings} />
             </Sec>
             <Sec title="Introductions">
               <p className="text-[13.5px]" style={{ color: 'var(--ink-3)' }}>The short walk-throughs on the Board, Procurement, Logbook and Napkin show once. <button onClick={() => { try { for (const k of Object.keys(localStorage)) if (k.startsWith('bench.coach.')) localStorage.removeItem(k) } catch { /* ignore */ } }} className={link} style={{ color: 'var(--ink-2)' }}>Show them again</button>.</p>
