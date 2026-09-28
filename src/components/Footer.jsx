@@ -40,6 +40,7 @@ export default function Footer({ name, version, scene, glow, now = new Date(), o
           <a href="#/hours" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Hours</a>
           <a href="#/machines" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Machines</a>
           <a href="#/review" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Review</a>
+          <a href="#/projects" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Projects</a>
           <a href="#/playbooks" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Playbooks</a>
           <button onClick={onSettings} className="-my-1 inline-block py-1 hover:underline underline-offset-2">Settings</button>
         </nav>
@@ -72,6 +73,7 @@ export default function Footer({ name, version, scene, glow, now = new Date(), o
               <li><a href="#/hours" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Hours</a></li>
               <li><a href="#/machines" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Machines</a></li>
               <li><a href="#/review" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Review</a></li>
+              <li><a href="#/projects" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Projects</a></li>
               <li><a href="#/playbooks" className="-my-1 inline-block py-1 hover:underline underline-offset-2">Playbooks</a></li>
               <li><button onClick={onSettings} className="-my-1 inline-block py-1 hover:underline underline-offset-2" style={{ color: 'var(--ink-2)' }}>Settings</button></li>
             </Col>

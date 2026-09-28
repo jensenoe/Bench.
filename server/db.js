@@ -31,7 +31,8 @@ export const ENGINES = ['json', 'sqlite']
 export const COLLECTIONS = {
   tasks: { file: 'tasks.json', key: 'tasks', meta: true },
   logbook: { file: 'logbook.json', key: 'items', meta: false },
-  napkin: { file: 'napkin.json', key: 'items', meta: false }
+  napkin: { file: 'napkin.json', key: 'items', meta: false },
+  projects: { file: 'projects.json', key: 'items', meta: false }   // plans with phases and a deadline (roadmap 121)
 }
 const wrap = fn => (req, res) => Promise.resolve().then(() => fn(req, res)).catch(err => res.status(err.status || 500).json({ error: err.message }))
 

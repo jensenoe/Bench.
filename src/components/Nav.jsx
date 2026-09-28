@@ -16,8 +16,8 @@ import Reminder from './Reminder.jsx'
  */
 export default function Nav({ route, auth, meta, onRefresh, now, scene, timeclock, onSettings, settingsOpen, onSearch }) {
   const [busy, setBusy] = useState(false)
-  const link = (id, label, i) => (
-    <a key={id} href={`#/${id}`} title={i !== undefined ? `Press ${i}` : undefined} className="-my-[3px] inline-block py-[3px] text-[14px] transition-colors xl:text-[15px] 2xl:text-[16.5px]"
+  const link = (id, label, i, cls = '') => (
+    <a key={id} href={`#/${id}`} title={i !== undefined ? `Press ${i}` : undefined} className={`-my-[3px] inline-block py-[3px] text-[14px] transition-colors xl:text-[15px] 2xl:text-[16.5px] ${cls}`}
       style={{ color: route === id ? 'var(--ink)' : 'var(--ink-3)' }}>{label}</a>
   )
 
@@ -35,6 +35,7 @@ export default function Nav({ route, auth, meta, onRefresh, now, scene, timecloc
             {link('', 'Home', 1)}
             {SHEETS.filter(s => !s.external).map((s, i) => link(s.id, s.title, i + 2))}
             {link('machines', 'Machines', 9)}
+            {link('projects', 'Projects', undefined, 'hidden xl:inline-block')}   {/* the nav stays airy below xl; the footer and the search always have it */}
           </div>
         </div>
         <div className="relative flex shrink-0 items-center gap-4 whitespace-nowrap xl:gap-5 2xl:gap-6">

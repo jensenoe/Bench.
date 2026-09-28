@@ -15,6 +15,7 @@ import * as settings from './settings.js'
 import * as weather from './weather.js'
 import { meetingsCached, dayKey, hm, shortDate } from './day.js'
 import * as commute from './commute.js'
+import * as projects from './projects.js'
 
 const wrap = fn => (req, res) => Promise.resolve().then(() => fn(req, res)).catch(err => res.status(err.status || 500).json({ error: err.message }))
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -82,6 +83,11 @@ export function composeHero(f, now = new Date()) {
     else if (working) push('evening', `${cap(ticked(f.tickedToday || 0))} today. Time to close the day.`)
     if (dow === 5) push('friday', "The week's review is ready.")
   }
+  // the plan (roadmap 121): behind, or a deadline inside three weeks
+  const behind = (f.projects || []).filter(p => p.slack !== null && p.slack < 0).sort((a, b) => a.slack - b.slack)[0]
+  const near = (f.projects || []).filter(p => p.daysLeft !== null && p.daysLeft >= 0 && p.daysLeft <= 15)[0]
+  if (behind) push('project', `${behind.name}: ${behind.deadlineLabel} on ${shortDate(behind.deadline)}, ${-behind.slack} working day${behind.slack === -1 ? '' : 's'} behind the plan.`)
+  else if (near) push('project', `${near.name}: ${near.deadlineLabel} ${near.daysLeft === 0 ? 'today' : `in ${near.daysLeft} working day${near.daysLeft === 1 ? '' : 's'}`}${near.slack !== null && near.slack >= 0 ? `, ${near.slack} of room` : ''}.`)
   if (!lines.length && f.lastDecision?.text) push('decision', `Last decision: ${trim(f.lastDecision.text)} (${f.lastDecision.entry}, ${shortDate(f.lastDecision.date)}).`)
   return done(lines[0]?.kind || 'quiet')
 }
@@ -120,8 +126,13 @@ export async function facts(now = new Date()) {
     weekWorked: days.filter(d => d.date >= mondayKey).reduce((s, d) => s + (d.worked || 0), 0),
     lastDecision: withDecision ? { text: withDecision.decisions.at(-1), entry: withDecision.title, date: withDecision.date } : null,
     lunchAt: settings.get().lunchAt || '12:00',
-    commute: await commuteSoft(now, snap.status)
+    commute: await commuteSoft(now, snap.status),
+    projects: projectsSoft(today)
   }
+}
+/** The projects with a deadline, nearest first; a broken projects file never takes the hero down. */
+function projectsSoft(today) {
+  try { return projects.summaries(today).filter(p => p.deadline) } catch { return [] }
 }
 /** The drive for this hour, or null; a missing key, no home or no network never takes the hero down. */
 async function commuteSoft(now, status) {

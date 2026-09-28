@@ -22,6 +22,7 @@ const Machines = lazy(() => import('./components/Machines.jsx'))
 const Changes = lazy(() => import('./components/Changes.jsx'))
 const Playbooks = lazy(() => import('./components/Playbooks.jsx'))
 const Suppliers = lazy(() => import('./components/Suppliers.jsx'))
+const Projects = lazy(() => import('./components/Projects.jsx'))
 
 /**
  * The pages (roadmap 103). App.jsx holds the state and the wiring; this file says which page shows for
@@ -67,6 +68,12 @@ export function Routes({
           <Coach id="machines" steps={COACH.machines} />
           <Machines tasks={state.tasks} onPatch={onPatch} onDelete={onDelete} />
         </div>
+      </>)}
+
+      {r === 'projects' && page('projects', <>
+        <TerrainHeader compact scene={sceneAt(timeKey, now, 8)} title="Projects" line="A machine, the one date that matters, and the phases before it. The dates fall out of the deadline." />
+        <Coach id="projects" steps={COACH.projects} />
+        <div className="relative"><Projects /></div>
       </>)}
 
       {r === 'playbooks' && page('playbooks', <>
@@ -168,6 +175,7 @@ export function paletteActions({ settings, punch, saveSettings, openQuickAdd, op
     { label: 'Weekly review', hint: 'What moved and what did not', run: () => { location.hash = '#/review' } },
     { label: 'Machines', hint: 'One page per machine', run: () => { location.hash = '#/machines' } },
     { label: 'Playbooks', hint: 'Standard task sets per machine', run: () => { location.hash = '#/playbooks' } },
+    { label: 'Projects', hint: 'Plan a machine backwards from its deadline', run: () => { location.hash = '#/projects' } },
     { label: 'Next theme', hint: 'Skip to the next picture library today', run: () => saveSettings({ libraryShift: (Number(settings.libraryShift) || 0) + 1 }) },
     { label: 'Check for updates', hint: 'Ask GitHub now', run: () => api.checkUpdates(true).then(u => toast(u.newer ? `Bench ${u.latest} is out.` : `Bench ${u.current} is the latest.`)).catch(() => {}) }
   ]

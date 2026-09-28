@@ -41,6 +41,7 @@ const cost = await import('./cost.js')               // cost per machine (roadma
 const phone = await import('./phone.js')             // the phone view on the workshop network (roadmap 116)
 const hero = await import('./hero.js')               // the briefing under the greeting on Home (roadmap 119)
 const commute = await import('./commute.js')         // the drive home with live traffic (roadmap 120)
+const projects = await import('./projects.js')       // plans with phases and a deadline (roadmap 121)
 
 const PORT = Number(process.env.PORT || 5178)
 const app = express()
@@ -212,6 +213,7 @@ cost.registerRoutes(app)
 phone.registerRoutes(app)
 hero.registerRoutes(app)
 commute.registerRoutes(app)
+projects.registerRoutes(app)
 updates.registerRoutes(app)                          // /api/updates and the background download (roadmap 76)
 
 // Serve the built frontend when it exists (npm run build && npm start)

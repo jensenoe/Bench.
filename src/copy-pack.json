@@ -110,6 +110,30 @@
       [
         "The day has not started yet, except for you,",
         "{name}."
+      ],
+      [
+        "The valley is still asleep,",
+        "{name}."
+      ],
+      [
+        "Kettle on, lights low,",
+        "{name}."
+      ],
+      [
+        "Nobody else yet,",
+        "{name}."
+      ],
+      [
+        "The hall is cold and quiet,",
+        "{name}."
+      ],
+      [
+        "Blue light on the bench,",
+        "{name}."
+      ],
+      [
+        "Slow start, good start,",
+        "{name}."
       ]
     ],
     "day": [
@@ -126,10 +150,6 @@
         "{name}."
       ],
       [
-        "Here is the bench,",
-        "{name}."
-      ],
-      [
         "Afternoon,",
         "{name}."
       ],
@@ -143,6 +163,62 @@
       ],
       [
         "Halfway there,",
+        "{name}."
+      ],
+      [
+        "The light is good today,",
+        "{name}."
+      ],
+      [
+        "Slow and steady,",
+        "{name}."
+      ],
+      [
+        "Warm hands, cold coffee,",
+        "{name}."
+      ],
+      [
+        "One thing at a time,",
+        "{name}."
+      ],
+      [
+        "The hall is humming,",
+        "{name}."
+      ],
+      [
+        "Steady hands,",
+        "{name}."
+      ],
+      [
+        "The bench is warm,",
+        "{name}."
+      ],
+      [
+        "Take it as it comes,",
+        "{name}."
+      ],
+      [
+        "Nothing is on fire,",
+        "{name}."
+      ],
+      [
+        "Same bench, new light,",
+        "{name}."
+      ],
+      [
+        "Good light for fine work,",
+        "{name}."
+      ],
+      [
+        "The afternoon is long,",
+        "{name}."
+      ],
+      [
+        "All yours,",
+        "{name}."
+      ],
+      [
+        "Settle in,",
         "{name}."
       ]
     ],
@@ -174,6 +250,34 @@
       [
         "The day is thinning out,",
         "{name}."
+      ],
+      [
+        "Low sun through the hall,",
+        "{name}."
+      ],
+      [
+        "The last good light,",
+        "{name}."
+      ],
+      [
+        "Long shadows,",
+        "{name}."
+      ],
+      [
+        "Almost home,",
+        "{name}."
+      ],
+      [
+        "Ease off,",
+        "{name}."
+      ],
+      [
+        "Nearly there,",
+        "{name}."
+      ],
+      [
+        "Leave the rest for tomorrow,",
+        "{name}."
       ]
     ],
     "night": [
@@ -200,6 +304,26 @@
       [
         "Long day,",
         "{name}."
+      ],
+      [
+        "The hall is dark,",
+        "{name}."
+      ],
+      [
+        "Lamp on, world off,",
+        "{name}."
+      ],
+      [
+        "Only the fans are running,",
+        "{name}."
+      ],
+      [
+        "Rest is work too,",
+        "{name}."
+      ],
+      [
+        "The night keeps its own hours,",
+        "{name}."
       ]
     ],
     "lunch": [
@@ -217,6 +341,18 @@
       ],
       [
         "Midday. Fork before keyboard,",
+        "{name}."
+      ],
+      [
+        "The bench keeps,",
+        "{name}."
+      ],
+      [
+        "Eat first,",
+        "{name}."
+      ],
+      [
+        "Warm plate, then the bench,",
         "{name}."
       ]
     ],
@@ -243,6 +379,22 @@
       ],
       [
         "Quiet hours,",
+        "{name}."
+      ],
+      [
+        "Kettle on,",
+        "{name}."
+      ],
+      [
+        "The valley is still asleep,",
+        "{name}."
+      ],
+      [
+        "Dark hall, warm mug,",
+        "{name}."
+      ],
+      [
+        "Nobody else yet,",
         "{name}."
       ]
     ]

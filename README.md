@@ -14,7 +14,7 @@ same page is the no-install version: keep it in any folder and run it from there
 
 ---
 
-**0.11, eighth beta (0.11.0-beta.8).** Everything here works on my machine and on the mocks; the
+**0.11, ninth beta (0.11.0-beta.9).** Everything here works on my machine and on the mocks; the
 Microsoft paths (Planner, the hours workbook, the issue list, the calendar) still want a
 first real run in the tom.fit tenant, and the issue list and calendar need a one-time admin
 approval, see below.
@@ -90,6 +90,10 @@ without publishing and leaves the exes as a workflow artifact.
 - **Bench speaks MCP.** `scripts/mcp.mjs` is a Model Context Protocol server: register it once with
   `claude mcp add bench -- node <repo>\scripts\mcp.mjs` and Claude can read and write the board, the
   Logbook, machines, hours and the review while Bench runs. Nothing leaves the machine. See `docs/mcp.md`.
+- **Projects.** `#/projects` plans a machine backwards from the one date that matters: phases in
+  working days, dates that fall out of the deadline, parts that get their order-by from the learned lead
+  times, and slack and fit per phase. Tasks join through their project text and a phase. The hero says
+  when a plan is behind or a deadline is close.
 - **Playbooks, passport, suppliers.** `#/playbooks` applies a standard task set to a machine and makes a
   template from a finished one. Each machine has a printable passport, its whole history on one page.
   With mail reading on, order confirmations and delivery notes in Outlook set the order and delivery

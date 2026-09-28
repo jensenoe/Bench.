@@ -124,7 +124,7 @@ describe.skipIf(!canSqlite)('migrate', () => {
     fs.writeFileSync(path.join(dir, 'tasks.json'), JSON.stringify(tasksDoc))
     fs.writeFileSync(path.join(dir, 'logbook.json'), JSON.stringify(notesDoc))
     const r = await db.migrate('sqlite', dir)
-    expect(r).toEqual({ to: 'sqlite', dir, copied: { tasks: 2, logbook: 1, napkin: null } })
+    expect(r).toEqual({ to: 'sqlite', dir, copied: { tasks: 2, logbook: 1, napkin: null, projects: null } })
     const eng = sqlite.open(dir, db.COLLECTIONS)
     expect(eng.collection('tasks').read()).toEqual(tasksDoc)
     expect(eng.collection('logbook').read()).toEqual(notesDoc)
@@ -132,7 +132,7 @@ describe.skipIf(!canSqlite)('migrate', () => {
     eng.collection('tasks').write({ ...tasksDoc, tasks: tasksDoc.tasks.slice(1) })
     eng.close()
     const back = await db.migrate('json', dir)
-    expect(back.copied).toEqual({ tasks: 1, logbook: 1, napkin: 1 })
+    expect(back.copied).toEqual({ tasks: 1, logbook: 1, napkin: 1, projects: null })
     expect(JSON.parse(fs.readFileSync(path.join(dir, 'tasks.json'), 'utf8')).tasks.map(t => t.id)).toEqual(['b'])
     expect(JSON.parse(fs.readFileSync(path.join(dir, 'napkin.json'), 'utf8'))).toEqual({ items: [{ id: 'm1', title: 'Map' }] })
     // the file that was overwritten got its daily copy first

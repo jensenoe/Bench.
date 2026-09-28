@@ -32,7 +32,7 @@ const UPDATE = process.env.UPDATE_BASELINE === '1' || !HAS
 if (!HAS) console.log(`no baselines for ${process.platform} in ${path.relative(root, BASELINE)}: recording them this run`)
 fs.mkdirSync(BASELINE, { recursive: true })
 // [name, hash route]. The wall has no nav and its heading is not a page title, so it waits for its board instead.
-const PAGES = [['home', ''], ['board', 'board'], ['procurement', 'procurement'], ['tools', 'tools'], ['logbook', 'logbook'], ['napkin', 'napkin'], ['hours', 'hours'], ['review', 'review'], ['machines', 'machines'], ['wall', 'wall']]
+const PAGES = [['home', ''], ['board', 'board'], ['procurement', 'procurement'], ['tools', 'tools'], ['logbook', 'logbook'], ['napkin', 'napkin'], ['hours', 'hours'], ['review', 'review'], ['machines', 'machines'], ['projects', 'projects'], ['wall', 'wall']]
 const DIALOGS = ['brief', 'settings-machine']   // at 1440 only, both themes
 const VIEWPORTS = [[1440, 900], [2560, 1440]]
 const THEMES = ['dark', 'light']

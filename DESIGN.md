@@ -165,6 +165,11 @@ Errors say what happened and what to do, in one sentence each. No exclamation ma
 The middle dot joins at most two things on a line. Three or more become separate spans with a gap,
 or a comma list.
 
+The hero speaks softly. Its title lines (copy-pack.json) are short, warm and specific to the hour, never
+a slogan: "Kettle on, lights low", "Low sun through the hall". Under it, the briefing says one or two
+things that are true right now, never a deadline; when it has nothing, a quiet line for the hour or the
+weather (HeroLine.jsx) takes the place. Photo credits live in Settings, not on the hero.
+
 ## 10. Never
 
 - Raw hex or rgb in a component. Pure black or pure white as a surface.

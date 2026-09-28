@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
 import { Check, X } from '@phosphor-icons/react'
 import DateField from './DateField.jsx'
+import { getProjects } from '../api/projects.js'
 import { STATUS } from '../scenes.js'
 import { fmtDate } from '../lanes.js'
 import { suggestOrderBy } from '../api/leadtimes.js'
@@ -82,6 +83,10 @@ export default function TaskEditor({ task, onPatch, onClose }) {
     getMachines().then(ms => { if (on) setMachines((Array.isArray(ms) ? ms : []).map(m => m.name).filter(Boolean)) }).catch(() => { /* the field stays free text */ })
     return () => { on = false }
   }, [])
+  // The project's phases, when the project text names a planned machine (roadmap 121).
+  const [projects, setProjects] = useState([])
+  useEffect(() => { let on = true; getProjects().then(ps => { if (on) setProjects(Array.isArray(ps) ? ps : []) }).catch(() => {}); return () => { on = false } }, [])
+  const planned = projects.find(p => (p.machine || '').trim().toLowerCase() === (task.project || '').trim().toLowerCase() && (p.phases || []).length)
   // A BOM task knows its machine; offer it once while the project is empty.
   const useMachine = machineOffered && task.source === 'bom' && task.meta?.machine && !task.project ? task.meta.machine : null
   useEffect(() => { setF(draft(task)) }, [task.id, task.updatedAt])   // eslint-disable-line react-hooks/exhaustive-deps
@@ -117,6 +122,12 @@ export default function TaskEditor({ task, onPatch, onClose }) {
               onBlur={() => commit('project')} onKeyDown={onKey('project')} className={inp} />
             <datalist id={`machines-${task.id}`}>{machines.map(m => <option key={m} value={m} />)}</datalist>
           </L>
+          {planned && (
+            <select value={task.phase || ''} aria-label="Phase" onChange={e => onPatch(task.id, { phase: e.target.value || null })} className={inp + ' mt-1.5 cursor-pointer'}>
+              <option value="">no phase</option>
+              {planned.phases.map(ph => <option key={ph.id} value={ph.id}>{ph.name}</option>)}
+            </select>
+          )}
           {useMachine && (
             <button type="button" onClick={() => { onPatch(task.id, { project: useMachine }); setMachineOffered(false) }} aria-label={`Use ${useMachine} as the project`}
               className="pill mt-1.5 inline-flex h-6 items-center px-2.5 text-[12.5px] font-medium" style={{ border: '1px solid var(--line-2)', color: 'var(--ink-2)' }}>Use {useMachine}</button>

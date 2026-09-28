@@ -170,7 +170,7 @@ const now = () => new Date().toISOString()
  *   deliveredOn  the day the part arrived; with orderedOn it is one lead-time sample for the supplier
  *   links        files and pages that belong to the task, [{ id, href, label }], photographs included
  */
-export const OWN_FIELDS = ['assignedBy', 'lead', 'project', 'priority', 'effortHours', 'tags', 'checklist', 'repeat', 'supplier', 'poNumber', 'orderedOn', 'deliveredOn', 'links']
+export const OWN_FIELDS = ['assignedBy', 'lead', 'project', 'priority', 'effortHours', 'tags', 'checklist', 'repeat', 'supplier', 'poNumber', 'orderedOn', 'deliveredOn', 'links', 'phase']
 const clampPrio = p => (p === null || p === undefined || p === '') ? null : Math.min(3, Math.max(1, Number(p) || 3))
 const normTags = t => Array.isArray(t) ? [...new Set(t.map(x => String(x).trim()).filter(Boolean))].slice(0, 12)
   : typeof t === 'string' ? normTags(t.split(/[,;]/)) : []
@@ -199,6 +199,7 @@ const ownFields = (input = {}) => ({
   poNumber: str(input.poNumber),
   orderedOn: dateStr(input.orderedOn),
   deliveredOn: dateStr(input.deliveredOn),
+  phase: str(input.phase),   // a phase id of the project plan (roadmap 121); null when the task is unplanned
   links: cleanLinks(input.links)
 })
 
@@ -327,6 +328,7 @@ export function updateTask(id, patch) {
   if ('repeat' in patch) t.repeat = normRepeat(patch.repeat)
   for (const k of ['supplier', 'poNumber']) if (k in patch) t[k] = str(patch[k])
   if ('orderedOn' in patch) t.orderedOn = dateStr(patch.orderedOn)
+  if ('phase' in patch) t.phase = str(patch.phase)
   if ('deliveredOn' in patch) t.deliveredOn = dateStr(patch.deliveredOn)
   if ('links' in patch) t.links = cleanLinks(patch.links)
 
