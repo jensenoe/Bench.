@@ -3,7 +3,6 @@ import { j } from '../api/http.js'
 import { getMailStatus, runMail } from '../api/mail.js'
 import { getCommute } from '../api/day.js'
 import { toast } from '../api/extras.js'
-import * as api from '../api.js'
 
 /**
  * The Settings blocks for the eighth batch's integrations: reading the mail (roadmap 113), the phone
@@ -118,14 +117,14 @@ export function StorageLine() {
 const PermissionLine = ({ x, works, waiting }) => (
   <li className="flex flex-wrap items-baseline gap-x-2">
     <span className="inline-block h-2 w-2 rounded-full" aria-hidden="true" style={{ background: works ? 'var(--ok)' : waiting ? 'var(--caution)' : 'var(--ink-3)' }} />
-    <span className="tnum">{x.scope}</span><span style={{ color: 'var(--ink-3)' }}>{x.why.replace(/\bmy\b/g, 'your')}, {works ? 'works' : waiting ? 'waiting for the admin' : 'not connected yet'}</span>
+    <span className="tnum">{x.scope}</span><span style={{ color: 'var(--ink-3)' }}>{x.why.replace(/\bmy\b/g, 'your')}, {works ? 'works' : 'not accepted yet'}</span>
   </li>
 )
 
 /**
- * For the admin (roadmaps 138, 140). Planner and the workbook you approve yourself when you connect; the admin
- * approves only Calendars.ReadBasic and Sites.Selected, and grants the one site of the issue list read access
- * for this app. The note names the site and the list, so the admin can grant exactly that and nothing wider.
+ * Permissions (roadmaps 138, 140, 141). In tom.fit you accept all four yourself: Planner and the workbook at the first
+ * sign-in, the calendar and the issue list at the second. The admin grants the app read on the one issue list, which
+ * Sites.Selected needs; the note for the admin asks for exactly that list and nothing wider.
  */
 export function AdminApproval({ auth, name = '' }) {
   const [copied, setCopied] = useState(null)
@@ -133,33 +132,24 @@ export function AdminApproval({ auth, name = '' }) {
   if (!a) return null
   const on = { 'Tasks.ReadWrite': auth.signedIn, 'Files.ReadWrite': auth.signedIn, 'Calendars.ReadBasic': auth.extra?.granted, 'Sites.Selected': auth.extra?.granted }
   const first = String(name || '').trim().split(/\s+/)[0] || ''
-  const host = String(a.site?.id || '').split(',')[0]
+  const site = a.site || {}
   const note = [
     'Hi,', '',
-    `Thanks for looking. I approved Planner and my workbook myself. For the calendar and the issue list, the app "${a.app}" (client ID ${a.clientId}) now asks only for these two delegated permissions:`,
-    ...a.scopes.map(x => `- ${x.scope}: ${x.why}`), '',
-    'The issue-ticket list is one list on one site:',
-    `- site: ${a.site?.id || 'see Bench. Settings'}`,
-    `- list: ${a.site?.list || ''}`, '',
-    'Two steps on your side:',
-    '1. Admin consent for the two permissions, with this link (it names only those two):',
-    a.url,
-    `2. Read access for the app on that one site, for Sites.Selected: POST https://graph.microsoft.com/v1.0/sites/${a.site?.id || '<site-id>'}/permissions with roles ["read"] for the application ${a.clientId}, or in PnP PowerShell Grant-PnPAzureADAppSitePermission -AppId ${a.clientId} -DisplayName "${a.app}" -Site <the site URL on ${host || 'our SharePoint'}> -Permissions Read.`, '',
+    `I've added Calendars.ReadBasic and Sites.Selected to "${a.app}" (client ID ${a.clientId}) and accepted them myself.`,
+    `Could you grant the app read on the one list, "${site.listName || 'the issue-ticket list'}" (list ID ${site.list || ''}) on ${site.url || 'our SharePoint'}?`, '',
     first ? `Thanks, ${first}` : 'Thanks'
   ].join('\n')
   const copy = async (text, which) => { try { await navigator.clipboard.writeText(text); setCopied(which); setTimeout(() => setCopied(null), 2500) } catch { toast('Could not copy.', 'Select the text by hand instead.') } }
+  const all = [...(a.self || []), ...a.scopes]
   return (
     <div className="row mt-3 p-4 text-[13.5px]">
       <p className="font-medium">Permissions.</p>
-      <p className="mt-2 text-[13px]" style={{ color: 'var(--ink-3)' }}>You approve these yourself, in the Microsoft prompt when you connect:</p>
-      <ul className="mt-1 flex flex-col gap-1 text-[13px]">{(a.self || []).map(x => <PermissionLine key={x.scope} x={x} works={on[x.scope]} waiting={false} />)}</ul>
-      <p className="mt-3 text-[13px]" style={{ color: 'var(--ink-3)' }}>Your admin approves these, once, and grants the issue list's site to the app:</p>
-      <ul className="mt-1 flex flex-col gap-1 text-[13px]">{a.scopes.map(x => <PermissionLine key={x.scope} x={x} works={on[x.scope]} waiting={auth.signedIn} />)}</ul>
-      {auth.signedIn && !auth.extra?.granted && (
+      <p className="mt-2 text-[13px]" style={{ color: 'var(--ink-3)' }}>You accept these yourself, in the Microsoft prompt: the first two when you connect, the other two when you sign in again below.</p>
+      <ul className="mt-1 flex flex-col gap-1 text-[13px]">{all.map(x => <PermissionLine key={x.scope} x={x} works={on[x.scope]} waiting={false} />)}</ul>
+      <p className="mt-3 text-[13px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>The issue list needs one more thing: your admin grants the app read on that one list, {site.listName ? `"${site.listName}"` : 'the issue-ticket list'}. Ask once the second sign-in is done.</p>
+      {auth.signedIn && (
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <button onClick={() => copy(note, 'note')} className="pill btn-primary inline-flex min-h-[32px] items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium">{copied === 'note' ? 'Copied' : 'Copy a note for your admin'}</button>
-          <button onClick={() => copy(a.url, 'link')} className="pill btn-quiet inline-flex min-h-[32px] items-center gap-1.5 px-3.5 py-1.5 text-[13px]">{copied === 'link' ? 'Copied' : 'Copy only the link'}</button>
-          <button onClick={() => api.openExternal(a.url)} className="-my-1 inline-block py-1 text-[13px] underline underline-offset-2" style={{ color: 'var(--ink-2)' }}>Open it here, for an admin at this desk</button>
+          <button onClick={() => copy(note, 'note')} className="pill btn-quiet inline-flex min-h-[32px] items-center gap-1.5 px-3.5 py-1.5 text-[13px]">{copied === 'note' ? 'Copied' : 'Copy a note for your admin'}</button>
         </div>
       )}
     </div>

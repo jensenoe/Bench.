@@ -324,7 +324,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
                     <>
                       <AdminApproval auth={auth} name={draft.name} />
                       <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]" style={{ color: 'var(--ink-3)' }}>
-                        <span>Approved already? Sign in once more to switch it on now.</span>
+                        <span>The calendar and the issue list: sign in once more and accept the two new permissions.</span>
                         <Connect auth={auth} onRefresh={onRefresh} tier="extra" label="Sign in again" quiet className="inline-block" />
                       </p>
                     </>

@@ -102,7 +102,7 @@ app.get('/api/state', wrap(async (_req, res) => {
       lastError: auth.getLastSignInError(),
       extra: auth.extraStatus(),                 // issue list + calendar: granted, or waiting on an admin
       adminConsentUrl: auth.adminConsentUrl(),
-      approval: { ...auth.approval(), site: { id: issuesSource.SITE, list: issuesSource.LIST } },   // the admin's part: link, the two narrow scopes, the one site (roadmaps 138, 140)
+      approval: { ...auth.approval(), site: { id: issuesSource.SITE, list: issuesSource.LIST, url: issuesSource.SITE_URL, listName: issuesSource.LIST_NAME } },   // the admin's part: link, the two narrow scopes, the one site (roadmaps 138, 140)
       canWriteBack: auth.isConfigured() && auth.scopes().some(s => s.includes('ReadWrite'))
     }
   })

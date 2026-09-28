@@ -33,9 +33,9 @@ const EXTRA_ALL = [...new Set([...EXTRA, ...ENV_EXTRA])]
 export const isConfigured = () => Boolean(CLIENT_ID)
 export const scopes = () => SCOPES
 /**
- * The admin's part (roadmaps 138, 140). Planner and the workbook (CORE) are user-consentable in tom.fit: you accept
- * them yourself at the first sign-in. The admin approves only the two narrow ones below, through the v2 link that
- * names exactly those, and grants the one site read access for Sites.Selected. Microsoft sends the admin back to
+ * Consent (roadmaps 138, 140, 141). In tom.fit all four delegated permissions are user-consentable: you accept CORE
+ * at the first sign-in and the two narrow ones (below) at the second. The admin's only part is granting the app read
+ * on the one issue list, which Sites.Selected needs. The v2 link stays for a tenant that blocks user consent. Microsoft sends the admin back to
  * the nativeclient reply address, which the registration needs under "Mobile and desktop applications".
  */
 export const NATIVE_REDIRECT = 'https://login.microsoftonline.com/common/oauth2/nativeclient'
@@ -45,7 +45,7 @@ export const SELF = [
 ]
 export const APPROVAL = [
   { scope: 'Calendars.ReadBasic', why: "today's meetings: subject, times, place and people, no bodies or attachments" },
-  { scope: 'Sites.Selected', why: 'the issue-ticket list, on the one site granted to the app, read only' }
+  { scope: 'Sites.Selected', why: 'the issue-ticket list, read only, once the admin grants the app that one list' }
 ]
 export const adminConsentUrl = () => `https://login.microsoftonline.com/${TENANT_ID}/v2.0/adminconsent?client_id=${CLIENT_ID}&scope=${encodeURIComponent(APPROVAL.map(a => g(a.scope)).join(' '))}&redirect_uri=${encodeURIComponent(NATIVE_REDIRECT)}`
 /** What the Settings panel shows and copies for the admin. */

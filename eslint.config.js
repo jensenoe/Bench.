@@ -17,7 +17,7 @@ const style = {
 }
 
 export default [
-  { ignores: ['dist/**', 'release/**', 'node_modules/**', 'build/**', 'public/**', 'data/**', 'backups/**'] },
+  { ignores: ['dist/**', 'release/**', 'node_modules/**', 'build/**', 'public/**', 'data/**', 'backups/**', '.claude/**'] },   // .claude: worktrees of other Claude sessions
   js.configs.recommended,
   {
     files: ['server/**/*.js', 'scripts/**/*.mjs', 'electron/**/*.cjs', 'vite.config.js', 'vitest.config.js', 'eslint.config.js'],

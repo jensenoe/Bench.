@@ -12,7 +12,7 @@
 Installing over an older Bench. keeps your board, hours and settings. `Bench-portable-…exe` on the
 same page is the no-install version: keep it in any folder and run it from there.
 
-**0.11, eighteenth beta (0.11.0-beta.18).** Everything here works on my machine and on the mocks; the
+**0.11, nineteenth beta (0.11.0-beta.19).** Everything here works on my machine and on the mocks; the
 Microsoft paths (Planner, the hours workbook, the issue list, the calendar) still want a
 first real run in the tom.fit tenant, and the issue list and calendar need a one-time admin
 approval, see below.
@@ -54,7 +54,7 @@ Administrator; `build-exe.bat plain` skips the icon stamping instead, and `build
 Bump `version` in `package.json`, commit, then tag and push:
 
 ```bash
-git tag v0.11.0-beta.18 && git push --tags
+git tag v0.11.0-beta.19 && git push --tags
 ```
 
 The *Release* workflow in `.github/workflows/release.yml` builds both exes on a Windows
@@ -175,16 +175,18 @@ can see, and it asks for the least it needs:
 |---|---|---|
 | `Tasks.ReadWrite` | Planner | you, in the prompt at the first sign-in |
 | `Files.ReadWrite` | the Zeiterfassung workbook | you, in the prompt at the first sign-in |
-| `Calendars.ReadBasic` | today's meetings: subject, times, place, people; no bodies | a tom.fit admin, once |
-| `Sites.Selected` | the issue-ticket list, on the one site an admin grants to the app, read only | a tom.fit admin, once, plus the site grant |
+| `Calendars.ReadBasic` | today's meetings: subject, times, place, people; no bodies | you, in the prompt at the second sign-in |
+| `Sites.Selected` | the issue-ticket list, read only | you, at the second sign-in; then the admin grants the app read on that one list |
 | `Mail.Read` | order confirmations, only with mail reading on; asked for on its own | a tom.fit admin, only if ever wanted |
 
-Settings > Tools > Microsoft 365 shows what works and has *Copy a note for your admin*: the link that names
-only the two admin permissions, the site and list IDs of the issue list, and the site grant (Graph
-`POST /sites/{site-id}/permissions` with role read for the app, or PnP `Grant-PnPAzureADAppSitePermission`).
-The registration must list the permissions it asks for under *API permissions*, and for the link it needs the
-platform *Mobile and desktop applications* with `https://login.microsoftonline.com/common/oauth2/nativeclient`
-ticked. Bench. picks the approval up by itself afterwards. If you were
+In tom.fit all of these are user-consentable, but only once they are listed on the registration: under *API
+permissions* the registration must list Tasks.ReadWrite, Files.ReadWrite, Calendars.ReadBasic and Sites.Selected
+(delegated). Then press *Connect* in Settings > Tools > Microsoft 365 and accept, and *Sign in again* for the
+calendar and the issue list and accept again. The issue list, "hardware issues (trial)" on
+`https://netorgft10707311.sharepoint.com/sites/tom.fit`, also needs the admin to grant the app read on that one
+list; *Copy a note for your admin* asks for exactly that. A tenant that blocks user consent can use the admin
+link Bench. still builds (v2 admin consent naming only the two narrow permissions; the registration then needs
+the platform *Mobile and desktop applications* with the nativeclient reply address). If you were
 connected before the time clock existed, the pill goes back to *Connect* once: sign in
 again and consent to the second scope.
 

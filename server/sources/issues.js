@@ -15,6 +15,9 @@ import { isMe } from '../settings.js'
 export const ORIGIN = 'https://issues.tom.fit'
 export const SITE = process.env.ISSUES_SITE_ID || 'netorgft10707311.sharepoint.com,ae25541d-01d9-40fd-9235-46244cdae5cf,f2e21d90-c59a-4062-be3f-28a9cb960c1b'
 export const LIST = process.env.ISSUES_LIST_ID || '635ea462-3c0a-4036-82da-3d28e2e1de63'
+/** The site's address and the list's name, as the issue tool itself configures them; for the admin's list grant. */
+export const SITE_URL = process.env.ISSUES_SITE_URL || 'https://netorgft10707311.sharepoint.com/sites/tom.fit'
+export const LIST_NAME = 'hardware issues (trial)'
 const FIELDS = ['id', 'Title', 'status', 'Hub', 'Priority', 'Issuearea', 'SN_x0023_', 'incharge', 'Author', 'Created', 'Modified', 'Solvedon']
 const DONE = new Set(['resolved', 'closed', 'done', 'erledigt', 'abgeschlossen'])
 
