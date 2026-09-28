@@ -28,10 +28,10 @@ export default function FocusTimer() {
   if (!s) return null
 
   const label = `${focus.mmss(left)} · ${s.title}`
-  const btn = 'grid h-6 w-6 place-items-center rounded-full transition-colors hover:bg-[rgba(var(--ink-rgb),.08)]'
+  const btn = 'grid h-6 w-6 place-items-center rounded-full transition-colors hover:bg-[var(--wash)]'
   return (
     <div role="timer" aria-live="off" aria-label={`Focus, ${focus.mmss(left)} left on ${s.title}`} title={label}
-      className="pill flex items-center gap-1 py-1 pl-3 pr-1 text-[13.5px] 2xl:text-[15px]" style={{ border: '1px solid var(--line-2)', color: s.pausedAt ? 'var(--ink-3)' : 'var(--ink)' }}>
+      className="pill btn-quiet flex items-center gap-1 py-1 pl-3 pr-1 text-[13.5px] 2xl:text-[15px]" style={{ color: s.pausedAt ? 'var(--ink-3)' : 'var(--ink)' }}>
       <span className="tnum max-w-[220px] truncate">{focus.mmss(left)} <span style={{ color: 'var(--ink-3)' }}>· {s.title}</span></span>
       <button onClick={() => (s.pausedAt ? focus.resume() : focus.pause())} aria-label={s.pausedAt ? 'Resume the focus timer' : 'Pause the focus timer'} title={s.pausedAt ? 'Resume' : 'Pause'} className={btn} style={{ color: 'var(--ink-2)' }}>
         {s.pausedAt ? <Play size={12} weight="bold" /> : <Pause size={12} weight="bold" />}

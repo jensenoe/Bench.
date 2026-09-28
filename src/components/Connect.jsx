@@ -44,7 +44,7 @@ export default function Connect({ auth, onRefresh, tier = 'core', label = 'Conne
   }, [code, onRefresh, onDone, tier])
 
   const needsAdmin = code?.error && /admin/i.test(code.error)
-  const pill = big ? { background: 'var(--accent)', color: 'var(--accent-ink)' } : { background: 'var(--ink)', color: 'var(--bg)' }
+  const pill = { background: 'var(--accent)', color: 'var(--accent-ink)' }
   const pillCls = big ? 'pill px-6 py-3 text-[14px] font-medium disabled:opacity-60' : 'pill px-4 py-2 text-[13.5px] font-medium disabled:opacity-60'
 
   return (

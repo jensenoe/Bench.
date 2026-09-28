@@ -21,7 +21,7 @@ export default function ErrorToast({ message, busy, onRetry, onDismiss }) {
           </div>
           <button onClick={onRetry} disabled={busy} className="pill shrink-0 px-3.5 py-1.5 text-[13px] font-medium disabled:opacity-60"
             style={{ background: 'var(--accent)', color: 'var(--accent-ink)' }}>{busy ? 'Trying…' : 'Retry'}</button>
-          <button onClick={onDismiss} className="pill shrink-0 px-3 py-1.5 text-[13px]" style={{ border: '1px solid var(--line-2)' }}>Dismiss</button>
+          <button onClick={onDismiss} className="pill btn-quiet shrink-0 px-3 py-1.5 text-[13px]">Dismiss</button>
         </motion.div>
       )}
     </AnimatePresence>

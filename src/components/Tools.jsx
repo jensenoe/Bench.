@@ -53,7 +53,7 @@ export default function Tools({ state, onPatch, onDelete, onRefresh, onConnect }
   }).filter(Boolean)
 
   const btn = 'pill flex items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium disabled:opacity-50'
-  const dark = { background: 'var(--ink)', color: 'var(--bg)' }, line = { border: '1px solid var(--line-2)' }
+  const dark = { background: 'var(--accent)', color: 'var(--accent-ink)' }, line = { background: 'var(--wash)', color: 'var(--ink-2)' }
 
   return (
     <main className="mx-auto col px-6">
@@ -79,9 +79,9 @@ export default function Tools({ state, onPatch, onDelete, onRefresh, onConnect }
             <div className="flex items-center gap-2">
               {s.available && needsSignIn && s.kind === 'site' && <button disabled={busy === key} onClick={() => run(key, () => api.signInSource(key))} className={btn} style={dark}><SignIn size={13} weight="bold" /> Sign in</button>}
               {adminWait && <button onClick={onConnect} className={btn} style={line}><Warning size={13} weight="bold" /> Approval link</button>}
-              {expired && <button onClick={async () => { await api.signOut(); await onRefresh(); onConnect() }} className={btn} style={dark}><SignIn size={13} weight="bold" /> Reconnect</button>}
+              {expired && <button onClick={async () => { try { await api.signOut(); await onRefresh() } catch { /* the sign-in in Settings starts over either way */ } onConnect() }} className={btn} style={dark}><SignIn size={13} weight="bold" /> Reconnect</button>}
               {s.available && needsSignIn && s.kind === 'graph' && <button onClick={onConnect} className={btn} style={dark}><SignIn size={13} weight="bold" /> Connect Microsoft 365</button>}
-              {s.available && !needsSignIn && <button disabled={busy === key} onClick={() => run(key, () => api.syncSource(key))} className={btn} style={line}><ArrowsClockwise size={12} weight="bold" className={busy === key ? 'animate-spin' : ''} /> Sync</button>}
+              {s.available && !needsSignIn && <button disabled={busy === key} onClick={() => run(key, () => api.syncSource(key))} className={btn} style={line}><ArrowsClockwise size={12} weight="bold" /> {busy === key ? 'Syncing' : 'Sync'}</button>}
             </div>
           </div>
         ))}

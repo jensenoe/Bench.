@@ -29,9 +29,9 @@ export default function PeopleFilter({ tasks, value, onChange, name }) {
       {keys.map(k => {
         const on = value === k
         return (
-          <button key={k} onClick={() => onChange(k)} className="pill flex items-center gap-1.5 px-3 py-1.5 text-[13px] transition-colors"
-            style={{ color: on ? 'var(--ink)' : 'var(--ink-3)', background: on ? 'rgba(var(--ink-rgb),.1)' : 'transparent', border: '1px solid var(--line)' }}>
-            {label(k)}<span className="tnum" style={{ color: on ? 'var(--ink-2)' : 'var(--ink-3)', opacity: .8 }}>{count(k)}</span>
+          <button key={k} onClick={() => onChange(k)} className="pill btn-ghost flex items-center gap-1.5 px-3 py-1.5 text-[13px] transition-colors"
+            style={{ color: on ? 'var(--ink)' : 'var(--ink-3)', background: on ? 'var(--wash-2)' : undefined }}>
+            {label(k)}<span className="tnum" style={{ color: on ? 'var(--ink-2)' : 'var(--ink-3)' }}>{count(k)}</span>
           </button>
         )
       })}

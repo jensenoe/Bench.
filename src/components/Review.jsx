@@ -46,9 +46,9 @@ export default function Review() {
   return (
     <main className="mx-auto col px-6">
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <button onClick={() => setStart(s => shift(s, -1))} aria-label="Previous week" className="grid h-8 w-8 place-items-center rounded-full" style={{ border: '1px solid var(--line-2)' }}><CaretLeft size={13} weight="bold" /></button>
+        <button onClick={() => setStart(s => shift(s, -1))} aria-label="Previous week" className="btn-quiet grid h-8 w-8 place-items-center rounded-full"><CaretLeft size={13} weight="bold" /></button>
         <h2 className="display min-w-[120px] text-center text-[24px] font-semibold leading-none">{title}</h2>
-        <button onClick={() => setStart(s => shift(s, 1))} disabled={thisWeek} aria-label="Next week" className="grid h-8 w-8 place-items-center rounded-full disabled:opacity-30" style={{ border: '1px solid var(--line-2)' }}><CaretRight size={13} weight="bold" /></button>
+        <button onClick={() => setStart(s => shift(s, 1))} disabled={thisWeek} aria-label="Next week" className="btn-quiet grid h-8 w-8 place-items-center rounded-full disabled:opacity-30"><CaretRight size={13} weight="bold" /></button>
         <span className="tnum text-[13.5px]" style={{ color: 'var(--ink-3)' }}>{range}</span>
         {!thisWeek && <button onClick={() => setStart(mondayOf())} className="text-[13px] underline-offset-2 hover:underline" style={{ color: 'var(--ink-3)' }}>This week</button>}
       </div>
@@ -89,7 +89,7 @@ export default function Review() {
       )}
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <button onClick={copy} disabled={!r} className="pill flex items-center gap-1.5 px-4 py-2 text-[13.5px] font-medium disabled:opacity-50" style={{ border: '1px solid var(--line-2)' }}><Copy size={13} weight="bold" /> Copy as text</button>
+        <button onClick={copy} disabled={!r} className="pill btn-quiet flex items-center gap-1.5 px-4 py-2 text-[13.5px] font-medium disabled:opacity-50"><Copy size={13} weight="bold" /> Copy as text</button>
         <button onClick={mail} disabled={!r} className="pill flex items-center gap-1.5 px-4 py-2 text-[13.5px] font-medium disabled:opacity-50" style={{ background: 'var(--accent)', color: 'var(--accent-ink)' }}><EnvelopeSimple size={13} weight="bold" /> Draft a mail</button>
         <span className="text-[13px]" style={{ color: 'var(--ink-3)' }}>The mail opens in your mail app with the week as short sentences.</span>
       </div>
@@ -125,7 +125,7 @@ function Cost() {
       <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
         <h3 className="display text-[22px] font-semibold leading-none">Cost.</h3>
         <span className="flex items-center gap-2 text-[13px]" style={{ color: 'var(--ink-3)' }}>
-          {[3, 6, 12].map(n => <button key={n} onClick={() => setMonths(n)} aria-pressed={months === n} className="pill min-h-6 px-2.5 py-0.5 text-[13px]" style={months === n ? { background: 'var(--row)', border: '1px solid var(--line-2)', color: 'var(--ink)' } : { border: '1px solid transparent' }}>{n} months</button>)}
+          {[3, 6, 12].map(n => <button key={n} onClick={() => setMonths(n)} aria-pressed={months === n} className="pill min-h-6 px-2.5 py-0.5 text-[13px]" style={months === n ? { background: 'var(--wash-2)', color: 'var(--ink)' } : undefined}>{n} months</button>)}
         </span>
       </header>
       <p className="mt-1.5 max-w-[65ch] text-[13px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>
@@ -167,7 +167,7 @@ function Cost() {
         </div>
       )}
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <a href={day.costCsvUrl(months)} download className="pill inline-flex min-h-[32px] items-center gap-1.5 px-4 py-1.5 text-[13.5px] font-medium" style={{ border: '1px solid var(--line-2)' }}><DownloadSimple size={13} weight="bold" /> CSV for the controller</a>
+        <a href={day.costCsvUrl(months)} download className="pill btn-quiet inline-flex min-h-[32px] items-center gap-1.5 px-4 py-1.5 text-[13.5px] font-medium"><DownloadSimple size={13} weight="bold" /> CSV for the controller</a>
         <span className="text-[13px]" style={{ color: 'var(--ink-3)' }}>Semicolons and a decimal comma, so Excel opens it as a table.</span>
       </div>
     </section>

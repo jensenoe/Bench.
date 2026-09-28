@@ -82,7 +82,7 @@ export default function Changes({ limit = 30 }) {
       <div className="flex items-baseline justify-between gap-4">
         <h2 id="changes-title" className="display text-[22px] font-semibold leading-none">Recent changes.</h2>
         <button type="button" onClick={toggle} aria-expanded={open} aria-controls="changes-list"
-          className="inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-[13px]" style={{ background: 'var(--row)', border: '1px solid var(--line)', color: 'var(--ink-2)' }}>
+          className="btn-quiet inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-[13px]">
           {open ? 'Hide' : entries?.length ? `Show ${entries.length}` : 'Show'}{open ? <CaretUp size={12} weight="bold" /> : <CaretDown size={12} weight="bold" />}
         </button>
       </div>
@@ -109,7 +109,7 @@ export default function Changes({ limit = 30 }) {
                     <span className="tnum text-[13px]" style={{ color: 'var(--ink-3)' }}>{ago(e.at, now)}</span>
                     {undoable(e) && (
                       <button type="button" onClick={() => undo(e)} disabled={busy === e.id} aria-label={`Undo: ${d.what} on ${e.title}`}
-                        className="inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-[12.5px] disabled:opacity-50" style={{ background: 'var(--row)', border: '1px solid var(--line)', color: 'var(--ink-2)' }}>
+                        className="btn-quiet inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-[12.5px] disabled:opacity-50">
                         <ArrowCounterClockwise size={12} weight="bold" />Undo
                       </button>
                     )}

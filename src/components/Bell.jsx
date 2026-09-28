@@ -65,8 +65,8 @@ export default function Bell() {
   return (
     <div ref={box} className="relative">
       <button ref={btn} onClick={() => setOpen(v => !v)} aria-expanded={open} aria-haspopup="dialog" aria-label={label} title={label}
-        className="relative grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[rgba(var(--ink-rgb),.08)] 2xl:h-11 2xl:w-11"
-        style={{ color: open ? 'var(--ink)' : 'var(--ink-3)', background: open ? 'rgba(var(--ink-rgb),.1)' : 'transparent' }}>
+        className="relative grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--wash)] 2xl:h-11 2xl:w-11"
+        style={{ color: open ? 'var(--ink)' : 'var(--ink-3)', background: open ? 'var(--wash-2)' : 'transparent' }}>
         <BellIcon size={15} weight="bold" />
         {unread > 0 && <span aria-hidden="true" className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full" style={{ background: 'var(--accent)', boxShadow: '0 0 0 2px rgba(var(--veil),.9)' }} />}
       </button>
@@ -74,7 +74,7 @@ export default function Bell() {
       <AnimatePresence>
         {open && (
           <motion.div key="panel" role="dialog" aria-label="Notifications" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: .18 }}
-            className="panel absolute right-0 top-full z-[60] mt-2 w-[360px] p-4 text-[13.5px]" style={{ boxShadow: 'var(--shadow-pop)' }}>
+            className="panel off-photo absolute right-0 top-full z-[60] mt-2 w-[360px] p-4 text-[13.5px]" style={{ boxShadow: 'var(--shadow-pop)' }}>
             <div className="flex items-baseline justify-between">
               <span className="display text-[17px] font-semibold">Notifications.</span>
               <span className="tnum text-[13px]" style={{ color: 'var(--ink-3)' }}>{unread ? `${unread} unread` : items.length ? 'all read' : ''}</span>
@@ -86,7 +86,7 @@ export default function Bell() {
                   {items.map(n => (
                     <li key={n.id}>
                       <button onClick={() => go(n)} aria-label={`${n.title} ${n.body || ''}, ${ago(n.at, now)}${n.read ? '' : ', unread'}`}
-                        className="row flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors hover:bg-[rgba(var(--ink-rgb),.04)]">
+                        className="row flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors hover:bg-[var(--wash)]">
                         <span aria-hidden="true" className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: n.read ? 'transparent' : 'var(--accent)' }} />
                         <span className="min-w-0 flex-1">
                           <span className="flex items-baseline justify-between gap-3">

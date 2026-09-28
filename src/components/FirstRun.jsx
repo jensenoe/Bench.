@@ -79,7 +79,7 @@ export default function FirstRun({ scene, auth, onSave, onRefresh }) {
               </div>
               <div className="mt-6 flex flex-wrap items-center gap-4">
                 <button onClick={finish} disabled={busy} className="pill px-6 py-3 text-[14px] font-medium transition-opacity disabled:opacity-40"
-                  style={auth?.signedIn ? { background: 'var(--accent)', color: 'var(--accent-ink)' } : { border: '1px solid var(--line-2)', color: 'var(--ink)' }}>
+                  style={auth?.signedIn ? { background: 'var(--accent)', color: 'var(--accent-ink)' } : { background: 'var(--wash)', color: 'var(--ink)' }}>
                   {auth?.signedIn ? FIRST_RUN.done : FIRST_RUN.skip}
                 </button>
                 {!auth?.signedIn && <span className="text-[13.5px]" style={{ color: 'var(--ink-3)' }}>You can connect later from the gear.</span>}

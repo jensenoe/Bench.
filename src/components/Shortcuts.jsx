@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { KEY_ORDER } from '../pages.js'
+import useFocusTrap from '../hooks/useFocusTrap.js'
 
 /**
  * The key sheet. `?` opens it from anywhere; Escape, the Close button or a click outside shuts it.
@@ -39,7 +40,8 @@ const GROUPS = [
 ]
 
 export default function Shortcuts({ open, onClose }) {
-  const closeBtn = useRef(null), before = useRef(null)
+  const closeBtn = useRef(null), before = useRef(null), box = useRef(null)
+  useFocusTrap(box, open, { restore: false })   // the effect below gives focus back
   useEffect(() => {
     if (open) { before.current = document.activeElement; const id = setTimeout(() => closeBtn.current?.focus(), 40); return () => clearTimeout(id) }
     before.current?.focus?.()
@@ -56,7 +58,7 @@ export default function Shortcuts({ open, onClose }) {
         <motion.div key="keys" className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto px-4 pb-8 pt-[10vh]"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .15 }}
           style={{ background: 'rgba(var(--page-veil),.55)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', overscrollBehavior: 'contain' }} onMouseDown={onClose}>
-          <motion.div role="dialog" aria-modal="true" aria-labelledby="keys-title"
+          <motion.div ref={box} role="dialog" aria-modal="true" aria-labelledby="keys-title"
             initial={{ y: -10, scale: .98 }} animate={{ y: 0, scale: 1 }} exit={{ y: -6, scale: .98 }} transition={{ duration: .18, ease: [0.16, 1, 0.3, 1] }}
             className="panel w-full max-w-[560px] px-6 py-5" style={{ boxShadow: 'var(--shadow-panel)' }} onMouseDown={e => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-4">
@@ -64,7 +66,7 @@ export default function Shortcuts({ open, onClose }) {
                 <h2 id="keys-title" className="display text-[24px] font-semibold leading-none">Keys.</h2>
                 <p className="mt-2 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>They do nothing while you type in a field.</p>
               </div>
-              <button ref={closeBtn} onClick={onClose} className="pill px-3.5 py-1.5 text-[13px] font-medium" style={{ border: '1px solid var(--line-2)' }}>Close</button>
+              <button ref={closeBtn} onClick={onClose} className="pill btn-quiet px-3.5 py-1.5 text-[13px] font-medium">Close</button>
             </div>
             {GROUPS.map(g => (
               <section key={g.title} className="mt-5" aria-label={g.title}>

@@ -15,7 +15,7 @@ const toast = (text, by) => window.dispatchEvent(new CustomEvent('bench:toast', 
 const refresh = () => window.dispatchEvent(new Event('bench:refresh'))
 const plural = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`
 const btn = 'pill inline-flex min-h-[32px] items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium disabled:opacity-50'
-const quiet = { background: 'var(--row)', border: '1px solid var(--line)', color: 'var(--ink-2)' }
+const quiet = { background: 'var(--wash)', color: 'var(--ink-2)' }
 const primary = { background: 'var(--accent)', color: 'var(--accent-ink)' }
 
 function TaskLine({ t }) {

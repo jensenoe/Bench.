@@ -27,8 +27,8 @@ export default function Coach({ id, steps }) {
             <div className="flex items-center gap-3 pt-1">
               {i > 0 && <button onClick={() => setI(i - 1)} className="text-[13px]" style={{ color: 'var(--ink-3)' }}>Back</button>}
               {i < steps.length - 1
-                ? <button onClick={() => setI(i + 1)} className="pill px-4 py-2 text-[13px] font-medium" style={{ background: 'var(--ink)', color: 'var(--bg)' }}>Next</button>
-                : <button onClick={close} className="pill px-4 py-2 text-[13px] font-medium" style={{ background: 'var(--accent)', color: 'var(--accent-ink)' }}>Got it</button>}
+                ? <button onClick={() => setI(i + 1)} className="pill btn-primary px-4 py-2 text-[13px] font-medium">Next</button>
+                : <button onClick={close} className="pill btn-primary px-4 py-2 text-[13px] font-medium">Got it</button>}
               <span className="tnum text-[13px]" style={{ color: 'var(--ink-3)' }}>{i + 1} of {steps.length}</span>
               <button onClick={close} aria-label="Close" className="grid h-6 w-6 place-items-center rounded-md" style={{ color: 'var(--ink-3)' }}><X size={12} weight="bold" /></button>
             </div>

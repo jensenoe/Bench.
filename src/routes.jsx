@@ -154,7 +154,7 @@ export function Routes({
         <div className="panel max-w-[560px] px-7 py-6">
           <h1 className="display text-[34px] font-semibold leading-none tracking-tight">No such page.</h1>
           <p className="mt-3 text-[14px] leading-relaxed" style={{ color: 'var(--ink-2)' }}>Nothing lives at {location.hash || '#/'}. The pages are in the nav, and 1 to 9 on the keyboard.</p>
-          <a href="#/" className="pill mt-5 inline-flex items-center px-5 py-2.5 text-[13px] font-medium" style={{ background: 'var(--ink)', color: 'var(--bg)' }}>Home</a>
+          <a href="#/" className="pill btn-primary mt-5 inline-flex items-center px-5 py-2.5 text-[13px] font-medium">Home</a>
         </div>
       </main>)}
     </AnimatePresence>
@@ -166,7 +166,7 @@ export function Routes({
  * ctx: { settings, punch, saveSettings, openQuickAdd, openBrief, openClose, openKeys }. The update check answers
  * through a bench:toast event, the same road every component takes to a toast.
  */
-const toast = (text) => window.dispatchEvent(new CustomEvent('bench:toast', { detail: { text, plain: true } }))
+const toast = (text, by = null) => window.dispatchEvent(new CustomEvent('bench:toast', { detail: { text, by, plain: true } }))
 export function paletteActions({ settings, punch, saveSettings, openQuickAdd, openBrief, openClose, openKeys }) {
   return [
     { label: 'Clock in', hint: 'Start the day', run: () => punch('in') },
@@ -187,6 +187,6 @@ export function paletteActions({ settings, punch, saveSettings, openQuickAdd, op
     { label: 'Playbooks', hint: 'Standard task sets per machine', run: () => { location.hash = '#/playbooks' } },
     { label: 'Projects', hint: 'Plan a machine backwards from its deadline', run: () => { location.hash = '#/projects' } },
     { label: 'Next theme', hint: 'Skip to the next picture library today', run: () => saveSettings({ libraryShift: (Number(settings.libraryShift) || 0) + 1 }) },
-    { label: 'Check for updates', hint: 'Ask GitHub now', run: () => api.checkUpdates(true).then(u => toast(u.newer ? `Bench. ${u.latest} is out.` : `Bench. ${u.current} is the latest.`)).catch(() => {}) }
+    { label: 'Check for updates', hint: 'Ask GitHub now', run: () => api.checkUpdates(true).then(u => u.newer ? toast(`Bench. ${u.latest} is out.`) : u.reason ? toast('No answer on updates.', 'Settings > About says why and has the releases page.') : toast(`Bench. ${u.current} is the latest.`)).catch(e => toast('No answer on updates.', `${e.message}. Try again later, or open the releases page in Settings > About.`)) }
   ]
 }

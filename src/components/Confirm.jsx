@@ -54,7 +54,7 @@ export default function ConfirmHost() {
             <p id="confirm-title" className="display text-[16px] font-semibold leading-snug">{title}</p>
             <p id="confirm-text" className="mt-0.5 text-[13px] leading-relaxed" style={{ color: 'var(--ink-2)' }}>{q.text}</p>
           </div>
-          <button ref={primary} onClick={() => answer(true)} className="pill shrink-0 px-4 py-2 text-[13px] font-medium" style={{ background: 'var(--ink)', color: 'var(--bg)' }}>{q.yes}</button>
+          <button ref={primary} onClick={() => answer(true)} className="pill btn-primary shrink-0 px-4 py-2 text-[13px] font-medium">{q.yes}</button>
           <button onClick={() => answer(false)} className="-my-1 inline-block shrink-0 px-2 py-2 text-[13px] underline-offset-2 hover:underline" style={{ color: 'var(--ink-2)' }}>{q.no}</button>
         </motion.div>
       )}

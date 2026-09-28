@@ -22,7 +22,7 @@ export default function OpenDay({ clock, onClose, onDismiss }) {
             <span><span className="font-medium">{date}</span> was never clocked out{u.status === 'lunch' ? ' and is still on lunch' : ''}. Close it at</span>
             <input value={time} onChange={e => setTime(e.target.value)} className="field tnum w-[76px] px-2 py-1 text-center text-[13.5px]" aria-label="Time to close the day" />
             <button disabled={!ok || busy} onClick={async () => { setBusy(true); try { await onClose(time) } finally { setBusy(false) } }}
-              className="pill px-4 py-1.5 text-[13px] font-medium disabled:opacity-50" style={{ background: 'var(--ink)', color: 'var(--bg)' }}>Write it to the sheet</button>
+              className="pill btn-primary px-4 py-1.5 text-[13px] font-medium disabled:opacity-50">Write it to the sheet</button>
             <button onClick={onDismiss} className="ml-auto text-[13px] underline-offset-2 hover:underline" style={{ color: 'var(--ink-3)' }}>Already fixed in Excel</button>
           </div>
         </motion.div>

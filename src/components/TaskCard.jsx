@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Check, X, ArrowSquareOut, SlidersHorizontal, DotsSixVertical, ArrowsClockwise, Timer, LinkSimple } from '@phosphor-icons/react'
 import TaskEditor from './TaskEditor.jsx'
@@ -15,8 +15,8 @@ export const DRAG_TYPE = 'text/bench-task'
 
 function Tag({ children, color, title }) {
   return (
-    <span title={title || (typeof children === 'string' ? children : undefined)} className="tag rounded-md px-1.5 py-[2px] text-[12px] font-medium tracking-wide"
-      style={{ color, background: `color-mix(in srgb, ${color} 14%, transparent)` }}>
+    <span title={title || (typeof children === 'string' ? children : undefined)} className={`tag rounded-md px-1.5 py-[2px] text-[12px] font-medium tracking-wide ${color === STATUS.muted ? 'tag-plain' : ''}`}
+      style={{ color, background: color === STATUS.muted ? 'transparent' : `color-mix(in srgb, ${color} 14%, transparent)` }}>
       {children}
     </span>
   )
@@ -94,6 +94,19 @@ function Checklist({ task, onPatch }) {
 export default function TaskCard({ task, onPatch, onDelete, draggable = true, focusMinutes: focusProp }) {
   const [editing, setEditing] = useState(false)
   const [dragging, setDragging] = useState(false)
+  const detailsBtn = useRef(null)
+  // Closing the details (Close, Escape) hands focus back to the button that opened them, not to the page top.
+  const closeEditor = () => { setEditing(false); setTimeout(() => detailsBtn.current?.focus({ preventScroll: true }), 0) }
+  // A removed card takes focus with it; pass it to the card below (or above), or to the lane's heading.
+  const remove = () => {
+    const li = document.getElementById(`task-${task.id}`)
+    if (li && li.contains(document.activeElement)) {
+      const sib = [li.nextElementSibling, li.previousElementSibling].find(el => el && el.id?.startsWith('task-'))
+      const target = sib || li.closest('section')?.querySelector('h2')
+      if (target) { if (!sib) target.setAttribute('tabindex', '-1'); target.focus({ preventScroll: true }) }
+    }
+    onDelete(task.id)
+  }
   const from = task.assignedBy || task.meta?.from
   const over = task.dueDate ? -daysUntil(task.dueDate) : null
   const held = task.waitingSince ? daysSince(task.waitingSince) : null
@@ -117,7 +130,8 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true, fo
     else if (e.altKey && (k === 'ArrowLeft' || k === 'ArrowRight')) {
       const next = LANE_ORDER[LANE_ORDER.indexOf(task.lane) + (k === 'ArrowRight' ? 1 : -1)]
       if (next) { e.preventDefault(); onPatch(task.id, { lane: next }) }
-    } else if (k === 'Delete') { e.preventDefault(); ask(`Remove "${task.title}"?`, { yes: 'Remove' }).then(ok => ok && onDelete(task.id)) }
+    // After the confirm has handed focus back to this card, so remove() can pass it on to the next one.
+    } else if (k === 'Delete') { e.preventDefault(); ask(`Remove "${task.title}"?`, { yes: 'Remove' }).then(ok => { if (ok) setTimeout(remove, 0) }) }
   }
   const startFocus = () => focus.start({ taskId: task.id, title: task.title, minutes: focusMinutes(focusProp) })
 
@@ -186,8 +200,8 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true, fo
 
       {/* Always there: details, and the grip while draggable. Top right, over the title's reserved right padding. */}
       <div className="absolute right-3 top-2.5 flex items-center gap-0.5">
-        <button onClick={() => setEditing(v => !v)} aria-label="Edit details" title="Details" aria-expanded={editing}
-          className="grid h-6 w-6 place-items-center rounded-md transition-opacity" style={{ color: editing ? 'var(--ink)' : 'var(--ink-3)', opacity: editing ? 1 : .7 }}><SlidersHorizontal size={13} weight="bold" /></button>
+        <button ref={detailsBtn} onClick={() => setEditing(v => !v)} aria-label="Edit details" title="Details" aria-expanded={editing}
+          className="grid h-6 w-6 place-items-center rounded-md transition-opacity" style={{ color: editing ? 'var(--ink)' : 'var(--ink-3)' }}><SlidersHorizontal size={13} weight="bold" /></button>
         {canDrag && <span aria-hidden="true" className="hidden opacity-0 transition-opacity group-hover:opacity-60 sm:block" style={{ color: 'var(--ink-3)' }}><DotsSixVertical size={13} weight="bold" /></span>}
       </div>
       {/* On hover, on focus, while editing: the rest, as a small toolbar riding the card's top edge so it covers neither title nor chips. */}
@@ -195,11 +209,11 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true, fo
         style={{ borderColor: 'var(--line-2)', boxShadow: 'var(--shadow-pop)' }}>
         {!task.done && task.lane !== 'today' && (
           <button onClick={() => onPatch(task.id, { lane: 'today' })} aria-label="Pull to Today" title="Pull to Today"
-            className="pill inline-flex h-6 items-center px-2 text-[12px] font-medium" style={{ border: '1px solid var(--line-2)', color: 'var(--ink-2)' }}>Today</button>
+            className="pill btn-quiet inline-flex h-6 items-center px-2 text-[12px] font-medium">Today</button>
         )}
         {!task.done && task.lane === 'today' && (
           <button onClick={startFocus} aria-label={`Focus on ${task.title}`} title={`Focus, ${focusMinutes(focusProp)} minutes`}
-            className="pill inline-flex h-6 items-center gap-1 px-2 text-[12px] font-medium" style={{ border: '1px solid var(--line-2)', color: 'var(--ink-2)' }}><Timer size={12} weight="bold" />Focus</button>
+            className="pill btn-quiet inline-flex h-6 items-center gap-1 px-2 text-[12px] font-medium"><Timer size={12} weight="bold" />Focus</button>
         )}
         {!task.done && <SizeChips task={task} onPatch={onPatch} />}
         {task.url && <button onClick={() => openExternal(task.url)} aria-label="Open in the tool" title="Open in the tool"
@@ -209,14 +223,14 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true, fo
           className="field cursor-pointer px-1.5 py-0.5 text-[12px]">
           {LANE_ORDER.map(k => <option key={k} value={k}>{LANES[k].label}</option>)}
         </select>
-        <button onClick={() => onDelete(task.id)} aria-label="Delete"
+        <button onClick={remove} aria-label={`Delete ${task.title}`} title="Delete"
           className="grid h-6 w-6 place-items-center rounded-md" style={{ color: 'var(--ink-3)' }}>
           <X size={12} weight="bold" />
         </button>
       </div>
 
       <AnimatePresence initial={false}>
-        {editing && <TaskEditor key="ed" task={task} onPatch={onPatch} onClose={() => setEditing(false)} />}
+        {editing && <TaskEditor key="ed" task={task} onPatch={onPatch} onClose={closeEditor} />}
       </AnimatePresence>
     </motion.li>
   )

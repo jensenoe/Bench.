@@ -10,6 +10,7 @@ import Connect from './Connect.jsx'
 import Health from './Health.jsx'
 import { MailReading, PhoneView, StorageLine, DriveHome } from './SettingsIntegrations.jsx'
 import { ask } from './Confirm.jsx'
+import { Bar } from './Skeleton.jsx'
 
 const TABS = [
   { key: 'you', label: 'You' },
@@ -33,15 +34,31 @@ const Chips = ({ items, value, onPick, multi }) => (
       {items.map(it => {
         const on = multi ? value.includes(it.key) : value === it.key
         return <button key={String(it.key)} onClick={(e) => onPick(it.key, e)} aria-pressed={on} className="pill px-3 py-1.5 text-[13.5px] transition-colors"
-          style={{ color: on ? 'var(--ink)' : 'var(--ink-3)', background: on ? 'rgba(var(--ink-rgb),.1)' : 'transparent', border: '1px solid var(--line)' }}>{it.label}</button>
+          style={{ color: on ? 'var(--ink)' : 'var(--ink-3)', background: on ? 'var(--wash-2)' : 'transparent' }}>{it.label}</button>
       })}
     </div>
 )
-const Field = ({ label, k, type = 'text', placeholder, hint, mono, step, draft, set, save }) => (
+/**
+ * What the server would quietly refuse or bend (it skips a time it cannot read and clamps the numbers), so
+ * the field says so under itself instead, and keeps what was typed until it reads right.
+ */
+const TIME = /^([01]?\d|2[0-3]):[0-5]\d$/
+const time = v => TIME.test(v) ? null : 'Use hh:mm, for example 19:00.'
+const between = (lo, hi, words, whole = false) => v => v === '' || (Number(v) >= lo && Number(v) <= hi && (!whole || Number.isInteger(Number(v)))) ? null : words
+const CHECK = {
+  email: v => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? null : 'That does not read as an email address.',
+  quietFrom: time, quietTo: time, lunchAt: time, lunchEnds: time,
+  workdayHours: between(1, 14, 'Between 1 and 14 hours.'),
+  roundMinutes: between(1, 30, 'A whole number of minutes, 1 to 30.', true),
+  hourlyRate: between(0, 1000, 'Between 0 and 1000 CHF.')
+}
+const Field = ({ label, k, type = 'text', placeholder, hint, mono, step, draft, set, save, errs = {} }) => (
     <label className="block text-[13px]" style={{ color: 'var(--ink-3)' }}>{label}
       <input type={type} step={step} value={draft[k] ?? ''} placeholder={placeholder} onChange={e => set(k, e.target.value)} onBlur={() => save(k)}
+        aria-invalid={errs[k] ? true : undefined} aria-describedby={errs[k] ? `settings-${k}-err` : undefined}
         onKeyDown={e => { if (e.key === 'Enter') { save(k); e.target.blur() } }}
         className={`field mt-1 w-full px-2.5 py-2 text-[13px] ${mono ? 'tnum' : ''}`} style={{ color: 'var(--ink)' }} />
+      {errs[k] && <span id={`settings-${k}-err`} role="alert" className="mt-1 block text-[12.5px] leading-relaxed" style={{ color: 'var(--caution)' }}>{errs[k]}</span>}
       {hint && <span className="mt-1 block text-[12.5px] leading-relaxed">{hint}</span>}
     </label>
 )
@@ -76,14 +93,35 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
   const [imported, setImported] = useState(null)
   const [backups, setBackups] = useState(null)  // null until asked; [] when there are none
   const [backupNote, setBackupNote] = useState(null)
+  const [errs, setErrs] = useState({})             // field key -> the line under it
+  const [backupsErr, setBackupsErr] = useState(null)
+  const [backingUp, setBackingUp] = useState(false)
   const panel = useRef(null)
   const tabRefs = useRef({})
+  const importRef = useRef(null)
+  const fail = (text) => (e) => toast(text, e?.message ? `${e.message}. Try again.` : 'Try again.')
   const checkWorkbook = async () => { setProbe({ busy: true }); try { setProbe(await api.probeWorkbook()) } catch (e) { setProbe({ ok: false, message: e.message }) } }
   const checkUpdates = async () => { setUpd({ busy: true }); try { setUpd(await api.checkUpdates(true)) } catch (e) { setUpd({ reason: e.message }) } }
-  const copyLink = async (t) => { try { await navigator.clipboard.writeText(t); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2500) } catch { /* clipboard blocked */ } }
-  // /api/backups answers { dir, files, mirror }; the list is what the panel shows
-  const loadBackups = async () => { try { const r = await getBackups(); setBackups(Array.isArray(r) ? r : (r?.files || [])) } catch { setBackups([]) } }
-  const doBackup = async () => { setBackupNote('Writing.'); try { await backupNow(); await loadBackups(); setBackupNote('Done. Today has a fresh copy.') } catch (e) { setBackupNote(`Not written: ${e.message}`) } }
+  const copyLink = async (t) => { try { await navigator.clipboard.writeText(t); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2500) } catch { toast('Copy did not work.', 'Windows kept the clipboard closed. Try again.') } }
+  // /api/backups answers { dir, files, mirror }; the list is what the panel shows. A list that did not load
+  // is not "no copies yet": it says so and offers Try again.
+  const loadBackups = async () => { try { const r = await getBackups(); setBackups(Array.isArray(r) ? r : (r?.files || [])); setBackupsErr(null) } catch (e) { setBackups([]); setBackupsErr(e.message) } }
+  const doBackup = async () => {
+    if (backingUp) return
+    setBackingUp(true); setBackupNote('Writing.')
+    try { await backupNow(); await loadBackups(); setBackupNote('Done. Today has a fresh copy.') } catch (e) { setBackupNote(`Not written: ${e.message}`) } finally { setBackingUp(false) }
+  }
+  const importFile = async (e) => {
+    const f = e.target.files?.[0]; if (!f) return
+    e.target.value = ''
+    if (!(await ask(`Import the settings in ${f.name}? Look, hours and pictures follow the file and replace what is set here; the sign-in stays.`, { yes: 'Import', title: 'Import.' }))) return
+    try { const j = JSON.parse(await f.text()); await api.importSettings(j); onRefresh(); setImported('Imported. Look, hours and pictures follow the file; the sign-in does not.') }
+    catch (err) { setImported(`Not imported: ${err.message}`) }
+  }
+  const disconnect = async () => {
+    if (!(await ask('Disconnect Microsoft 365? Planner, the hours workbook and the calendar stop until you connect again. The board stays.', { yes: 'Disconnect', title: 'Disconnect.' }))) return
+    try { await api.signOut(); onRefresh(); toast('Disconnected.', 'Tools > Microsoft 365 connects again.') } catch (e) { fail('Still connected.')(e) }
+  }
   const doRestore = async (b) => {
     if (!(await ask(`Restore ${b.name} from ${fmtDate(b.at)}? The board goes back to that copy. Everything changed since then is lost.`, { yes: 'Restore' }))) return
     setBackupNote('Restoring.')
@@ -96,18 +134,34 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
     catch (e) { setDl({ error: e.message }) }
   }
 
-  useEffect(() => { setDraft(settings) }, [settings])
+  useEffect(() => { setDraft(settings); setErrs({}) }, [settings])   // a fresh copy from the server drops any line about the old draft
   useEffect(() => {
     if (!open) return
     window.bench?.info?.().then(setInfo).catch(() => {})
     window.bench?.startup?.().then(setStartup).catch(() => {})
     loadBackups()
     api.checkUpdates().then(u => { if (u?.downloaded) setUpd(u) }).catch(() => {})
-    const onKey = e => { if (e.key === 'Escape') onClose() }
-    const onClick = e => { if (panel.current && !panel.current.contains(e.target)) onClose() }
+    // Escape a confirm has already answered stays with the confirm; a click on the confirm or a toast is not "outside".
+    const onKey = e => { if (e.key === 'Escape' && !e.defaultPrevented) onClose() }
+    const onClick = e => { if (panel.current && !panel.current.contains(e.target) && !e.target.closest?.('[role="alertdialog"], [role="status"], [role="alert"]')) onClose() }
     addEventListener('keydown', onKey); setTimeout(() => addEventListener('mousedown', onClick), 0)
     return () => { removeEventListener('keydown', onKey); removeEventListener('mousedown', onClick) }
   }, [open, onClose])
+
+  // Opening puts focus on the chosen tab; closing gives it back to what had it (the gear), unless it moved on.
+  useEffect(() => {
+    if (!open) return
+    const before = document.activeElement
+    const box = panel.current
+    const t = setTimeout(() => panel.current?.querySelector('[role="tab"][aria-selected="true"]')?.focus(), 30)
+    return () => {
+      clearTimeout(t)
+      setTimeout(() => {
+        const now = document.activeElement
+        if (before?.isConnected && before !== document.body && (!now || now === document.body || box?.contains(now))) before.focus({ preventScroll: true })
+      }, 0)
+    }
+  }, [open])
 
   const pickTab = (key, focus = false) => {
     setTab(key)
@@ -122,8 +176,13 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
     else if (e.key === 'End') { e.preventDefault(); pickTab(TABS.at(-1).key, true) }
   }
 
-  const set = (k, v) => setDraft(d => ({ ...d, [k]: v }))
-  const save = (k) => { if (String(draft[k] ?? '') !== String(settings[k] ?? '')) onSave({ [k]: draft[k] }) }
+  const set = (k, v) => { setDraft(d => ({ ...d, [k]: v })); if (errs[k]) setErrs(x => ({ ...x, [k]: null })) }
+  const save = (k) => {
+    const e = CHECK[k]?.(String(draft[k] ?? '').trim()) || null
+    setErrs(x => x[k] === e ? x : { ...x, [k]: e })
+    if (e) return
+    if (String(draft[k] ?? '') !== String(settings[k] ?? '')) onSave({ [k]: draft[k] })
+  }
   const saveNow = (patch) => { setDraft(d => ({ ...d, ...patch })); onSave(patch) }
   // One library, or all of them. Shift-click adds a library to the current mix.
   const pickColl = (key, e) => {
@@ -156,15 +215,15 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
               const on = t.key === tab
               return <button key={t.key} ref={el => { tabRefs.current[t.key] = el }} role="tab" id={`settings-tab-${t.key}`} aria-selected={on} aria-controls={`settings-panel-${t.key}`} tabIndex={on ? 0 : -1}
                 onClick={() => pickTab(t.key)} className="pill px-3 py-1.5 text-[13.5px] font-medium transition-colors"
-                style={{ color: on ? 'var(--ink)' : 'var(--ink-3)', background: on ? 'rgba(var(--ink-rgb),.1)' : 'transparent', border: `1px solid ${on ? 'var(--line-2)' : 'transparent'}` }}>{t.label}</button>
+                style={{ color: on ? 'var(--ink)' : 'var(--ink-3)', background: on ? 'var(--wash-2)' : 'transparent' }}>{t.label}</button>
             })}
           </div>
 
           {/* You */}
           <div {...panelProps('you')}>
             <Sec first>
-              <Field draft={draft} set={set} save={save} label="Name, as the tools spell it" k="name" placeholder="Noël Jensen" hint="For the greeting, and to match what Issues, QMS and the BOM assign to you." />
-              <Field draft={draft} set={set} save={save} label="Work email" k="email" type="email" placeholder="name@tom.fit" hint="Some tools list people by address." />
+              <Field draft={draft} set={set} save={save} errs={errs} label="Name, as the tools spell it" k="name" placeholder="Noël Jensen" hint="For the greeting, and to match what Issues, QMS and the BOM assign to you." />
+              <Field draft={draft} set={set} save={save} errs={errs} label="Work email" k="email" type="email" placeholder="name@tom.fit" hint="Some tools list people by address." />
             </Sec>
             <Sec title="The day">
               <Toggle on={draft.morningBrief !== false} onChange={() => saveNow({ morningBrief: draft.morningBrief === false })} label="Morning brief" hint="The first start of the day opens with what is due, what is waiting and what is cold." />
@@ -173,12 +232,12 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
                 <Note>Focus timer</Note>
                 <div className="mt-1.5"><Chips items={[15, 25, 50, 90].map(m => ({ key: m, label: `${m} min` }))} value={Number(draft.focusMinutes) || 25} onPick={v => saveNow({ focusMinutes: v })} /></div>
               </div>
-              <Field draft={draft} set={set} save={save} label="Hours in a working day" k="workdayHours" type="number" step="0.1" mono placeholder="8.4" hint="Today's free hours are what is left of this after the cards on it." />
+              <Field draft={draft} set={set} save={save} errs={errs} label="Hours in a working day" k="workdayHours" type="number" step="0.1" mono placeholder="8.4" hint="Today's free hours are what is left of this after the cards on it." />
             </Sec>
             <Sec title="Quiet hours">
               <div className="grid grid-cols-2 gap-2">
-                <Field draft={draft} set={set} save={save} label="Quiet from" k="quietFrom" mono placeholder="19:00" />
-                <Field draft={draft} set={set} save={save} label="Quiet to" k="quietTo" mono placeholder="07:00" />
+                <Field draft={draft} set={set} save={save} errs={errs} label="Quiet from" k="quietFrom" mono placeholder="19:00" />
+                <Field draft={draft} set={set} save={save} errs={errs} label="Quiet to" k="quietTo" mono placeholder="07:00" />
               </div>
               <Toggle on={draft.quietWeekends !== false} onChange={() => saveNow({ quietWeekends: draft.quietWeekends === false })} label="Quiet at the weekend" />
               <Note>No notification between these times or on a quiet weekend day, the lunch reminders included; the board itself keeps working.</Note>
@@ -204,7 +263,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
                   {draft.pictureMode !== 'random' && (
                     <div className="mt-2 flex flex-wrap items-center gap-3 text-[13px]">
                       <span style={{ color: 'var(--ink-2)' }}>Today: {libraryLabel(libraryFor())}. Tomorrow: {libraryLabel(nextLibrary())}.</span>
-                      <button onClick={() => { saveNow({ libraryShift: (Number(draft.libraryShift) || 0) + 1 }); toast(`Now: ${libraryLabel(nextLibrary())}.`, 'Every picture follows it until tomorrow.') }} className="pill px-3 py-1.5 text-[13px] font-medium" style={{ border: '1px solid var(--line-2)' }}>Next theme</button>
+                      <button onClick={() => { saveNow({ libraryShift: (Number(draft.libraryShift) || 0) + 1 }); toast(`Now: ${libraryLabel(nextLibrary())}.`, 'Every picture follows it until tomorrow.') }} className="pill btn-quiet px-3 py-1.5 text-[13px] font-medium">Next theme</button>
                     </div>
                   )}
                 </div>
@@ -223,17 +282,17 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
           {/* Hours */}
           <div {...panelProps('hours')}>
             <Sec first>
-              <Field draft={draft} set={set} save={save} label="Workbook in your OneDrive" k="timesheetPath" mono placeholder="Documents/TomFit_Zeiterfassung_{year}_{name}.xlsx"
+              <Field draft={draft} set={set} save={save} errs={errs} label="Workbook in your OneDrive" k="timesheetPath" mono placeholder="Documents/TomFit_Zeiterfassung_{year}_{name}.xlsx"
                 hint={<>Path from the OneDrive root, same shape as the Excel file name. <span className="tnum">{'{year}'}</span> and <span className="tnum">{'{name}'}</span> are filled in for you{clock ? <>, currently <span className="tnum">{clock.workbook}</span></> : ''}.</>} />
-              <Field draft={draft} set={set} save={save} label="Or a sharing link to the workbook" k="timesheetUrl" mono placeholder="https://…sharepoint.com/:x:/…" hint="Wins over the path when set. Leave empty to use the path." />
+              <Field draft={draft} set={set} save={save} errs={errs} label="Or a sharing link to the workbook" k="timesheetUrl" mono placeholder="https://…sharepoint.com/:x:/…" hint="Wins over the path when set. Leave empty to use the path." />
               <div className="grid grid-cols-3 gap-2">
-                <Field draft={draft} set={set} save={save} label="Lunch reminder" k="lunchAt" mono placeholder="12:00" />
-                <Field draft={draft} set={set} save={save} label="Lunch ends" k="lunchEnds" mono placeholder="12:30" />
-                <Field draft={draft} set={set} save={save} label="Round down, min" k="roundMinutes" type="number" mono />
+                <Field draft={draft} set={set} save={save} errs={errs} label="Lunch reminder" k="lunchAt" mono placeholder="12:00" />
+                <Field draft={draft} set={set} save={save} errs={errs} label="Lunch ends" k="lunchEnds" mono placeholder="12:30" />
+                <Field draft={draft} set={set} save={save} errs={errs} label="Round down, min" k="roundMinutes" type="number" mono />
               </div>
-              <Field draft={draft} set={set} save={save} label="Hourly rate, CHF" k="hourlyRate" type="number" step="1" mono placeholder="0" hint="For the cost per machine on the Review page. Zero shows hours only." />
+              <Field draft={draft} set={set} save={save} errs={errs} label="Hourly rate, CHF" k="hourlyRate" type="number" step="1" mono placeholder="0" hint="For the cost per machine on the Review page. Zero shows hours only." />
               <div className="flex flex-wrap items-center gap-3 text-[13.5px]">
-                <button onClick={checkWorkbook} disabled={probe?.busy} className="pill px-3.5 py-1.5 text-[13.5px] font-medium disabled:opacity-50" style={{ border: '1px solid var(--line-2)' }}>{probe?.busy ? 'Looking' : 'Check the workbook'}</button>
+                <button onClick={checkWorkbook} disabled={probe?.busy} className="pill btn-quiet px-3.5 py-1.5 text-[13.5px] font-medium disabled:opacity-50">{probe?.busy ? 'Looking' : 'Check the workbook'}</button>
                 <a href="#/hours" onClick={onClose} className={link} style={{ color: 'var(--ink-3)' }}>This month's hours</a>
               </div>
               {probe && !probe.busy && (
@@ -258,7 +317,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
                 <>
                   <div className="flex items-center justify-between text-[13.5px]">
                     <span>Connected as <span className="tnum">{auth.username}</span></span>
-                    <button onClick={async () => { await api.signOut(); onRefresh() }} className={link} style={{ color: 'var(--ink-3)' }}>Disconnect</button>
+                    <button onClick={disconnect} className={link} style={{ color: 'var(--ink-3)' }}>Disconnect</button>
                   </div>
                   <p className="text-[13px]" style={{ color: 'var(--ink-3)' }}>Planner and the hours workbook are on.</p>
                   {auth.extra?.granted ? (
@@ -267,7 +326,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
                     <div className="row p-4 text-[13.5px]">
                       <p className="leading-relaxed">The issue-ticket list and today's meetings need a one-time approval from a tom.fit admin. Send them the link, and once they have clicked it press Grant.</p>
                       <div className="mt-3 flex flex-wrap items-center gap-3">
-                        <button onClick={() => copyLink(auth.adminConsentUrl)} className="pill inline-flex items-center gap-1.5 px-3.5 py-2 text-[13.5px]" style={{ border: '1px solid var(--line-2)' }}>
+                        <button onClick={() => copyLink(auth.adminConsentUrl)} className="pill btn-quiet inline-flex items-center gap-1.5 px-3.5 py-2 text-[13.5px]">
                           {linkCopied ? <><Check size={12} weight="bold" /> Copied</> : <><Copy size={12} weight="bold" /> Copy the approval link</>}
                         </button>
                         <Connect auth={auth} onRefresh={onRefresh} tier="extra" label="Grant" quiet className="inline-block" />
@@ -280,9 +339,9 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
               )}
             </Sec>
             <Sec title="Photographs from the phone">
-              <Field draft={draft} set={set} save={save} label="Folder to watch" k="inboxDir" mono placeholder="C:\Users\you\OneDrive\Pictures\Camera Roll"
+              <Field draft={draft} set={set} save={save} errs={errs} label="Folder to watch" k="inboxDir" mono placeholder="C:\Users\you\OneDrive\Pictures\Camera Roll"
                 hint="OneDrive's camera roll folder works well: the phone uploads a picture, Bench. sees it within half a minute and offers it on the Board, to go onto a task as a link. Pictures from the last fourteen days. Empty means off." />
-              {info?.chooseFolder && <button onClick={async () => { const r = await window.bench.chooseFolder?.(); if (r?.path) saveNow({ inboxDir: r.path }) }} className={`text-[13px] ${link}`}>Choose a folder</button>}
+              {info?.chooseFolder && <button onClick={async () => { try { const r = await window.bench.chooseFolder?.(); if (r?.path) saveNow({ inboxDir: r.path }) } catch (e) { fail('No folder picked.')(e) } }} className={`text-[13px] ${link}`}>Choose a folder</button>}
             </Sec>
             <Sec title="Order confirmations and delivery notes">
               <MailReading on={draft.mailRead === true} onToggle={() => saveNow({ mailRead: draft.mailRead !== true })} />
@@ -294,7 +353,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
               <DriveHome draft={draft} set={set} save={save} settings={settings} />
             </Sec>
             <Sec title="Introductions">
-              <p className="text-[13.5px]" style={{ color: 'var(--ink-3)' }}>The short walk-throughs on the Board, Procurement, Logbook, Napkin, Machines and Projects show once. <button onClick={() => { try { for (const k of Object.keys(localStorage)) if (k.startsWith('bench.coach.')) localStorage.removeItem(k) } catch { /* ignore */ } }} className={link} style={{ color: 'var(--ink-2)' }}>Show them again</button>.</p>
+              <p className="text-[13.5px]" style={{ color: 'var(--ink-3)' }}>The short walk-throughs on the Board, Procurement, Logbook, Napkin, Machines and Projects show once. <button onClick={() => { try { for (const k of Object.keys(localStorage)) if (k.startsWith('bench.coach.')) localStorage.removeItem(k); toast('The introductions are back.', 'Each page shows its own the next time you open it.') } catch { toast('The introductions stay hidden.', 'This window keeps no local storage. Try again after a restart.') } }} className={link} style={{ color: 'var(--ink-2)' }}>Show them again</button>.</p>
             </Sec>
           </div>
 
@@ -306,25 +365,20 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
                   <div style={{ color: 'var(--ink-3)' }}>The board lives in</div>
                   <div className="tnum mt-0.5 break-all">{info.dataDir}</div>
                   <div className="mt-2 flex items-center gap-4">
-                    <button onClick={async () => { const r = await window.bench.chooseDataFolder(); if (r.changed) setNeedsRelaunch(true) }} className={link}>Choose a shared folder</button>
+                    <button onClick={async () => { try { const r = await window.bench.chooseDataFolder(); if (r?.changed) setNeedsRelaunch(true) } catch (e) { fail('The board stays where it is.')(e) } }} className={link}>Choose a shared folder</button>
                     <button onClick={() => window.bench.openDataFolder()} className={link} style={{ color: 'var(--ink-3)' }}>Open</button>
                   </div>
                   {needsRelaunch && <p className="mt-2 text-[13px]" style={{ color: 'var(--caution)' }}>Takes effect after a restart. <button onClick={() => window.bench.relaunch()} className={link}>Restart now</button></p>}
                 </div>
               )}
-              {startup !== null && <Toggle on={startup} onChange={async () => setStartup(await window.bench.startup(!startup))} label="Starts with Windows" />}
+              {startup !== null && <Toggle on={startup} onChange={async () => { try { setStartup(await window.bench.startup(!startup)) } catch (e) { fail('Windows did not take the change.')(e) } }} label="Starts with Windows" />}
               <Toggle on={draft.nudges !== false} onChange={() => saveNow({ nudges: draft.nudges === false })} label="Water and coffee reminders after a task" />
               <div className="flex flex-wrap items-center gap-4 text-[13px]">
                 <a href="/api/settings/export" download="bench-settings.json" className={link}>Export settings</a>
-                <label className={`cursor-pointer ${link}`}>Import settings
-                  <input type="file" accept="application/json,.json" className="hidden" onChange={async e => {
-                    const f = e.target.files?.[0]; if (!f) return
-                    try { const j = JSON.parse(await f.text()); await api.importSettings(j); onRefresh(); setImported('Imported. Look, hours and pictures follow the file; the sign-in does not.') }
-                    catch (err) { setImported(`Not imported: ${err.message}`) }
-                    e.target.value = ''
-                  }} />
-                </label>
-                {imported && <span style={{ color: 'var(--ink-3)' }}>{imported}</span>}
+                {/* A button, so the keyboard reaches it: a label around a hidden file input is not a Tab stop. */}
+                <button type="button" onClick={() => importRef.current?.click()} className={`cursor-pointer ${link}`}>Import settings</button>
+                <input ref={importRef} type="file" accept="application/json,.json" tabIndex={-1} aria-hidden="true" className="hidden" onChange={importFile} />
+                {imported && <span role="status" style={{ color: 'var(--ink-3)' }}>{imported}</span>}
               </div>
             </Sec>
             <Sec title="Storage.">
@@ -332,7 +386,8 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
             </Sec>
             <Sec title="Backups.">
               <p className="text-[13px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>A copy of the board, once a day before the first write, kept thirty days. Restore puts one back in place of what is there now.</p>
-              {backups === null ? <Note>Looking.</Note>
+              {backups === null ? <Bar w="62%" h={12} />
+                : backupsErr ? <Note>The list of copies did not load: {backupsErr}. <button onClick={loadBackups} className={link} style={{ color: 'var(--ink-2)' }}>Try again</button></Note>
                 : backups.length === 0 ? <Note>No copies yet. Bench. writes the first one the first time the board changes on a new day.</Note>
                 : (
                   <ul className="flex flex-col gap-1.5 text-[13px]">
@@ -348,8 +403,8 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
                   </ul>
                 )}
               <div className="flex flex-wrap items-center gap-3 text-[13.5px]">
-                <button onClick={doBackup} className="pill px-3.5 py-1.5 text-[13.5px] font-medium" style={{ border: '1px solid var(--line-2)' }}>Back up now</button>
-                {backupNote && <span className="text-[13px]" style={{ color: 'var(--ink-3)' }}>{backupNote}</span>}
+                <button onClick={doBackup} disabled={backingUp} aria-busy={backingUp || undefined} className="pill btn-quiet px-3.5 py-1.5 text-[13.5px] font-medium">Back up now</button>
+                {backupNote && <span role="status" className="text-[13px]" style={{ color: 'var(--ink-3)' }}>{backupNote}</span>}
               </div>
             </Sec>
             <Sec title="Health.">
@@ -367,7 +422,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
               {info?.logFile && <p className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>If something broke, <button onClick={() => window.bench.openLog()} className={link} style={{ color: 'var(--ink-2)' }}>open bench.log</button> and send it along.</p>}
               <div className="row p-4 text-[13.5px]">
                 <div className="flex flex-wrap items-center gap-3">
-                  <button onClick={checkUpdates} disabled={upd?.busy} className="pill px-3.5 py-1.5 text-[13.5px] font-medium disabled:opacity-50" style={{ background: 'var(--ink)', color: 'var(--bg)' }}>{upd?.busy ? 'Asking GitHub' : 'Check for updates'}</button>
+                  <button onClick={checkUpdates} disabled={upd?.busy} className="pill btn-quiet px-3.5 py-1.5 text-[13.5px] font-medium disabled:opacity-50">{upd?.busy ? 'Asking GitHub' : 'Check for updates'}</button>
                   <button onClick={() => api.openExternal(upd?.url || 'https://github.com/jensenoe/Bench./releases')} className={`inline-flex items-center gap-1 ${link}`} style={{ color: 'var(--ink-3)' }}>Releases page <ArrowSquareOut size={11} weight="bold" /></button>
                 </div>
                 {upd && !upd.busy && !upd.downloaded && (
@@ -389,7 +444,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
                     <button onClick={() => window.bench?.installUpdate?.(upd.downloaded.path)} className={link} style={{ color: 'var(--ink)' }}>Installs when you quit</button>
                   </p>
                 )}
-                <Field draft={draft} set={set} save={save} label="GitHub token for the update check" k="updateToken" type="password" mono placeholder={settings.hasUpdateToken ? 'A token is saved. Paste a new one to replace it.' : 'github_pat_… with read access to the repo'} hint="Optional. Stays in your own profile. Without it the button only opens the releases page." />
+                <Field draft={draft} set={set} save={save} errs={errs} label="GitHub token for the update check" k="updateToken" type="password" mono placeholder={settings.hasUpdateToken ? 'A token is saved. Paste a new one to replace it.' : 'github_pat_… with read access to the repo'} hint="Optional. Stays in your own profile. Without it the button only opens the releases page." />
               </div>
             </Sec>
           </div>

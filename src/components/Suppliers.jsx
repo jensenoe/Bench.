@@ -92,7 +92,7 @@ export default function Suppliers() {
       {mailLine && (
         <div className="mt-4 flex flex-wrap items-center gap-3 pt-3 text-[13px]" style={{ borderTop: '1px solid var(--line)', color: 'var(--ink-3)' }}>
           <span className="min-w-0 flex-1">{mailLine}</span>
-          {mail?.on && <button onClick={readNow} disabled={busy} className="pill inline-flex min-h-[32px] items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium disabled:opacity-50" style={{ background: 'var(--row)', border: '1px solid var(--line)', color: 'var(--ink-2)' }}><EnvelopeSimple size={13} weight="bold" /> Read the mail now</button>}
+          {mail?.on && <button onClick={readNow} disabled={busy} className="pill inline-flex min-h-[32px] items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium disabled:opacity-50" style={{ background: 'var(--wash)', color: 'var(--ink-2)' }}><EnvelopeSimple size={13} weight="bold" /> Read the mail now</button>}
         </div>
       )}
     </section>

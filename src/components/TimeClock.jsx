@@ -29,7 +29,7 @@ export default function TimeClock({ clock, punch, now }) {
     <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: clock.lastError ? 'var(--late)' : 'var(--caution)' }} />
   )
   const solid = { background: 'var(--accent)', color: 'var(--accent-ink)' }
-  const ghost = { border: '1px solid var(--line-2)' }
+  const ghost = { background: 'var(--wash-2)' }
 
   // the one action for now
   let primary = null, secondary = null, state = null
@@ -44,7 +44,7 @@ export default function TimeClock({ clock, punch, now }) {
   return (
     <div ref={box} className="relative flex items-center gap-2">
       <button onClick={() => setOpen(v => !v)} aria-expanded={open} aria-label="Time clock"
-        className="pill flex items-center gap-2 px-3 py-2 text-[13.5px] transition-colors hover:bg-[rgba(var(--ink-rgb),.06)] 2xl:text-[15px]" style={{ color: 'var(--ink-2)' }}>
+        className="pill flex items-center gap-2 px-3 py-2 text-[13.5px] transition-colors hover:bg-[var(--wash)] 2xl:text-[15px]" style={{ color: 'var(--ink-2)' }}>
         {dot}<span className="tnum">{state}</span><CaretDown size={11} weight="bold" style={{ color: 'var(--ink-3)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s var(--ease)' }} />
       </button>
       {primary && <button disabled={busy} onClick={() => go(primary.kind)} className="pill px-4.5 py-2.5 text-[13.5px] font-medium transition-opacity disabled:opacity-50 2xl:px-5 2xl:py-3 2xl:text-[15px]" style={primary.style}>{primary.label}</button>}
@@ -52,7 +52,7 @@ export default function TimeClock({ clock, punch, now }) {
       <AnimatePresence>
         {open && (
           <motion.div key="panel" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: .18 }}
-            className="panel absolute right-0 top-full z-[60] mt-2 w-[300px] p-4 text-[13.5px]" style={{ boxShadow: 'var(--shadow-pop)' }}>
+            className="panel off-photo absolute right-0 top-full z-[60] mt-2 w-[300px] p-4 text-[13.5px]" style={{ boxShadow: 'var(--shadow-pop)' }}>
             <div className="flex items-baseline justify-between">
               <span className="display text-[17px] font-semibold">Today.</span>
               <span className="tnum" style={{ color: 'var(--ink-3)' }}>{clock.status === 'off' ? 'nothing yet' : `${hm(worked)} worked`}</span>

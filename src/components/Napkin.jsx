@@ -90,18 +90,32 @@ export default function Napkin() {
   useEffect(() => {
     if (!dirty || !sel || !nodes) return
     clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(async () => { const m = await api.patchMap(sel, { nodes, root }); setMaps(list => list.map(x => x.id === m.id ? m : x)); setDirty(false) }, 600)
+    // A save that fails stays dirty, so the next change tries again; the note under the map says so.
+    saveTimer.current = setTimeout(async () => {
+      try { const m = await api.patchMap(sel, { nodes, root }); setMaps(list => list.map(x => x.id === m.id ? m : x)); setDirty(false) }
+      catch (e) { setNote(`The map did not save: ${e.message}. It tries again with your next change.`) }
+    }, 600)
     return () => clearTimeout(saveTimer.current)
   }, [nodes, root, sel, dirty])
 
   const change = useCallback((fn) => { setNodes(n => fn({ ...n })); setDirty(true) }, [])
   const addChild = (pid) => { const id = uid(); const order = Object.values(nodes).filter(n => n.parent === pid).length; change(n => ({ ...n, [id]: { id, text: '', parent: pid, color: null, collapsed: false, order } })); if (nodes[pid]?.collapsed) change(n => ({ ...n, [pid]: { ...n[pid], collapsed: false } })); setActive(id); setEditing(id) }
   const addSibling = (id) => { const p = nodes[id]?.parent; if (!p) return addChild(id); const nid = uid(); change(n => ({ ...n, [nid]: { id: nid, text: '', parent: p, color: null, collapsed: false, order: (n[id].order || 0) + 0.5 } })); setActive(nid); setEditing(nid) }
+  // Delete takes the whole branch with one key, so the toast says what went and Undo puts it back.
+  const selNow = useRef(sel)
+  useEffect(() => { selNow.current = sel }, [sel])
   const remove = (id) => {
     if (id === root) return
     const parent = nodes[id].parent
+    const before = nodes, mapId = sel, mapRoot = root
+    const below = (x) => Object.values(before).filter(c => c.parent === x).reduce((s, c) => s + 1 + below(c.id), 0)
+    const n = below(id), label = (nodes[id].text || '').trim() || 'An empty node'
     change(n => { const drop = (x) => { for (const c of Object.values(n).filter(c => c.parent === x)) drop(c.id); delete n[x] }; drop(id); return n })
     setActive(parent); setEditing(null)
+    window.dispatchEvent(new CustomEvent('bench:toast', { detail: { text: n ? 'Branch removed.' : 'Node removed.', by: n ? `${label} and ${n} below it` : label, plain: true, undo: async () => {
+      if (selNow.current === mapId) { setNodes(before); setDirty(true); setActive(id); return }
+      const m = await api.patchMap(mapId, { nodes: before, root: mapRoot }); setMaps(list => list.map(x => x.id === m.id ? m : x))
+    } } }))
   }
   const setText = (id, text) => change(n => ({ ...n, [id]: { ...n[id], text } }))
   const cycleColor = (id) => { const keys = [null, ...Object.keys(PALETTE)]; const cur = nodes[id].color; change(n => ({ ...n, [id]: { ...n[id], color: keys[(keys.indexOf(cur) + 1) % keys.length] } })) }
@@ -257,9 +271,12 @@ export default function Napkin() {
     img.src = url
   }
 
-  const newMap = async () => { const m = await api.createMap({ title: 'New map' }); await load(); open(m); setEditing(m.root) }
-  const rename = async (title) => { if (!map || title === map.title) return; const m = await api.patchMap(map.id, { title }); setMaps(list => list.map(x => x.id === m.id ? m : x)) }
-  const removeMap = async () => { if (!map || !(await ask(`Delete "${map.title}"?`))) return; await api.removeMap(map.id); const list = await load(); list.length ? open(list[0]) : (setSel(null), setNodes(null)) }
+  const newMap = async () => { try { const m = await api.createMap({ title: 'New map' }); await load(); open(m); setEditing(m.root) } catch (e) { say(`No new map: ${e.message}. Try again.`) } }
+  const rename = async (title) => { if (!map || title === map.title) return; try { const m = await api.patchMap(map.id, { title }); setMaps(list => list.map(x => x.id === m.id ? m : x)) } catch (e) { say(`The name did not save: ${e.message}. Try again.`) } }
+  const removeMap = async () => {
+    if (!map || !(await ask(`Delete "${map.title}"?`))) return
+    try { await api.removeMap(map.id); const list = await load(); list.length ? open(list[0]) : (setSel(null), setNodes(null)) } catch (e) { say(`The map is still there: ${e.message}. Try again.`) }
+  }
 
   if (!maps) return <main className="mx-auto col px-6"><PanelSkeleton rows={3} /></main>
 
@@ -267,10 +284,10 @@ export default function Napkin() {
     <main className="mx-auto col px-6">
       <div className="mb-3 flex flex-wrap items-center gap-1.5">
         {maps.map(m => (
-          <button key={m.id} onClick={() => open(m)} className="pill max-w-[220px] truncate px-3 py-1.5 text-[13.5px] transition-colors"
-            style={{ color: m.id === sel ? 'var(--ink)' : 'var(--ink-3)', background: m.id === sel ? 'rgba(var(--ink-rgb),.1)' : 'transparent', border: '1px solid var(--line)' }}>{m.title}</button>
+          <button key={m.id} onClick={() => open(m)} className="pill btn-ghost max-w-[220px] truncate px-3 py-1.5 text-[13.5px] transition-colors"
+            style={{ color: m.id === sel ? 'var(--ink)' : 'var(--ink-3)', background: m.id === sel ? 'var(--wash-2)' : undefined }}>{m.title}</button>
         ))}
-        <button onClick={newMap} className="pill flex items-center gap-1.5 px-3 py-1.5 text-[13.5px]" style={{ background: 'var(--ink)', color: 'var(--bg)' }}><Plus size={12} weight="bold" /> New map</button>
+        <button onClick={newMap} className="pill btn-primary flex items-center gap-1.5 px-3 py-1.5 text-[13.5px]"><Plus size={12} weight="bold" /> New map</button>
       </div>
 
       {map && nodes ? (
@@ -279,7 +296,7 @@ export default function Napkin() {
             <input key={map.id} aria-label="Map title" defaultValue={map.title} onBlur={e => rename(e.target.value.trim() || map.title)} onKeyDown={e => e.key === 'Enter' && e.target.blur()}
               className="display bg-transparent text-[20px] font-semibold tracking-tight outline-none" />
             <span className="tnum text-[13px]" style={{ color: 'var(--ink-3)' }}>{Object.keys(nodes).length} nodes{dirty ? ', saving' : ''}</span>
-            {note && <span className="text-[13.5px]" style={{ color: 'var(--accent)' }}>{note}</span>}
+            {note && <span role="status" className="text-[13.5px]" style={{ color: 'var(--accent)' }}>{note}</span>}
           </div>
           <div className="absolute right-4 top-4 z-10 flex items-center gap-1">
             {Object.values(nodes).some(n => n.dx || n.dy) && (
@@ -365,7 +382,7 @@ export default function Napkin() {
           <div>
             <h2 className="display text-[28px] font-semibold leading-none">A clean napkin.</h2>
             <p className="mt-3 max-w-[40ch] text-[13px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>One idea in the middle, branches on both sides. Tab makes a child, Enter a sibling. It lays itself out.</p>
-            <button onClick={newMap} className="pill mt-5 px-4 py-2 text-[13.5px] font-medium" style={{ background: 'var(--ink)', color: 'var(--bg)' }}>Start one</button>
+            <button onClick={newMap} className="pill btn-primary mt-5 px-4 py-2 text-[13.5px] font-medium">Start one</button>
           </div>
         </section>
       )}

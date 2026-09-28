@@ -19,6 +19,15 @@ import Reminder from './Reminder.jsx'
  */
 export default function Nav({ route, auth, meta, onRefresh, now, scene, timeclock, onSettings, settingsOpen, onSearch }) {
   const [busy, setBusy] = useState(false)
+  const syncedAt = meta.lastSync ? new Date(meta.lastSync).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' }) : null
+  // The button reads a bare time; its name says what the time is and what a press does.
+  const syncName = meta.lastSyncError ? 'Sync failed, sync again' : busy ? 'Syncing' : syncedAt ? `Sync now, last at ${syncedAt}` : 'Sync'
+  const sync = async () => {
+    setBusy(true)
+    try { await api.sync(); await onRefresh() }
+    catch (e) { window.dispatchEvent(new CustomEvent('bench:toast', { detail: { text: 'Sync did not finish.', by: `${e.message}. The board shows what it had; press Sync to try again.`, plain: true } })) }
+    finally { setBusy(false) }
+  }
   const link = (id, label, i, cls = '') => (
     <a key={id} href={`#/${id}`} title={i !== undefined ? `Press ${i}` : undefined} aria-current={route === id ? 'page' : undefined} className={`-my-[3px] inline-block py-[3px] text-[14px] transition-colors xl:text-[15px] 2xl:text-[16.5px] ${cls}`}
       style={{ color: route === id ? 'var(--ink)' : 'var(--ink-3)' }}>{label}</a>
@@ -48,17 +57,17 @@ export default function Nav({ route, auth, meta, onRefresh, now, scene, timecloc
           <TimeClock clock={timeclock?.clock} punch={timeclock?.punch} now={now} />
           <Reminder clock={timeclock?.clock} now={now} />
           {auth.configured && auth.signedIn && (
-            <button disabled={busy} title={meta.lastSyncError || auth.username}
-              className="pill flex items-center gap-2 px-4 py-2.5 text-[13.5px] 2xl:px-4.5 2xl:py-3 2xl:text-[15px]" style={{ border: '1px solid var(--line-2)' }}
-              onClick={async () => { setBusy(true); try { await api.sync(); await onRefresh() } finally { setBusy(false) } }}>
-              <ArrowsClockwise size={13} weight="bold" className={busy ? 'animate-spin' : ''} />
+            <button disabled={busy} title={meta.lastSyncError || auth.username} aria-label={syncName} aria-busy={busy || undefined}
+              className="pill btn-quiet flex items-center gap-2 px-4 py-2.5 text-[13.5px] 2xl:px-4.5 2xl:py-3 2xl:text-[15px]"
+              onClick={sync}>
+              <ArrowsClockwise size={13} weight="bold" />
               <span className="tnum">{meta.lastSyncError ? 'Sync failed' : busy ? 'Syncing' : meta.lastSync
                 ? new Date(meta.lastSync).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' }) : 'Sync'}</span>
             </button>
           )}
-          <button onClick={onSearch} aria-label="Search" title="Search (Ctrl K or /)" className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[rgba(var(--ink-rgb),.08)] 2xl:h-11 2xl:w-11" style={{ color: 'var(--ink-3)' }}><MagnifyingGlass size={18} /></button>
-          <button onClick={onSettings} aria-label="Settings" title="Settings"
-            className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[rgba(var(--ink-rgb),.08)] 2xl:h-11 2xl:w-11" style={{ color: settingsOpen ? 'var(--ink)' : 'var(--ink-3)', background: settingsOpen ? 'rgba(var(--ink-rgb),.1)' : 'transparent' }}>
+          <button onClick={onSearch} aria-label="Search" title="Search (Ctrl K or /)" className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--wash)] 2xl:h-11 2xl:w-11" style={{ color: 'var(--ink-3)' }}><MagnifyingGlass size={18} /></button>
+          <button onClick={onSettings} aria-label="Settings" title="Settings" aria-expanded={settingsOpen} aria-haspopup="dialog"
+            className="grid h-10 w-10 place-items-center rounded-full transition-colors hover:bg-[var(--wash)] 2xl:h-11 2xl:w-11" style={{ color: settingsOpen ? 'var(--ink)' : 'var(--ink-3)', background: settingsOpen ? 'var(--wash-2)' : 'transparent' }}>
             <GearSix size={19} weight={settingsOpen ? 'fill' : 'regular'} className="2xl:hidden" /><GearSix size={21} weight={settingsOpen ? 'fill' : 'regular'} className="hidden 2xl:block" />
           </button>
         </div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { j } from '../api/http.js'
 import { getMailStatus, runMail } from '../api/mail.js'
 import { getCommute } from '../api/day.js'
+import { toast } from '../api/extras.js'
 
 /**
  * The Settings blocks for the eighth batch's integrations: reading the mail (roadmap 113), the phone
@@ -36,7 +37,7 @@ export function MailReading({ on, onToggle }) {
         hint="Every half hour Bench. matches the last seven days of Outlook against tasks with a supplier and a PO number: a confirmation sets ordered on, a delivery note sets delivered on. Subjects and previews only, never the bodies, and nothing leaves the machine." />
       {on && st && (
         <div className="flex flex-wrap items-center gap-3">
-          <button onClick={async () => { setBusy(true); try { await runMail(); await load() } finally { setBusy(false) } }} disabled={busy} className={pill} style={{ border: '1px solid var(--line-2)' }}>{busy ? 'Reading…' : 'Read the mail now'}</button>
+          <button onClick={async () => { setBusy(true); try { await runMail(); await load() } catch (e) { toast('The mail was not read.', `${e.message}. Try again.`) } finally { setBusy(false) } }} disabled={busy} className={pill + ' btn-quiet'}>{busy ? 'Reading…' : 'Read the mail now'}</button>
           <Note tone={st.reason && st.reason !== 'off' ? 'var(--caution)' : 'var(--ink-3)'}>
             {reason(st.reason) || (st.lastRun ? `Read at ${hhmm(st.lastRun)}, ${st.matched === 1 ? 'one date set' : `${st.matched || 0} dates set`}.` : 'Not read yet; the first pass runs a minute after start.')}
           </Note>
@@ -91,7 +92,7 @@ export function DriveHome({ draft, set, save, settings }) {
         <input type="password" autoComplete="off" value={draft.trafficKey ?? ''} placeholder={settings.hasTrafficKey ? 'A key is saved. Paste a new one to replace it.' : 'the key from developer.tomtom.com'} onChange={e => set('trafficKey', e.target.value)} onBlur={() => save('trafficKey')} onKeyDown={e => { if (e.key === 'Enter') { save('trafficKey'); e.target.blur() } }} className="field tnum mt-1 w-full px-2.5 py-2 text-[13px]" style={{ color: 'var(--ink)' }} />
       </label>
       <div className="flex flex-wrap items-center gap-3">
-        <button onClick={test} disabled={busy} className={pill} style={{ border: '1px solid var(--line-2)' }}>{busy ? 'Asking…' : 'Check the drive home now'}</button>
+        <button onClick={test} disabled={busy} className={pill + ' btn-quiet'}>{busy ? 'Asking…' : 'Check the drive home now'}</button>
         {est && <Note tone={est.ok ? 'var(--ink-2)' : 'var(--caution)'}>{est.ok ? est.text : reason(est.reason)}</Note>}
       </div>
     </>

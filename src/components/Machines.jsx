@@ -150,7 +150,7 @@ function PassportPanel({ machineKey, tasks }) {
       {p.timeline.length === 0 && <p className="mt-3 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>Nothing dated yet. Tasks, orders, deliveries, tickets and Logbook entries will line up here.</p>}
       <ul className="mt-4 flex flex-col">{rows.map((x, i) => <TimelineRow key={`${x.kind}-${x.ref.id}-${x.at}-${i}`} x={x} />)}</ul>
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <a href={`#/machines?m=${encodeURIComponent(machineKey)}&print=1`} title="Everything that happened to this machine on one printable black-on-white page" className="pill inline-flex min-h-[32px] items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium" style={{ background: 'var(--row)', border: '1px solid var(--line)', color: 'var(--ink-2)' }}><Printer size={13} weight="bold" /> Print</a>
+        <a href={`#/machines?m=${encodeURIComponent(machineKey)}&print=1`} title="Everything that happened to this machine on one printable black-on-white page" className="pill inline-flex min-h-[32px] items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium" style={{ background: 'var(--wash)', color: 'var(--ink-2)' }}><Printer size={13} weight="bold" /> Print</a>
         {p.timeline.length > 30 && <button onClick={() => setAll(a => !a)} className="min-h-6 text-[13px] underline-offset-2 hover:underline" style={{ color: 'var(--ink-3)' }}>{all ? 'Show the last 30' : `Show all ${p.timeline.length}`}</button>}
       </div>
     </Panel>
@@ -240,7 +240,7 @@ function Housekeeping({ machine, others, onChanged }) {
           <span>Called</span>
           <input value={name} onChange={e => setName(e.target.value)} disabled={busy} aria-label="Machine name" title="The name shown everywhere for this machine; the tasks keep their own project text and still count here" className="field min-h-[32px] w-[220px] px-2.5 py-1.5 text-[13px]" />
         </label>
-        <button type="submit" disabled={busy || !name.trim() || name.trim() === machine.name} className="pill min-h-[32px] px-3.5 py-1.5 text-[13px] font-medium disabled:opacity-40" style={{ background: 'var(--row)', border: '1px solid var(--line)', color: 'var(--ink-2)' }}>Rename</button>
+        <button type="submit" disabled={busy || !name.trim() || name.trim() === machine.name} className="pill min-h-[32px] px-3.5 py-1.5 text-[13px] font-medium disabled:opacity-40" style={{ background: 'var(--wash)', color: 'var(--ink-2)' }}>Rename</button>
       </form>
     </div>
   )
@@ -339,7 +339,7 @@ function Detail({ machineKey, machines, tasks, onPatch, onDelete }) {
               <li key={t.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2.5" style={{ borderTop: '1px solid var(--line)' }}>
                 <a href={`#/board?task=${t.id}`} className="-my-[2px] min-w-[200px] flex-1 py-[2px] text-[14px] underline-offset-2 hover:underline">{t.title}</a>
                 {t.project && <span className="text-[13px]" style={{ color: 'var(--ink-3)' }}>{t.project}</span>}
-                <button onClick={() => assign(t)} className="pill min-h-6 px-3 py-1 text-[12.5px] font-medium" style={{ background: 'var(--row)', border: '1px solid var(--line)', color: 'var(--ink-2)' }}>Assign</button>
+                <button onClick={() => assign(t)} className="pill min-h-6 px-3 py-1 text-[12.5px] font-medium" style={{ background: 'var(--wash)', color: 'var(--ink-2)' }}>Assign</button>
               </li>
             ))}
           </ul>

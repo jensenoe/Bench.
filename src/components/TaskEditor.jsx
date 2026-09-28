@@ -28,11 +28,13 @@ function ChecklistEditor({ task, onPatch }) {
         {list.map(c => (
           <li key={c.id} className="flex items-center gap-2">
             <button role="checkbox" aria-checked={c.done} aria-label={`${c.done ? 'Untick' : 'Tick'} ${c.text}`} onClick={() => set(list.map(x => x.id === c.id ? { ...x, done: !x.done } : x))}
-              className="grid h-[14px] w-[14px] shrink-0 place-items-center rounded-[4px] border" style={{ borderColor: c.done ? STATUS.done : 'var(--line-2)', background: c.done ? STATUS.done : 'transparent' }}>
-              {c.done && <Check size={9} weight="bold" color="var(--bg)" />}
+              className="-m-[5px] grid h-6 w-6 shrink-0 place-items-center">
+              <span className="grid h-[14px] w-[14px] place-items-center rounded-[4px] border" style={{ borderColor: c.done ? STATUS.done : 'var(--line-2)', background: c.done ? STATUS.done : 'transparent' }}>
+                {c.done && <Check size={9} weight="bold" color="var(--bg)" />}
+              </span>
             </button>
             <span className="flex-1 text-[13px]" style={{ color: c.done ? 'var(--ink-3)' : 'var(--ink)', textDecoration: c.done ? 'line-through' : 'none' }}>{c.text}</span>
-            <button onClick={() => set(list.filter(x => x.id !== c.id))} aria-label={`Remove ${c.text}`} className="grid h-5 w-5 place-items-center rounded" style={{ color: 'var(--ink-3)' }}><X size={11} /></button>
+            <button onClick={() => set(list.filter(x => x.id !== c.id))} aria-label={`Remove ${c.text}`} className="grid h-6 w-6 place-items-center rounded-[4px]" style={{ color: 'var(--ink-3)' }}><X size={11} weight="bold" /></button>
           </li>
         ))}
       </ul>
@@ -64,7 +66,7 @@ function LeadTimeHint({ task, onPatch }) {
   return (
     <div className="col-span-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] sm:col-span-4" style={{ color: 'var(--ink-2)' }}>
       <span>{line}</span>
-      <button type="button" onClick={() => onPatch(task.id, { orderBy: hint.orderBy })} className="pill inline-flex h-6 items-center px-2.5 text-[12.5px] font-medium" style={{ border: '1px solid var(--line-2)' }}>Use it</button>
+      <button type="button" onClick={() => onPatch(task.id, { orderBy: hint.orderBy })} className="pill btn-quiet inline-flex h-6 items-center px-2.5 text-[12.5px] font-medium">Use it</button>
     </div>
   )
 }
@@ -90,24 +92,34 @@ export default function TaskEditor({ task, onPatch, onClose }) {
   // A BOM task knows its machine; offer it once while the project is empty.
   const useMachine = machineOffered && task.source === 'bom' && task.meta?.machine && !task.project ? task.meta.machine : null
   useEffect(() => { setF(draft(task)) }, [task.id, task.updatedAt])   // eslint-disable-line react-hooks/exhaustive-deps
-  const set = (k, v) => setF(s => ({ ...s, [k]: v }))
+  // A field that cannot take what was typed puts the saved value back and says why, under the field.
+  const [bad, setBad] = useState(null)   // { k, text }
+  const set = (k, v) => { setF(s => ({ ...s, [k]: v })); if (bad?.k === k) setBad(null) }
   const commit = (k) => {
     const value = f[k]
     const current = k === 'tags' ? (task.tags || []).join(', ') : (task[k] ?? '')
     if (String(value ?? '') === String(current ?? '')) return
+    // An emptied title would save as no title at all; a negative or unreadable effort is not hours.
+    if (k === 'title' && !String(value || '').trim()) { setF(s => ({ ...s, title: task.title || '' })); setBad({ k, text: 'A task needs a title, so the old one is back.' }); return }
+    if (k === 'effortHours' && value !== '' && !(Number(value) >= 0)) { setF(s => ({ ...s, effortHours: task.effortHours ?? '' })); setBad({ k, text: 'Effort is in hours, zero or more.' }); return }
     onPatch(task.id, { [k]: k === 'tags' ? value : (value === '' ? null : value) })
   }
   const date = (k) => (v) => { set(k, v); if (String(v || '') !== String((task[k] || '').slice(0, 10))) onPatch(task.id, { [k]: v || null }) }
-  const onKey = (k) => (e) => { if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') { e.preventDefault(); commit(k); e.target.blur() } if (e.key === 'Escape') onClose() }
+  // Enter leaves the field and the blur saves it, once. Escape is on the whole editor, below.
+  const onKey = () => (e) => { if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') { e.preventDefault(); e.target.blur() } }
+  const msg = (k) => bad?.k === k ? <span id={`task-${task.id}-${k}-msg`} role="alert" className="mt-1 block text-[12.5px] leading-snug" style={{ color: 'var(--caution)' }}>{bad.text}</span> : null
+  const described = (k) => bad?.k === k ? { 'aria-invalid': true, 'aria-describedby': `task-${task.id}-${k}-msg` } : {}
   const external = task.source && task.source !== 'local'
   const inp = INP
 
   return (
     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+      onKeyDown={e => { if (e.key === 'Escape' && !e.defaultPrevented) { e.stopPropagation(); onClose() } }}
       transition={{ duration: .22, ease: [0.16, 1, 0.3, 1] }} className="overflow-hidden">
       <div className="mt-3 grid grid-cols-2 gap-2 border-t pt-3 sm:grid-cols-4" style={{ borderColor: 'var(--line)' }}>
         <L label="Title" span>
-          <input value={f.title} disabled={external} title={external ? 'The tool owns the title' : ''} onChange={e => set('title', e.target.value)} onBlur={() => commit('title')} onKeyDown={onKey('title')} className={inp + (external ? ' opacity-60' : '')} />
+          <input value={f.title} disabled={external} title={external ? 'The tool owns the title' : ''} onChange={e => set('title', e.target.value)} onBlur={() => commit('title')} onKeyDown={onKey('title')} {...described('title')} className={inp + (external ? ' opacity-60' : '')} />
+          {msg('title')}
         </L>
         <L label="Assigned by">
           <input value={f.assignedBy} placeholder={task.meta?.from || 'who handed it over'} onChange={e => set('assignedBy', e.target.value)} onBlur={() => commit('assignedBy')} onKeyDown={onKey('assignedBy')} className={inp} />
@@ -130,7 +142,7 @@ export default function TaskEditor({ task, onPatch, onClose }) {
           )}
           {useMachine && (
             <button type="button" onClick={() => { onPatch(task.id, { project: useMachine }); setMachineOffered(false) }} aria-label={`Use ${useMachine} as the project`}
-              className="pill mt-1.5 inline-flex h-6 items-center px-2.5 text-[12.5px] font-medium" style={{ border: '1px solid var(--line-2)', color: 'var(--ink-2)' }}>Use {useMachine}</button>
+              className="pill btn-quiet mt-1.5 inline-flex h-6 items-center px-2.5 text-[12.5px] font-medium">Use {useMachine}</button>
           )}
         </div>
         <L label="Priority">
@@ -139,7 +151,8 @@ export default function TaskEditor({ task, onPatch, onClose }) {
           </select>
         </L>
         <L label="Effort, hours">
-          <input type="number" min="0" step="0.5" value={f.effortHours} onChange={e => set('effortHours', e.target.value)} onBlur={() => commit('effortHours')} onKeyDown={onKey('effortHours')} className={inp} />
+          <input type="number" min="0" step="0.5" value={f.effortHours} onChange={e => set('effortHours', e.target.value)} onBlur={() => commit('effortHours')} onKeyDown={onKey('effortHours')} {...described('effortHours')} className={inp} />
+          {msg('effortHours')}
         </L>
         <L label="Repeats">
           <select value={f.repeat ?? ''} onChange={e => { const v = e.target.value || null; set('repeat', v); onPatch(task.id, { repeat: v }) }} className={inp + ' cursor-pointer'}>

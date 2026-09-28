@@ -53,7 +53,7 @@ export default function MoreMenu({ route }) {
         {open && (
           <motion.div ref={panel} id={id} key="more"
             initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: .18, ease: [0.16, 1, 0.3, 1] }}
-            className="panel absolute left-[-20px] top-[calc(100%+18px)] z-[60] w-[min(560px,calc(100vw-48px))] p-5"
+            className="panel off-photo absolute left-[-20px] top-[calc(100%+18px)] z-[60] w-[min(560px,calc(100vw-48px))] p-5"
             style={{ boxShadow: 'var(--shadow-pop)', borderColor: 'var(--line-2)' }}>
             <div className="grid grid-cols-2 gap-x-6 gap-y-5">
               {GROUPS.map(g => (
@@ -63,13 +63,13 @@ export default function MoreMenu({ route }) {
                     {g.pages.map(p => (
                       <li key={p.id}>
                         <a href={`#/${p.id}`} aria-current={route === p.id ? 'page' : undefined} onClick={() => setOpen(false)}
-                          className="group flex items-baseline justify-between gap-3 rounded-[10px] px-3 py-2 transition-colors hover:bg-[rgba(var(--ink-rgb),.06)] focus-visible:bg-[rgba(var(--ink-rgb),.06)]"
-                          style={route === p.id ? { background: 'rgba(var(--ink-rgb),.08)' } : undefined}>
+                          className="group flex items-baseline justify-between gap-3 rounded-[10px] px-3 py-2 transition-colors hover:bg-[var(--wash)] focus-visible:bg-[var(--wash)]"
+                          style={route === p.id ? { background: 'var(--wash-2)' } : undefined}>
                           <span className="min-w-0">
                             <span className="block text-[14.5px] font-medium" style={{ color: 'var(--ink)' }}>{p.title}</span>
                             <span className="mt-0.5 block text-[12.5px] leading-snug" style={{ color: 'var(--ink-3)' }}>{p.line}</span>
                           </span>
-                          {p.key && <kbd className="tnum shrink-0 rounded-[4px] px-1.5 text-[12px]" style={{ border: '1px solid var(--line-2)', color: 'var(--ink-3)' }} aria-label={`key ${p.key}`}>{p.key}</kbd>}
+                          {p.key && <kbd className="tnum shrink-0 rounded-[4px] px-1.5 text-[12px]" style={{ color: 'var(--ink-3)' }} aria-label={`key ${p.key}`}>{p.key}</kbd>}
                         </a>
                       </li>
                     ))}
@@ -82,7 +82,7 @@ export default function MoreMenu({ route }) {
                   {TOMFIT.map(t => (
                     <li key={t.label}>
                       <a href={t.url} onClick={e => { e.preventDefault(); setOpen(false); openTool(t.url) }}
-                        className="flex min-h-[32px] items-center justify-between gap-3 rounded-[10px] px-3 py-1.5 text-[13.5px] transition-colors hover:bg-[rgba(var(--ink-rgb),.06)] focus-visible:bg-[rgba(var(--ink-rgb),.06)]"
+                        className="flex min-h-[32px] items-center justify-between gap-3 rounded-[10px] px-3 py-1.5 text-[13.5px] transition-colors hover:bg-[var(--wash)] focus-visible:bg-[var(--wash)]"
                         style={{ color: 'var(--ink-2)' }}>
                         {t.label}<ArrowSquareOut size={12} weight="bold" aria-hidden="true" style={{ color: 'var(--ink-3)' }} />
                       </a>

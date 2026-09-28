@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, Plus, Trash, ArrowsClockwise, PencilSimple, X } from '@phosphor-icons/react'
 import { getProjects, getProject, createProject, patchProject, removeProject, scheduleProject, assignPhase } from '../api/projects.js'
 import { getMachines } from '../api/machines.js'
 import { getPlaybooks } from '../api/playbooks.js'
 import DateField from './DateField.jsx'
 import { PanelSkeleton } from './Skeleton.jsx'
+import LoadFailed from './LoadFailed.jsx'
 import { ask } from './Confirm.jsx'
 import { STATUS } from '../scenes.js'
 import { patchTask, saveSettings } from '../api.js'
@@ -20,15 +21,15 @@ const toast = (text, by) => window.dispatchEvent(new CustomEvent('bench:toast', 
 const refresh = () => window.dispatchEvent(new Event('bench:refresh'))
 const plural = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`
 const btn = 'pill inline-flex min-h-[32px] items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium disabled:opacity-50'
-const quiet = { background: 'var(--row)', border: '1px solid var(--line)', color: 'var(--ink-2)' }
-const primary = { background: 'var(--accent)', color: 'var(--accent-ink)' }
-const INP = 'w-full rounded-[10px] px-3 py-2 text-[14px] outline-none focus:ring-2'
-const inpStyle = { background: 'var(--row)', border: '1px solid var(--line)', color: 'var(--ink)' }
+const quiet = btn + ' btn-quiet', primary = btn + ' btn-primary', ghost = btn + ' btn-ghost'
+const INP = 'field w-full px-3 py-2 text-[14px]'
 const LABELS = ['FAT', 'Delivery', 'Handover', 'Milestone']
 const idFromHash = () => new URLSearchParams(location.hash.split('?')[1] || '').get('p')
 const setHash = (id) => { location.hash = id ? `#/projects?p=${encodeURIComponent(id)}` : '#/projects' }
 const noon = iso => new Date(String(iso).slice(0, 10) + 'T12:00:00')
-const fmt = iso => iso ? noon(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+/** "28 Sep": three letters for every month (the en-GB locale writes "Sept"). */
+const fmt = iso => { if (!iso) return ''; const d = noon(iso); return `${d.getDate()} ${MONTHS[d.getMonth()]}` }
 const fmtLong = iso => iso ? noon(iso).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }) : ''
 const dayIndex = (iso, from) => Math.round((noon(iso) - noon(from)) / 86400000)
 const roomText = (slack) => slack === null || slack === undefined ? 'no dated work yet'
@@ -80,12 +81,17 @@ function NewProject({ machines, onCreated }) {
   const [f, setF] = useState({ name: '', machine: '', goal: '', deadline: '', deadlineLabel: 'FAT', playbookId: '' })
   const [busy, setBusy] = useState(false)
   const [books, setBooks] = useState([])
+  const [noName, setNoName] = useState(false)
+  const nameRef = useRef(null)
+  const back = useRef(false)   // the New project button takes focus when Cancel or Escape brings it back
   useEffect(() => { if (open) getPlaybooks().then(b => setBooks(Array.isArray(b) ? b : [])).catch(() => {}) }, [open])
-  const set = (k, v) => setF(s => ({ ...s, [k]: v }))
+  const set = (k, v) => { setF(s => ({ ...s, [k]: v })); if (k === 'name') setNoName(false) }
   const book = books.find(b => b.id === f.playbookId)
+  const cancel = () => { setOpen(false); setNoName(false); back.current = true }
   const submit = async (e) => {
     e.preventDefault()
-    if (!f.name.trim()) return
+    if (busy) return
+    if (!f.name.trim()) { setNoName(true); nameRef.current?.focus(); return }
     setBusy(true)
     try {
       const { playbookId, ...rest } = f
@@ -95,28 +101,29 @@ function NewProject({ machines, onCreated }) {
       setOpen(false); setF({ name: '', machine: '', goal: '', deadline: '', deadlineLabel: 'FAT', playbookId: '' }); onCreated(p); refresh()
     } catch (err) { toast('That did not work.', err.message) } finally { setBusy(false) }
   }
-  if (!open) return <button onClick={() => setOpen(true)} className={btn} style={primary}><Plus size={13} weight="bold" /> New project</button>
+  if (!open) return <button ref={el => { if (el && back.current) { back.current = false; el.focus({ preventScroll: true }) } }} onClick={() => setOpen(true)} className={primary}><Plus size={13} weight="bold" /> New project</button>
   return (
-    <form onSubmit={submit} className="panel grid gap-3 p-6 sm:grid-cols-2" aria-label="New project">
+    <form onSubmit={submit} onKeyDown={e => { if (e.key === 'Escape') { e.preventDefault(); cancel() } }} className="panel grid gap-3 p-6 sm:grid-cols-2" aria-label="New project">
       <label className="block"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Name</span>
-        <input autoFocus value={f.name} onChange={e => set('name', e.target.value)} placeholder="Leg press 7" className={INP + ' mt-1'} style={inpStyle} /></label>
+        <input ref={nameRef} autoFocus value={f.name} onChange={e => set('name', e.target.value)} placeholder="Leg press 7" aria-invalid={noName || undefined} aria-describedby={noName ? 'new-project-name-msg' : undefined} className={INP + ' mt-1'} />
+        {noName && <span id="new-project-name-msg" role="alert" className="mt-1 block text-[12.5px]" style={{ color: 'var(--caution)' }}>Give the project a name first; the machine takes it when left empty.</span>}</label>
       <label className="block"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Machine, as tasks name it in Project</span>
-        <input list="project-machines" autoComplete="off" value={f.machine} onChange={e => set('machine', e.target.value)} placeholder="same as the name when empty" className={INP + ' mt-1'} style={inpStyle} />
+        <input list="project-machines" autoComplete="off" value={f.machine} onChange={e => set('machine', e.target.value)} placeholder="same as the name when empty" className={INP + ' mt-1'} />
         <datalist id="project-machines">{machines.map(m => <option key={m} value={m} />)}</datalist></label>
       <div className="block"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>The date that matters</span>
         <DateField className="mt-1" value={f.deadline} onChange={v => set('deadline', v || '')} placeholder="pick the day" /></div>
       <label className="block"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>What that date is</span>
-        <select value={f.deadlineLabel} onChange={e => set('deadlineLabel', e.target.value)} className={INP + ' mt-1 cursor-pointer'} style={inpStyle}>{LABELS.map(l => <option key={l}>{l}</option>)}</select></label>
+        <select value={f.deadlineLabel} onChange={e => set('deadlineLabel', e.target.value)} className={INP + ' mt-1 cursor-pointer'}>{LABELS.map(l => <option key={l}>{l}</option>)}</select></label>
       <label className="block sm:col-span-2"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Start from</span>
-        <select value={f.playbookId} onChange={e => set('playbookId', e.target.value)} className={INP + ' mt-1 cursor-pointer'} style={inpStyle}>
+        <select value={f.playbookId} onChange={e => set('playbookId', e.target.value)} className={INP + ' mt-1 cursor-pointer'}>
           <option value="">Seven standard phases, no tasks</option>
           {books.map(b => <option key={b.id} value={b.id}>{b.name}: {b.phases?.length ? plural(b.phases.length, 'phase') : 'the seven phases'}, {plural(b.tasks.length, 'task')}</option>)}
         </select></label>
       <label className="block sm:col-span-2"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Goal, one sentence</span>
-        <input value={f.goal} onChange={e => set('goal', e.target.value)} placeholder="Runs the full test protocol before the customer arrives." className={INP + ' mt-1'} style={inpStyle} /></label>
+        <input value={f.goal} onChange={e => set('goal', e.target.value)} placeholder="Runs the full test protocol before the customer arrives." className={INP + ' mt-1'} /></label>
       <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
-        <button type="submit" disabled={busy || !f.name.trim()} className={btn} style={primary}>Create and plan</button>
-        <button type="button" onClick={() => setOpen(false)} className={btn} style={quiet}>Cancel</button>
+        <button type="submit" disabled={busy} aria-busy={busy || undefined} className={primary}>Create and plan</button>
+        <button type="button" onClick={cancel} className={ghost}>Cancel</button>
         <span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>{book ? `The phases and the ${plural(book.tasks.length, 'task')} of ${book.name}, each task in its phase.` : 'Seven phases to start with, Design to Handover. Change them on the next page.'}</span>
       </div>
     </form>
@@ -211,12 +218,12 @@ function DaysOff({ d, onChanged }) {
       {open && (
         <div className="mt-3 grid gap-3 sm:grid-cols-[220px_1fr_auto] sm:items-end">
           <label className="block"><span className="text-[12.5px]">Public holidays</span>
-            <select value={region} onChange={e => setRegion(e.target.value)} className={INP + ' mt-1 cursor-pointer'} style={inpStyle}>
+            <select value={region} onChange={e => setRegion(e.target.value)} className={INP + ' mt-1 cursor-pointer'}>
               <option value="ZH">Canton Zurich</option><option value="CH">Swiss federal only</option><option value="none">None</option>
             </select></label>
           <label className="block"><span className="text-[12.5px]">Company days off, dates or ranges</span>
-            <input value={text} onChange={e => setText(e.target.value)} placeholder="2026-12-24 to 2027-01-01, 2027-05-07" className={INP + ' mt-1 tnum'} style={inpStyle} /></label>
-          <button type="button" onClick={save} disabled={busy} className={btn} style={primary}>Save and plan again</button>
+            <input value={text} onChange={e => setText(e.target.value)} placeholder="2026-12-24 to 2027-01-01, 2027-05-07" className={INP + ' mt-1 tnum'} /></label>
+          <button type="button" onClick={save} disabled={busy} className={primary}>Save and plan again</button>
         </div>
       )}
     </div>
@@ -257,9 +264,21 @@ function Plan({ d, onChanged }) {
   useEffect(() => { setPhases(p.phases.map(x => ({ id: x.id, name: x.name, days: x.days }))) }, [p.updatedAt])   // eslint-disable-line react-hooks/exhaustive-deps
   const slackOf = id => slack.perPhase.find(x => x.id === id)?.slack
   const fitOf = id => fit.find(x => x.id === id)
+  // Every phase needs a name and a whole number of working days, 1 to 200; the first one that does not says so.
+  const [bad, setBad] = useState(null)   // { i, what }
+  const back = useRef(false)   // after Save or Cancel, Edit the phases takes focus again
+  const done = () => { setEditing(false); setBad(null); back.current = true }
+  const check = () => {
+    const i = phases.findIndex(x => !String(x.name || '').trim() || !(Number.isInteger(Number(x.days)) && Number(x.days) >= 1 && Number(x.days) <= 200))
+    if (i < 0) return true
+    setBad({ i, what: !String(phases[i].name || '').trim() ? 'name' : 'days' })
+    document.querySelector(`[aria-label="Phase ${i + 1} ${!String(phases[i].name || '').trim() ? 'name' : 'working days'}"]`)?.focus()
+    return false
+  }
   const save = async () => {
+    if (busy || !check()) return
     setBusy(true)
-    try { await patchProject(p.id, { phases }); toast('Planned again from the deadline.', p.name); setEditing(false); onChanged() }
+    try { await patchProject(p.id, { phases: phases.map(x => ({ ...x, name: x.name.trim(), days: Number(x.days) })) }); toast('Planned again from the deadline.', p.name); done(); onChanged() }
     catch (err) { toast('That did not work.', err.message) } finally { setBusy(false) }
   }
   const write = async () => {
@@ -280,10 +299,10 @@ function Plan({ d, onChanged }) {
           return (
             <li key={ph.id} className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 py-2 sm:grid-cols-[minmax(160px,1.4fr)_90px_1fr_1fr]" style={{ borderTop: '1px solid var(--line)' }}>
               {editing
-                ? <input value={ph.name} aria-label={`Phase ${i + 1} name`} onChange={e => setPhases(a => a.map((x, k) => k === i ? { ...x, name: e.target.value } : x))} className={INP} style={inpStyle} />
+                ? <input value={ph.name} aria-label={`Phase ${i + 1} name`} aria-invalid={(bad?.i === i && bad.what === 'name') || undefined} aria-describedby={bad?.i === i ? 'plan-phase-msg' : undefined} onChange={e => { setBad(null); setPhases(a => a.map((x, k) => k === i ? { ...x, name: e.target.value } : x)) }} className={INP} />
                 : <span className="text-[14px]">{ph.name}</span>}
               {editing
-                ? <input type="number" min="1" max="200" value={ph.days} aria-label={`Phase ${i + 1} working days`} onChange={e => setPhases(a => a.map((x, k) => k === i ? { ...x, days: e.target.value } : x))} className={INP + ' tnum'} style={inpStyle} />
+                ? <input type="number" min="1" max="200" value={ph.days} aria-label={`Phase ${i + 1} working days`} aria-invalid={(bad?.i === i && bad.what === 'days') || undefined} aria-describedby={bad?.i === i ? 'plan-phase-msg' : undefined} onChange={e => { setBad(null); setPhases(a => a.map((x, k) => k === i ? { ...x, days: e.target.value } : x)) }} className={INP + ' tnum'} />
                 : <span className="tnum text-[13px]" style={{ color: 'var(--ink-3)' }}>{plural(ph.days, 'day')}</span>}
               <span className="tnum text-[13px] sm:col-auto" style={{ color: 'var(--ink-3)' }} data-volatile>{live?.start ? `${fmt(live.start)} to ${fmt(live.end)}` : 'no dates'}</span>
               <span className="flex items-center gap-3 text-[13px]" data-volatile>
@@ -296,14 +315,17 @@ function Plan({ d, onChanged }) {
         })}
       </ol>
       <DaysOff d={d} onChanged={onChanged} />
+      {editing && bad && <p id="plan-phase-msg" role="alert" className="mt-4 text-[13px]" style={{ color: 'var(--caution)' }}>
+        {bad.what === 'name' ? `Phase ${bad.i + 1} needs a name.` : `Phase ${bad.i + 1} takes a whole number of working days, 1 to 200.`}
+      </p>}
       <div className="mt-4 flex flex-wrap items-center gap-3">
         {editing ? <>
-          <button onClick={() => setPhases(a => [...a, { id: crypto.randomUUID(), name: `Phase ${a.length + 1}`, days: 5 }])} className={btn} style={quiet}><Plus size={13} weight="bold" /> Phase</button>
-          <button onClick={save} disabled={busy || !phases.length} className={btn} style={primary}>Save and plan backwards</button>
-          <button onClick={() => { setEditing(false); setPhases(p.phases.map(x => ({ id: x.id, name: x.name, days: x.days }))) }} className={btn} style={quiet}>Cancel</button>
+          <button onClick={() => setPhases(a => [...a, { id: crypto.randomUUID(), name: `Phase ${a.length + 1}`, days: 5 }])} className={quiet}><Plus size={13} weight="bold" /> Phase</button>
+          <button onClick={save} disabled={busy || !phases.length} className={primary}>Save and plan backwards</button>
+          <button onClick={() => { done(); setPhases(p.phases.map(x => ({ id: x.id, name: x.name, days: x.days }))) }} className={ghost}>Cancel</button>
         </> : <>
-          <button onClick={() => setEditing(true)} className={btn} style={quiet}><PencilSimple size={13} weight="bold" /> Edit the phases</button>
-          <button onClick={write} disabled={busy || !p.deadline} className={btn} style={primary} title="Need-by and order-by onto every part with a supplier that is not ordered yet"><ArrowsClockwise size={13} weight="bold" /> Write the dates onto the parts</button>
+          <button ref={el => { if (el && back.current) { back.current = false; el.focus({ preventScroll: true }) } }} onClick={() => setEditing(true)} className={quiet}><PencilSimple size={13} weight="bold" /> Edit the phases</button>
+          <button onClick={write} disabled={busy || !p.deadline} className={primary} title="Need-by and order-by onto every part with a supplier that is not ordered yet"><ArrowsClockwise size={13} weight="bold" /> Write the dates onto the parts</button>
         </>}
       </div>
     </section>
@@ -345,12 +367,12 @@ function TaskRow({ t, phases, onMove, today, all = [], forecast = {}, onAfter })
     <li className="flex flex-wrap items-center gap-x-4 gap-y-1.5 py-2" style={{ borderTop: '1px solid var(--line)' }}>
       <span className="min-w-[200px] flex-1 text-[14px]" style={{ color: t.done ? 'var(--ink-3)' : 'var(--ink)', textDecoration: t.done ? 'line-through' : 'none' }}>{t.title}</span>
       <span className="tnum text-[13px]" style={{ color: due && due < today && !t.done ? STATUS.overdue : 'var(--ink-3)' }} data-volatile>{[due ? `due ${fmt(due)}` : null, t.effortHours ? `${t.effortHours} h` : null, t.supplier].filter(Boolean).join(', ')}</span>
-      <select value={t.phase || ''} onChange={e => onMove(t.id, e.target.value || null)} aria-label={`Phase of ${t.title}`} className="rounded-[10px] px-2 py-1 text-[12.5px]" style={inpStyle}>
+      <select value={t.phase || ''} onChange={e => onMove(t.id, e.target.value || null)} aria-label={`Phase of ${t.title}`} className="field px-2 py-1 text-[12.5px]">
         <option value="">no phase</option>
         {phases.map(ph => <option key={ph.id} value={ph.id}>{ph.name}</option>)}
       </select>
       {!t.done && choices.length > 0 && (
-        <select value="" onChange={e => e.target.value && onAfter(t.id, [...after, e.target.value])} aria-label={`${t.title} waits for`} className="rounded-[10px] px-2 py-1 text-[12.5px]" style={inpStyle}>
+        <select value="" onChange={e => e.target.value && onAfter(t.id, [...after, e.target.value])} aria-label={`${t.title} waits for`} className="field px-2 py-1 text-[12.5px]">
           <option value="">waits for…</option>
           {choices.map(x => <option key={x.id} value={x.id}>{x.title}</option>)}
         </select>
@@ -358,7 +380,7 @@ function TaskRow({ t, phases, onMove, today, all = [], forecast = {}, onAfter })
       {(after.length > 0 || (f && !f.done)) && (
         <div className="flex basis-full flex-wrap items-center gap-x-3 gap-y-1 pl-0.5 text-[12.5px]" data-volatile>
           {after.map(id => (
-            <span key={id} className="inline-flex items-center gap-1 rounded-[4px] py-0.5 pl-2 pr-0.5" style={{ background: 'rgba(var(--ink-rgb),.06)', color: 'var(--ink-2)' }}>
+            <span key={id} className="inline-flex items-center gap-1 rounded-[4px] py-0.5 pl-2 pr-0.5" style={{ background: 'var(--wash)', color: 'var(--ink-2)' }}>
               after {title(id)}
               <button type="button" onClick={() => onAfter(t.id, after.filter(x => x !== id))} aria-label={`${t.title} no longer waits for ${title(id)}`} className="inline-grid h-6 w-6 place-items-center rounded-[4px]" style={{ color: 'var(--ink-3)' }}><X size={11} weight="bold" /></button>
             </span>
@@ -373,11 +395,16 @@ function TaskRow({ t, phases, onMove, today, all = [], forecast = {}, onAfter })
 function ProjectDetail({ id, onBack }) {
   const [d, setD] = useState(null)
   const [error, setError] = useState(null)
-  const load = useCallback(() => getProject(id).then(setD).catch(err => setError(err.message)), [id])
+  const loaded = useRef(false)
+  // A refresh that fails once the page is up keeps what is on screen; only a first load that fails says so.
+  const load = useCallback(() => getProject(id).then(x => { loaded.current = true; setD(x); setError(null) })
+    .catch(err => { if (!loaded.current || err.message === 'not found') setError(err.message) }), [id])
   useEffect(() => { load(); addEventListener('bench:refresh', load); return () => removeEventListener('bench:refresh', load) }, [load])
   const [editHead, setEditHead] = useState(false)
   const [head, setHead] = useState(null)
-  if (error) return <main className="mx-auto col px-6"><p className="text-[14px]" style={{ color: 'var(--ink-3)' }}>{error === 'not found' ? 'That project is gone.' : error} <button onClick={onBack} className="underline underline-offset-2">Back to the list</button></p></main>
+  const [headBusy, setHeadBusy] = useState(false)
+  const [headErr, setHeadErr] = useState(null)
+  if (error) return <main className="mx-auto col px-6"><p className="text-[14px]" style={{ color: 'var(--ink-3)' }}>{error === 'not found' ? 'That project is gone.' : `The project did not load: ${error}.`} {error !== 'not found' && <><button onClick={() => { setError(null); load() }} className="-my-[3px] inline-block py-[3px] underline underline-offset-2">Try again</button> or </>}<button onClick={onBack} className="-my-[3px] inline-block py-[3px] underline underline-offset-2">{error === 'not found' ? 'Back to the list' : 'back to the list'}</button></p></main>
   if (!d) return <main className="mx-auto col px-6"><PanelSkeleton /></main>
   const { project: p, phases, unassigned, slack, today } = d
   const move = async (taskId, phase) => { try { await assignPhase(p.id, taskId, phase); refresh(); load() } catch (err) { toast('That did not work.', err.message) } }
@@ -386,39 +413,46 @@ function ProjectDetail({ id, onBack }) {
   const room = roomOf(d)
   const row = t => <TaskRow key={t.id} t={t} phases={p.phases} onMove={move} today={today} all={all} forecast={d.forecast?.tasks || {}} onAfter={setAfter} />
   const saveHead = async () => {
-    try { await patchProject(p.id, head); setEditHead(false); load(); refresh() } catch (err) { toast('That did not work.', err.message) }
+    if (headBusy) return
+    if (!String(head.name || '').trim()) { setHeadErr('A project needs a name.'); return }
+    setHeadBusy(true)
+    try { await patchProject(p.id, head); setEditHead(false); setHeadErr(null); toName(); toast('Saved.', head.name); load(); refresh() } catch (err) { toast('That did not work.', err.message) } finally { setHeadBusy(false) }
   }
+  // Save and Cancel take the fields away; focus goes to the project's name instead of the top of the page.
+  const toName = () => setTimeout(() => { const h = document.querySelector('main h1'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }) } }, 0)
+  const cancelHead = () => { setEditHead(false); setHeadErr(null); toName() }
   const remove = async () => {
     if (!(await ask(`Delete the project "${p.name}"? Its tasks stay on the board, only the plan goes.`))) return
     try { await removeProject(p.id); toast('Deleted.', p.name); onBack() } catch (err) { toast('That did not work.', err.message) }
   }
   const openTasks = phases.reduce((s, ph) => s + ph.tasks.filter(t => !t.done).length, 0) + unassigned.filter(t => !t.done).length
   return (
-    <main className="mx-auto col flex flex-col gap-6 px-6">
+    <main className="mx-auto col flex flex-col gap-4 px-6">
       <div className="flex flex-wrap items-center gap-3">
-        <button onClick={onBack} className={btn} style={quiet}><ArrowLeft size={13} weight="bold" /> All projects</button>
+        <button onClick={onBack} className={ghost}><ArrowLeft size={13} weight="bold" /> All projects</button>
         <a href={`#/machines?m=${encodeURIComponent(p.machine.toLowerCase())}`} className="text-[13px] underline underline-offset-2" style={{ color: 'var(--ink-3)' }}>The machine page</a>
       </div>
 
       <section className="panel p-6 sm:p-7" aria-label="Project">
         {editHead ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Name</span><input value={head.name} onChange={e => setHead(h => ({ ...h, name: e.target.value }))} className={INP + ' mt-1'} style={inpStyle} /></label>
-            <label className="block"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Machine</span><input value={head.machine} onChange={e => setHead(h => ({ ...h, machine: e.target.value }))} className={INP + ' mt-1'} style={inpStyle} /></label>
+          <div className="grid gap-3 sm:grid-cols-2" onKeyDown={e => { if (e.key === 'Escape') { e.preventDefault(); cancelHead() } else if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); saveHead() } }}>
+            <label className="block"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Name</span><input autoFocus value={head.name} onChange={e => { setHeadErr(null); setHead(h => ({ ...h, name: e.target.value })) }} aria-invalid={Boolean(headErr) || undefined} aria-describedby={headErr ? 'project-name-msg' : undefined} className={INP + ' mt-1'} />
+              {headErr && <span id="project-name-msg" role="alert" className="mt-1 block text-[12.5px]" style={{ color: 'var(--caution)' }}>{headErr}</span>}</label>
+            <label className="block"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Machine</span><input value={head.machine} onChange={e => setHead(h => ({ ...h, machine: e.target.value }))} className={INP + ' mt-1'} /></label>
             <div className="block"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>The date that matters</span><DateField className="mt-1" value={head.deadline || ''} onChange={v => setHead(h => ({ ...h, deadline: v || null }))} /></div>
-            <label className="block"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>What that date is</span><select value={head.deadlineLabel} onChange={e => setHead(h => ({ ...h, deadlineLabel: e.target.value }))} className={INP + ' mt-1 cursor-pointer'} style={inpStyle}>{LABELS.map(l => <option key={l}>{l}</option>)}</select></label>
-            <label className="block sm:col-span-2"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Goal</span><input value={head.goal} onChange={e => setHead(h => ({ ...h, goal: e.target.value }))} className={INP + ' mt-1'} style={inpStyle} /></label>
+            <label className="block"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>What that date is</span><select value={head.deadlineLabel} onChange={e => setHead(h => ({ ...h, deadlineLabel: e.target.value }))} className={INP + ' mt-1 cursor-pointer'}>{LABELS.map(l => <option key={l}>{l}</option>)}</select></label>
+            <label className="block sm:col-span-2"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Goal</span><input value={head.goal} onChange={e => setHead(h => ({ ...h, goal: e.target.value }))} className={INP + ' mt-1'} /></label>
             <div className="flex flex-wrap gap-3 sm:col-span-2">
-              <button onClick={saveHead} className={btn} style={primary}>Save</button>
-              <button onClick={() => setEditHead(false)} className={btn} style={quiet}>Cancel</button>
-              <button onClick={remove} className={btn + ' ml-auto'} style={{ ...quiet, color: STATUS.overdue }}><Trash size={13} weight="bold" /> Delete the project</button>
+              <button onClick={saveHead} disabled={headBusy} aria-busy={headBusy || undefined} className={primary}>Save</button>
+              <button onClick={cancelHead} className={ghost}>Cancel</button>
+              <button onClick={remove} className={ghost + ' ml-auto'} style={{ color: STATUS.overdue }}><Trash size={13} weight="bold" /> Delete the project</button>
             </div>
           </div>
         ) : (
           <>
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
               <h1 className="display text-[32px] font-semibold leading-none sm:text-[40px]">{p.name}.</h1>
-              <button onClick={() => { setHead({ name: p.name, machine: p.machine, goal: p.goal, deadline: p.deadline, deadlineLabel: p.deadlineLabel }); setEditHead(true) }} className={btn} style={quiet}><PencilSimple size={13} weight="bold" /> Edit</button>
+              <button onClick={() => { setHead({ name: p.name, machine: p.machine, goal: p.goal, deadline: p.deadline, deadlineLabel: p.deadlineLabel }); setEditHead(true) }} className={quiet}><PencilSimple size={13} weight="bold" /> Edit</button>
             </div>
             {p.goal && <p className="mt-3 max-w-[70ch] text-[15px] leading-relaxed" style={{ color: 'var(--ink-2)' }}>{p.goal}</p>}
             <div className="mt-5 grid grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-4" data-volatile>
@@ -451,7 +485,7 @@ function ProjectDetail({ id, onBack }) {
           <div key={ph.id} className="mt-5">
             <h3 className="text-[13px] font-medium" style={{ color: 'var(--ink-3)' }}>{ph.name}{ph.start ? <span className="tnum ml-2" data-volatile>{fmt(ph.start)} to {fmt(ph.end)}</span> : null}</h3>
             {ph.tasks.length ? <ul className="mt-1 flex flex-col">{ph.tasks.map(row)}</ul>
-              : <p className="mt-1 text-[13px]" style={{ color: 'var(--ink-3)', borderTop: '1px solid var(--line)', paddingTop: 8 }}>Nothing here yet.</p>}
+              : <p className="mt-1 text-[13px]" style={{ color: 'var(--ink-3)', borderTop: '1px solid var(--line)', paddingTop: 8 }}>Pick this phase on a task below to put it here.</p>}
           </div>
         ))}
         <div className="mt-5">
@@ -475,19 +509,40 @@ export default function Projects() {
   const [id, setId] = useState(idFromHash)
   const [items, setItems] = useState(null)
   const [machines, setMachines] = useState([])
+  const [listErr, setListErr] = useState(null)
   useEffect(() => {
     const on = () => setId(idFromHash())
     addEventListener('hashchange', on); return () => removeEventListener('hashchange', on)
   }, [])
-  const load = useCallback(() => getProjects().then(setItems).catch(() => setItems([])), [])
+  // A list that did not load is not an empty list: say so, and keep what was on screen when a refresh fails.
+  const had = useRef(false)
+  const load = useCallback(() => getProjects().then(x => { had.current = true; setItems(x); setListErr(null) })
+    .catch(err => { if (!had.current) setListErr(err.message) }), [])
+  // List and detail share one route, so App's focus-follows-the-route never fires between them. Opening a
+  // project puts focus on its name; going back puts it on the card you came from.
+  const shown = useRef(id)
+  useEffect(() => {
+    const was = shown.current
+    shown.current = id
+    if (was === id) return
+    let tries = 0
+    const t = setInterval(() => {
+      tries++
+      const el = id ? document.querySelector('main h1')
+        : (was && document.querySelector(`a[href="#/projects?p=${encodeURIComponent(was)}"]`)) || (tries > 10 ? document.querySelector('header h1') : null)
+      if (el) { if (el.tagName === 'H1') el.setAttribute('tabindex', '-1'); el.focus({ preventScroll: Boolean(id) }); clearInterval(t) }
+      else if (tries > 40) clearInterval(t)
+    }, 50)
+    return () => clearInterval(t)
+  }, [id])
   useEffect(() => { load(); addEventListener('bench:refresh', load); return () => removeEventListener('bench:refresh', load) }, [load])
   useEffect(() => { getMachines().then(ms => setMachines((Array.isArray(ms) ? ms : []).map(m => m.name).filter(Boolean))).catch(() => {}) }, [])
   const sorted = useMemo(() => (items || []).slice(), [items])
   if (id) return <ProjectDetail id={id} onBack={() => { setHash(null); load() }} />
   return (
-    <main className="mx-auto col flex flex-col gap-6 px-6">
+    <main className="mx-auto col flex flex-col gap-4 px-6">
       <div className="flex flex-wrap items-center gap-3"><NewProject machines={machines} onCreated={(p) => { load(); setHash(p.id) }} /></div>
-      {items === null ? <PanelSkeleton /> : sorted.length ? <div className="grid gap-4 md:grid-cols-2">{sorted.map(p => <ProjectCard key={p.id} p={p} />)}</div>
+      {items === null ? (listErr ? <LoadFailed title="The projects did not load." message={`${listErr}. Nothing is lost; Try again asks for them once more.`} onRetry={() => { setListErr(null); load() }} /> : <PanelSkeleton />) : sorted.length ? <div className="grid gap-4 md:grid-cols-2">{sorted.map(p => <ProjectCard key={p.id} p={p} />)}</div>
         : <p className="max-w-[60ch] text-[14px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>No project yet. A project is a machine, the one date that matters and the phases before it; the dates fall out of the deadline. Tasks whose project reads the machine's name join by themselves.</p>}
     </main>
   )

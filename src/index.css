@@ -33,6 +33,11 @@
   --ink-rgb: 243,243,241;
   --line:    rgba(var(--ink-rgb),.08);
   --line-2:  rgba(var(--ink-rgb),.14);
+  /* The one grey fill for furniture: --wash under a quiet button, a hovered list item, an after chip;
+     --wash-2 for the chosen one (the filter that is on, the entry that is open). Relative to the ink, so it
+     reads the same on a panel, on a row and on paper. */
+  --wash:    rgba(var(--ink-rgb),.06);
+  --wash-2:  rgba(var(--ink-rgb),.10);
   --ink:     #F3F3F1;
   --ink-2:   rgba(var(--ink-rgb),.72);
   --ink-3:   rgba(var(--ink-rgb),.62);   /* 4.5:1 on panel and row; axe checks it */
@@ -49,6 +54,7 @@
   --quick: .2s;                            /* hovers, presses, focus */
 
   --page-bg: var(--bg); --page-veil: var(--veil); --page-ink: var(--ink); --page-ink-rgb: var(--ink-rgb);   /* the page behind a photo, unaffected by .on-photo */
+  --page-late: var(--late); --page-caution: var(--caution); --page-ok: var(--ok); --page-held: var(--held); --page-late-ink: var(--late-ink);   /* resolved here, per theme, for .off-photo */
 
   /* Functional colours: the same four meanings everywhere. Late (a date is past, something failed),
      caution (waiting, not written yet, needs a look), ok (written, delivered, done), held (ordered,
@@ -73,7 +79,7 @@
    and the paper is for the panels. */
 :root[data-theme="light"] {
   --bg:      #F3F1EC;
-  --bg-2:    #EAE8E2;
+  --bg-2:    #F6F5F1;
   --panel:   #FFFFFF;
   --row:     #F7F6F2;
   --veil:    243,241,236;
@@ -97,16 +103,18 @@
   --late-ink: #FFF6F4;
   color-scheme: light;
 }
-/* Paper has no bevel: a resting panel gets a 1 px contact shadow in the scene's colour, a row nothing. */
+/* Paper has no bevel: a resting panel gets a 1 px contact shadow in the scene's colour. A row never has either. */
 :root[data-theme="light"] .panel { box-shadow: 0 1px 2px color-mix(in srgb, var(--glow-dark) 10%, transparent); }
-:root[data-theme="light"] .row { box-shadow: none; }
 
-/* A panel that sits inside a photo area but belongs to the page (the header aside). */
+/* A panel that sits inside a photo area but belongs to the page: the header aside, and the popovers that
+   drop out of the nav (More, the time clock, the bell). Paper in the light theme, with paper's four colours. */
 .off-photo {
   --bg: var(--page-bg); --veil: var(--page-veil);
+  --late: var(--page-late); --caution: var(--page-caution); --ok: var(--page-ok); --held: var(--page-held); --late-ink: var(--page-late-ink);
   --ink: var(--page-ink); --ink-rgb: var(--page-ink-rgb);
   --ink-2: rgba(var(--page-ink-rgb),.72); --ink-3: rgba(var(--page-ink-rgb),.62);
   --line: rgba(var(--page-ink-rgb),.08); --line-2: rgba(var(--page-ink-rgb),.14);
+  --wash: rgba(var(--page-ink-rgb),.06); --wash-2: rgba(var(--page-ink-rgb),.10);
   color: var(--ink);
 }
 
@@ -117,6 +125,7 @@
   --ink: #F3F3F1; --ink-rgb: 243,243,241;
   --ink-2: rgba(243,243,241,.74); --ink-3: rgba(243,243,241,.62);
   --line: rgba(243,243,241,.08); --line-2: rgba(243,243,241,.14);
+  --wash: rgba(243,243,241,.06); --wash-2: rgba(243,243,241,.10);
   --shadow-text: 0 2px 8px rgba(0,0,0,.4), 0 10px 50px rgba(0,0,0,.4);
   --shadow-text-soft: 0 1px 4px rgba(0,0,0,.5);
   color: var(--ink);
@@ -144,6 +153,8 @@ h1, h2, h3 { text-wrap: balance; }
 /* A chip stays on one line and trims; the whole text shows while its card is hovered or holds focus (roadmap 57). */
 .tag { display: inline-block; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
 .group:is(:hover, :focus-within) .tag { max-width: none; }
+/* A plain fact (project, people, size, date) is a chip without the tint; the first one starts on the title's edge. */
+.tag-plain:first-child { padding-left: 0; }
 
 /* Focus never hides under the fixed nav: anchors and focused controls scroll to below it (WCAG 2.4.11, roadmap 54). */
 html { scroll-padding-top: 112px; }
@@ -156,11 +167,25 @@ h1:focus-visible, h2:focus-visible { outline-offset: 8px; border-radius: 4px; }
 @media (min-width: 3000px) { :root { --col: 1760px; } }   /* ultrawide: still one column, wider lanes, no 800 px margins */
 .col { max-width: var(--col); }
 
-/* In the dark a panel and a row carry a 1 px inset highlight along the top edge: a machined bevel, so
-   surfaces read as plates and not as flat fills. It is not a drop shadow; resting panels never throw one. */
+/* In the dark a panel carries a 1 px inset highlight along the top edge: a machined bevel, so the plate
+   reads as standing in the room and not as a flat fill. It is not a drop shadow; resting panels never throw
+   one. A row inside it is fill and hairline only: the depth belongs to the panel, once. */
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; box-shadow: inset 0 1px 0 rgba(var(--ink-rgb),.05); }
-.row   { background: var(--row);   border: 1px solid var(--line); border-radius: 12px; box-shadow: inset 0 1px 0 rgba(var(--ink-rgb),.04); }
+.row   { background: var(--row);   border: 1px solid var(--line); border-radius: 12px; }
 .pill  { border-radius: 9999px; }
+
+/* Three buttons and no more (DESIGN.md, section 6). Primary: the accent, once per screen. Quiet: the wash,
+   no border. Ghost: type only, the wash arrives on hover. Each is one treatment, never a fill and a border. */
+.btn-primary { background: var(--accent); color: var(--accent-ink); }
+.btn-quiet   { background: var(--wash); color: var(--ink-2); }
+.btn-ghost   { background: transparent; color: var(--ink-2); }
+.btn-quiet, .btn-ghost { transition: background-color var(--quick) var(--ease), color var(--quick) var(--ease), transform var(--quick) var(--ease); }
+.btn-quiet:not(:disabled):hover, .btn-ghost:not(:disabled):hover { background: var(--wash-2); color: var(--ink); }
+/* disabled or busy: half strength, no pointer. Disabled controls are outside the contrast rule, the only place opacity may dim */
+:is(.btn-primary, .btn-quiet, .btn-ghost):is(:disabled, [aria-busy="true"]) { opacity: .5; cursor: default; }
+/* A list inside a document (actions, links, phases, parts, changes) is set as a ledger: a hairline above each
+   line, no box. Boxes are for cards that move (tasks). */
+.rule { border-top: 1px solid var(--line); }
 
 .field {
   background: var(--bg-2); border: 1px solid var(--line-2); border-radius: 10px; color: var(--ink);

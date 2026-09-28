@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import * as day from '../api/day.js'
 import { fmtDate } from '../lanes.js'
 import { PanelSkeleton } from './Skeleton.jsx'
+import useFocusTrap from '../hooks/useFocusTrap.js'
 
 /**
  * The morning brief (roadmap 68). One panel over the page on the first start of the day: what was
@@ -13,6 +14,16 @@ import { PanelSkeleton } from './Skeleton.jsx'
 const toast = (text, by) => window.dispatchEvent(new CustomEvent('bench:toast', { detail: { text, by, plain: true } }))
 const refresh = () => window.dispatchEvent(new Event('bench:refresh'))
 /** "3 days left", "needed today", "late by 2 days". */
+/**
+ * The two radios of a row as one stop (the ARIA radio pattern): Tab lands on the chosen one, an arrow key
+ * picks the other and takes focus with it.
+ */
+const radioKeys = (toActive, pick) => (e) => {
+  if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return
+  e.preventDefault()
+  pick(!toActive)
+  e.currentTarget.querySelectorAll('[role="radio"]')[toActive ? 0 : 1]?.focus()
+}
 const daysLeft = n => n < 0 ? `late by ${-n === 1 ? 'a day' : `${-n} days`}` : n === 0 ? 'needed today' : n === 1 ? 'a day left' : `${n} days left`
 
 export default function MorningBrief({ open, onClose, onChanged }) {
@@ -20,16 +31,19 @@ export default function MorningBrief({ open, onClose, onChanged }) {
   const [err, setErr] = useState(null)
   const [back, setBack] = useState(() => new Set())   // leftover ids going back to Active
   const [busy, setBusy] = useState(false)
-  const primary = useRef(null), before = useRef(null)
+  const primary = useRef(null), before = useRef(null), box = useRef(null)
+  const [attempt, setAttempt] = useState(0)   // Try again after a failed load asks once more
+  useFocusTrap(box, open, { restore: false })   // the effect below gives focus back
 
   useEffect(() => {
     if (!open) { before.current?.focus?.(); return }
-    before.current = document.activeElement
+    if (!attempt) before.current = document.activeElement
     setBrief(null); setErr(null); setBack(new Set())
     let on = true
     day.getBrief().then(b => on && setBrief(b)).catch(e => on && setErr(e.message))
     return () => { on = false }
-  }, [open])
+  }, [open, attempt])
+  useEffect(() => { if (!open) setAttempt(0) }, [open])
   useEffect(() => {
     if (!open || !brief) return
     const id = setTimeout(() => primary.current?.focus(), 40)
@@ -65,14 +79,17 @@ export default function MorningBrief({ open, onClose, onChanged }) {
         <motion.div key="brief" className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto px-4 pb-8 pt-[8vh]"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .15 }}
           style={{ background: 'rgba(var(--page-veil),.55)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', overscrollBehavior: 'contain' }} onMouseDown={later}>
-          <motion.div role="dialog" aria-modal="true" aria-labelledby="brief-title"
+          <motion.div ref={box} role="dialog" aria-modal="true" aria-labelledby="brief-title"
             initial={{ y: -10, scale: .98 }} animate={{ y: 0, scale: 1 }} exit={{ y: -6, scale: .98 }} transition={{ duration: .18, ease: [0.16, 1, 0.3, 1] }}
             className="panel w-full max-w-[620px] px-6 py-6 sm:px-8" style={{ boxShadow: 'var(--shadow-panel)' }} onMouseDown={e => e.stopPropagation()}>
             <h2 id="brief-title" className="display text-[30px] font-semibold leading-none">Morning.</h2>
             <p className="mt-2 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>{b ? fmtDate(b.date) : fmtDate(new Date().toISOString())}</p>
 
             {!b && !err && <div className="mt-5"><PanelSkeleton rows={4} title={false} /></div>}
-            {err && <p role="alert" className="mt-5 text-[13.5px]" style={{ color: 'var(--late)' }}>{err}</p>}
+            {err && <p role="alert" className="mt-5 text-[13.5px]" style={{ color: 'var(--late)' }}>
+              {b ? `The day did not start: ${err}` : `The brief did not load: ${err}`}{' '}
+              {!b && <button type="button" onClick={() => setAttempt(n => n + 1)} className="-my-1 inline-block py-1 underline underline-offset-2" style={{ color: 'var(--ink-2)' }}>Try again</button>}
+            </p>}
 
             {b && empty && <p className="mt-5 text-[14px]" style={{ color: 'var(--ink-2)' }}>Nothing left over, nothing new, nothing due. The day is yours.</p>}
 
@@ -83,7 +100,7 @@ export default function MorningBrief({ open, onClose, onChanged }) {
                   return (
                     <li key={t.id} className="row flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3.5 py-2.5">
                       <span className="min-w-0 flex-1 truncate text-[13.5px]" title={t.title}>{t.title}</span>
-                      <span role="radiogroup" aria-label={`Where ${t.title} goes`} className="flex shrink-0 gap-1">
+                      <span role="radiogroup" aria-label={`Where ${t.title} goes`} onKeyDown={radioKeys(toActive, v => toggle(t.id, v))} className="flex shrink-0 gap-1">
                         <Choice on={!toActive} onClick={() => toggle(t.id, false)}>Keep on Today</Choice>
                         <Choice on={toActive} onClick={() => toggle(t.id, true)}>Back to Active</Choice>
                       </span>
@@ -166,7 +183,7 @@ function Row({ title, lead, meta, tone }) {
 
 function Choice({ on, onClick, children }) {
   return (
-    <button type="button" role="radio" aria-checked={on} onClick={onClick} className="pill h-6 px-3 text-[12.5px] font-medium"
+    <button type="button" role="radio" aria-checked={on} tabIndex={on ? 0 : -1} onClick={onClick} className="pill h-6 px-3 text-[12.5px] font-medium"
       style={on ? { background: 'var(--ink)', color: 'var(--bg)' } : { border: '1px solid var(--line-2)', color: 'var(--ink-2)' }}>{children}</button>
   )
 }

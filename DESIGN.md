@@ -25,18 +25,21 @@ Everything is a token. Components never carry a hex value; `npm run lint` fails 
 | Token | Dark | Light | Role |
 |---|---|---|---|
 | `--bg` | `#15161C` | `#F3F1EC` | page. A deep warm grey, not black; warm paper, not white |
-| `--bg-2` | `#1A1B22` | `#EAE8E2` | fields, wells |
+| `--bg-2` | `#1A1B22` | `#F6F5F1` | fields, wells: sunken in the dark, a hairline well on paper, never a grey slab |
 | `--panel` | `#1E1F27` | `#FFFFFF` | section panels |
 | `--row` | `#25262F` | `#F7F6F2` | rows and cards inside a panel |
 | `--ink` | `#F3F3F1` | `#16161A` | type |
 | `--ink-2` | ink at .72 | ink at .76 | secondary type, lines under a title |
 | `--ink-3` | ink at .62 | ink at .62 | labels, meta, placeholders. Never lighter: .62 is what keeps 4.5:1 on a row |
 | `--line`, `--line-2` | ink at .08 / .14 | ink at .10 / .18 | hairlines. No solid grey borders |
+| `--wash`, `--wash-2` | ink at .06 / .10 | ink at .06 / .10 | the one grey fill: a quiet button, a hovered list item (`--wash`); the chosen filter, tab or entry (`--wash-2`). No other greys for fills |
 | `--veil` | `21,22,28` | `243,241,236` | rgb of the page for scrims over photographs |
 
 `.on-photo` forces the dark set on anything laid over a picture (nav, header glass, doors), in both
 themes, so pictures stay pictures and paper is for the panels. `.off-photo` does the reverse for a
-panel that stands in a photo area but belongs to the page.
+panel that stands in a photo area but belongs to the page: the header aside and the popovers that drop
+out of the nav (More, the time clock, the bell). It brings back the page's ink, lines, wash and the
+paper set of the four functional colours.
 
 ### Functional colours
 
@@ -113,10 +116,15 @@ Panels 20 px, rows and cards 12 px, fields 10 px, buttons and nav items full pil
 keycaps and chips 4 px. Nothing else: `rounded-md` and `rounded-sm` are mapped to 4 px in the theme,
 so a Tailwind utility cannot leave the lock. Phone thumbnails are cards, 12 px.
 
-Borders are hairlines from `--line`. Depth in the dark theme is a bevel, not a shadow: panels and
-rows carry a 1 px inset highlight along the top edge (ink at .05 and .04), so they read as plates
-standing in the room rather than flat fills. A resting panel never throws a drop shadow in the dark
-theme; on paper it gets a 1 px contact shadow in the scene's colour and no bevel, and a row nothing.
+Borders are hairlines from `--line`. Depth in the dark theme is a bevel, not a shadow: a panel
+carries a 1 px inset highlight along the top edge (ink at .05), so it reads as a plate standing in
+the room rather than a flat fill. The depth belongs to the panel, once: a row inside it is its fill
+and its hairline, no bevel, no shadow. A resting panel never throws a drop shadow in the dark theme;
+on paper it gets a 1 px contact shadow in the scene's colour and no bevel.
+
+One treatment per piece of furniture. A surface is fill and hairline (panel, row), a button is a fill
+or nothing, a list line is a hairline or nothing. Never a fill, a border and a shadow on the same thing,
+except the floating ones below.
 
 Floating things take `--shadow-panel` (dialogs, sheets, search, toasts) or `--shadow-pop` (the
 popovers under the nav, the card toolbar). Each is a contact layer in the page's own dark (`--veil`),
@@ -126,12 +134,24 @@ Shadows are never black, and no component writes its own.
 
 ## 6. Components
 
-- Button: pill, accent fill with `--accent-ink` for the one primary action on a screen, otherwise
-  `--row` fill or ghost. `translateY(1px)` on press. Never a glow.
+- Button: pill, three kinds and no more, as classes in `index.css`. `.btn-primary`: accent fill with
+  `--accent-ink`, the one primary action on a screen. `.btn-quiet`: the `--wash`, `--ink-2` type, no
+  border. `.btn-ghost`: type only, the wash on hover (Cancel, back links, filters that are off). A
+  button never carries a fill and a border. Ink fill (`--ink` on `--bg`) is kept for two things only:
+  the pill on a photograph (the hero and the doors, where light sits on the picture) and the chosen
+  radio pill in the day dialogs. `translateY(1px)` on press. Never a glow.
 - Field: `.field`, label above, help or error below in `--caution` or `--late`. Dates only through
   `DateField`. Focus is the 2 px accent outline, 2 px offset, everywhere.
-- Chip and tag: 12 to 13 px, one line, tinted with `color-mix`; the full text on hover and focus. Grey
-  chips use `STATUS.muted` (ink at .7), one grey, not three.
+- Chip and tag: 12 to 13 px, one line; the full text on hover and focus. Only a chip that means
+  something is tinted with `color-mix`: the four functional colours and the accent for the source
+  tool. A plain fact (project, people, size, tags, a date that is not late) is the same chip in
+  `STATUS.muted` (ink at .7) without the tint (`.tag-plain`), so a card shows one or two tinted chips,
+  not seven. The first plain chip starts on the title's edge.
+- Filters (source, people, the Napkin maps): ghost pills, no border; the one that is on takes
+  `--wash-2` and `--ink`. Counts inside at `--ink-3` or `--ink-2`, never dimmed further by opacity.
+- Lists inside a document (Logbook actions and links, the project's phases, parts, chain and tasks,
+  Recent changes) are ledgers: `.rule`, a hairline above each line, no box. Boxes (`.row`) are for
+  cards that move: tasks on the Board, the phone pictures.
 - Checkbox: the drawn circle or square is 13 to 18 px; the button around it is 24 px, always.
 - Dimming: never by opacity on text. Use `--ink-3`, so it still passes contrast.
 - Confirm: never the browser's dialog. `ask()` from Confirm.jsx puts the question in the error toast's
@@ -144,6 +164,11 @@ Shadows are never black, and no component writes its own.
   refused write (Today is full) is a toast. A fault is the error toast: bottom centre, "Something
   broke." with the message, Retry and Dismiss, role alert, stays until dealt with. Never a bare pill.
 - Key sheet: `?` lists every shortcut; Escape closes it and gives focus back.
+- Overlays (search, quick add, the key sheet, the day dialogs, Settings) keep Tab inside while open and give
+  focus back to what opened them (`useFocusTrap`). A field that refuses a value puts the saved one back and
+  says why in one line under it, in `--caution`. A load that fails shows `LoadFailed` with Try again, never
+  an empty state that reads as if the data were gone. Nothing fails silently: a write that did not land
+  says so in a toast.
 - Day dialogs: the morning brief and the evening close are overlays in the key sheet's pattern, one
   headline with a period, sections with counts in their titles, one primary pill, a quiet "Later" or
   "Not now" link with a 24 px hit area. Choices are radio pills at 24 px.
@@ -155,6 +180,9 @@ Shadows are never black, and no component writes its own.
 - Loading: a skeleton in the shape of what is coming (`Skeleton.jsx`: page, panel, ledger). Never
   the word "Loading", never a spinner.
 - Icons: Phosphor. `bold` up to 15 px, `regular` from 16 px, so a row never mixes weights.
+- Nav and More: text links, no chrome. The More panel is a paper popover (`.off-photo`), plain links
+  with their line, the number key as plain `--ink-3` figures, not a boxed keycap; keycaps with a border
+  are for the key sheet.
 
 ## 7. Layout
 
@@ -171,8 +199,10 @@ typed into a component. Lanes: one to three columns by width, never a fourth. Mi
 No horizontal scroll at any width; no element that only exists on hover takes layout space.
 
 Spacing sits on a 4 px grid. Inside a panel: 24 px padding (28 from sm), 16 px between the title
-block and the rows, 8 px between rows, 12 by 16 px inside a row. 16 px between panels. Home breathes
-at 64 to 112 px between sections; work pages never do, the board is dense on purpose.
+block and the rows, 8 px between rows, 12 by 16 px inside a row. 16 px between panels, on every work
+page (Board, Logbook and Projects included). Home breathes at 64 to 112 px between sections; work
+pages never do, the board is dense on purpose. Space separates; a hairline only runs above the lines
+of a ledger, never between a panel's header and its body.
 
 Layers, by z-index: page content 10 and 20, the nav 50, popovers under the nav 60, toasts 70, the
 confirm 75, sheets and dialogs 80, the skip link 100. Nothing else.
@@ -214,7 +244,10 @@ weather (HeroLine.jsx) takes the place. Photo credits live in Settings, not on t
 
 - Raw hex or rgb in a component. Pure black or pure white as a surface.
 - A second accent, or the accent used to mean a status.
-- Cards with a border and a drop shadow; nested cards; a fourth radius.
+- Cards with a border and a drop shadow; nested cards; a fourth radius. A box around a line of a list
+  inside a document (use the ledger rule).
+- A button with a fill and a border. A fourth kind of button. Ink-filled buttons off a photograph.
+- Tinted chips for plain facts. Grey fills other than `--wash` and `--wash-2`.
 - Circular spinners; "Loading" as the only content; "No data"; black shadows; three items on one dot.
 - Eyebrow labels, gradient text, glows, bento grids, marketing heroes. The hero is the sky.
 - Font size under 12 px. Contrast under 4.5:1 for text, 3:1 for icons and hairlines that matter.

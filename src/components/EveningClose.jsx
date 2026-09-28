@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import * as day from '../api/day.js'
 import { PanelSkeleton } from './Skeleton.jsx'
+import useFocusTrap from '../hooks/useFocusTrap.js'
 
 /**
  * The evening close (roadmap 69). Offered right after the out punch: each open Today task rolls to
@@ -11,6 +12,13 @@ import { PanelSkeleton } from './Skeleton.jsx'
 const hm = ms => { const m = Math.round((ms || 0) / 60000); return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}` }
 const toast = (text, by) => window.dispatchEvent(new CustomEvent('bench:toast', { detail: { text, by, plain: true } }))
 const refresh = () => window.dispatchEvent(new Event('bench:refresh'))
+/** The two radios of a row as one Tab stop: an arrow key picks the other and takes focus with it. */
+const radioKeys = (toActive, pick) => (e) => {
+  if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return
+  e.preventDefault()
+  pick(!toActive)
+  e.currentTarget.querySelectorAll('[role="radio"]')[toActive ? 0 : 1]?.focus()
+}
 
 export default function EveningClose({ open, onClose, onChanged }) {
   const [info, setInfo] = useState(null)
@@ -19,17 +27,20 @@ export default function EveningClose({ open, onClose, onChanged }) {
   const [back, setBack] = useState(() => new Set())   // ids going back to Active
   const [note, setNote] = useState(true)
   const [busy, setBusy] = useState(false)
-  const primary = useRef(null), before = useRef(null)
+  const primary = useRef(null), before = useRef(null), box = useRef(null)
+  const [attempt, setAttempt] = useState(0)   // Try again after a failed load asks once more
+  useFocusTrap(box, open, { restore: false })   // the effect below gives focus back
 
   useEffect(() => {
     if (!open) { before.current?.focus?.(); return }
-    before.current = document.activeElement
+    if (!attempt) before.current = document.activeElement
     setInfo(null); setErr(null); setBack(new Set()); setNote(true)
     let on = true
     day.getClose().then(i => on && setInfo(i)).catch(e => on && setErr(e.message))
     setDrive(null); day.getCommute('home').then(d => on && setDrive(d)).catch(() => {})
     return () => { on = false }
-  }, [open])
+  }, [open, attempt])
+  useEffect(() => { if (!open) setAttempt(0) }, [open])
   useEffect(() => {
     if (!open || !info) return
     const id = setTimeout(() => primary.current?.focus(), 40)
@@ -61,14 +72,17 @@ export default function EveningClose({ open, onClose, onChanged }) {
         <motion.div key="close" className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto px-4 pb-8 pt-[8vh]"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .15 }}
           style={{ background: 'rgba(var(--page-veil),.55)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', overscrollBehavior: 'contain' }} onMouseDown={onClose}>
-          <motion.div role="dialog" aria-modal="true" aria-labelledby="close-title"
+          <motion.div ref={box} role="dialog" aria-modal="true" aria-labelledby="close-title"
             initial={{ y: -10, scale: .98 }} animate={{ y: 0, scale: 1 }} exit={{ y: -6, scale: .98 }} transition={{ duration: .18, ease: [0.16, 1, 0.3, 1] }}
             className="panel w-full max-w-[620px] px-6 py-6 sm:px-8" style={{ boxShadow: 'var(--shadow-panel)' }} onMouseDown={e => e.stopPropagation()}>
             <h2 id="close-title" className="display text-[30px] font-semibold leading-none">Closing the day.</h2>
             {info && <p className="tnum mt-2 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>{hm(info.worked)} on the clock, {info.ticked === 1 ? 'one task ticked' : `${info.ticked} tasks ticked`}.{drive?.ok ? ` ${drive.text}` : ''}</p>}
 
             {!info && !err && <div className="mt-5"><PanelSkeleton rows={3} title={false} /></div>}
-            {err && <p role="alert" className="mt-5 text-[13.5px]" style={{ color: 'var(--late)' }}>{err}</p>}
+            {err && <p role="alert" className="mt-5 text-[13.5px]" style={{ color: 'var(--late)' }}>
+              {info ? `The day did not close: ${err}` : `The day did not load: ${err}`}{' '}
+              {!info && <button type="button" onClick={() => setAttempt(n => n + 1)} className="-my-1 inline-block py-1 underline underline-offset-2" style={{ color: 'var(--ink-2)' }}>Try again</button>}
+            </p>}
 
             {info && (
               <section className="mt-6" aria-label="Still on Today">
@@ -83,7 +97,7 @@ export default function EveningClose({ open, onClose, onChanged }) {
                     return (
                       <li key={t.id} className="row flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-3.5 py-2.5">
                         <span className="min-w-0 flex-1 truncate text-[13.5px]" title={t.title}>{t.title}</span>
-                        <span role="radiogroup" aria-label={`Where ${t.title} goes`} className="flex shrink-0 gap-1">
+                        <span role="radiogroup" aria-label={`Where ${t.title} goes`} onKeyDown={radioKeys(toActive, v => toggle(t.id, v))} className="flex shrink-0 gap-1">
                           <Choice on={!toActive} onClick={() => toggle(t.id, false)}>Tomorrow</Choice>
                           <Choice on={toActive} onClick={() => toggle(t.id, true)}>Back to Active</Choice>
                         </span>
@@ -117,7 +131,7 @@ export default function EveningClose({ open, onClose, onChanged }) {
 
 function Choice({ on, onClick, children }) {
   return (
-    <button type="button" role="radio" aria-checked={on} onClick={onClick} className="pill h-6 px-3 text-[12.5px] font-medium"
+    <button type="button" role="radio" aria-checked={on} tabIndex={on ? 0 : -1} onClick={onClick} className="pill h-6 px-3 text-[12.5px] font-medium"
       style={on ? { background: 'var(--ink)', color: 'var(--bg)' } : { border: '1px solid var(--line-2)', color: 'var(--ink-2)' }}>{children}</button>
   )
 }

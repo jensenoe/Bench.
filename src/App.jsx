@@ -99,6 +99,7 @@ export default function App() {
     const onKey = e => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setSearchOpen(v => !v); return }
       if (e.ctrlKey || e.metaKey || e.altKey || inField() || searchOpen || quickOpen || settingsOpen || keysOpen || briefOpen || closeOpen) return
+      if (document.querySelector('[role="alertdialog"]')) return   // a confirm is asking: n or a digit must not open something under it
       if (e.key === '?') { e.preventDefault(); setKeysOpen(true) }
       else if (e.key === '/') { e.preventDefault(); setSearchOpen(true) }
       else if (e.key === 'n') { e.preventDefault(); setQuickOpen(true) }

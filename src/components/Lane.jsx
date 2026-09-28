@@ -7,6 +7,15 @@ import { LANES } from '../copy.js'
 import { STATUS } from '../scenes.js'
 import { daysSince } from '../lanes.js'
 
+/** What an empty lane says: one sentence, what to do next (DESIGN.md, empty state). */
+const EMPTY = {
+  today: 'Pull a card from Active, or drop one here.',
+  innovation: 'Add the idea that deserves an hour this week.',
+  waiting: 'Drop a card here when someone else has it.',
+  active: 'Add what is on your plate, or drop a card here.',
+  parked: 'Drop a card here to park it for later.'
+}
+
 /** One lane. A card dragged in from another lane lands here; the panel lights up while it hovers. */
 export default function Lane({ laneKey, tasks, onPatch, onDelete, onCreate, wide = false, span = '' }) {
   const lane = LANES[laneKey]
@@ -52,7 +61,7 @@ export default function Lane({ laneKey, tasks, onPatch, onDelete, onCreate, wide
         </AnimatePresence>
       </ul>
       {open.length === 0 && <p className="py-5 text-center text-[13px]" style={{ color: 'var(--ink-3)' }}>
-        {laneKey === 'today' ? 'Nothing here yet. Pull from Active, or drop a card here.' : 'Empty.'}
+        {EMPTY[laneKey] || 'Add a card, or drop one here.'}
       </p>}
       <div className="mt-3"><AddTask lane={laneKey} onCreate={onCreate} /></div>
       {done.length > 0 && (

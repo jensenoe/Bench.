@@ -49,7 +49,7 @@ export default function Health({ compact = false }) {
         </ul>
       )}
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <button onClick={() => load(true)} disabled={busy} className="pill px-3.5 py-1.5 font-medium disabled:opacity-50" style={{ border: '1px solid var(--line-2)' }}>{busy ? 'Checking' : 'Check again'}</button>
+        <button onClick={() => load(true)} disabled={busy} className="pill btn-quiet px-3.5 py-1.5 font-medium disabled:opacity-50">{busy ? 'Checking' : 'Check again'}</button>
         <button onClick={copy} className="inline-flex h-6 items-center gap-1.5 underline underline-offset-2" style={{ color: 'var(--ink-3)' }}>
           {copied === 'Copied.' ? <><Check size={12} weight="bold" /> Copied</> : <><Copy size={12} weight="bold" /> Copy diagnostics</>}
         </button>

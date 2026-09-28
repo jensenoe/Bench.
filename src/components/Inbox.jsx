@@ -56,15 +56,14 @@ function Shot({ file, tasks, onDone }) {
             <ul role="listbox" className="panel absolute inset-x-0 top-full z-20 mt-1 max-h-[200px] overflow-y-auto p-1" style={{ boxShadow: 'var(--shadow-pop)' }}>
               {hits.map(t => (
                 <li key={t.id} role="option" aria-selected={pick?.id === t.id}>
-                  <button onMouseDown={e => e.preventDefault()} onClick={() => choose(t)} className="block w-full truncate rounded-md px-2.5 py-1.5 text-left text-[13px] hover:bg-[rgba(var(--ink-rgb),.06)]">{t.title}</button>
+                  <button onMouseDown={e => e.preventDefault()} onClick={() => choose(t)} className="block w-full truncate rounded-md px-2.5 py-1.5 text-left text-[13px] hover:bg-[var(--wash)]">{t.title}</button>
                 </li>
               ))}
             </ul>
           )}
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-3">
-          <button onClick={attach} disabled={!pick || busy} className="pill inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium disabled:opacity-50"
-            style={{ background: 'var(--accent)', color: 'var(--accent-ink)' }}><Paperclip size={12} weight="bold" /> Attach</button>
+          <button onClick={attach} disabled={!pick || busy} className="pill btn-primary inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium disabled:opacity-50"><Paperclip size={12} weight="bold" /> Attach</button>
           <button onClick={dismiss} disabled={busy} className="inline-flex h-6 items-center gap-1 text-[13px] underline-offset-2 hover:underline disabled:opacity-50" style={{ color: 'var(--ink-3)' }}><X size={11} weight="bold" /> Dismiss</button>
           {err && <span className="text-[13px]" style={{ color: 'var(--caution)' }}>{err}</span>}
         </div>
@@ -107,7 +106,7 @@ export default function Inbox({ tasks = [] }) {
       <ul className="mt-4 grid gap-2 lg:grid-cols-2 2xl:grid-cols-3">
         {shown.map(f => <Shot key={f.name} file={f} tasks={tasks} onDone={reload} />)}
       </ul>
-      {rest > 0 && <button onClick={() => setShowAll(true)} className="pill mt-3 px-3.5 py-1.5 text-[13px] font-medium" style={{ border: '1px solid var(--line-2)', color: 'var(--ink-2)' }}>+{rest} more</button>}
+      {rest > 0 && <button onClick={() => setShowAll(true)} className="pill btn-quiet mt-3 px-3.5 py-1.5 text-[13px] font-medium">+{rest} more</button>}
     </section>
   )
 }
