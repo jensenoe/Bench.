@@ -178,7 +178,7 @@ Shadows are never black, and no component writes its own.
   says why in one line under it, in `--caution`. A load that fails shows `LoadFailed` with Try again, never
   an empty state that reads as if the data were gone. Nothing fails silently: a write that did not land
   says so in a toast.
-- Day dialogs: the morning brief and the evening close are overlays in the key sheet's pattern, one
+- Day dialogs: the morning brief, the evening close and Plan my day are overlays in the key sheet's pattern, one
   headline with a period, sections with counts in their titles, one primary pill, a quiet "Later" or
   "Not now" link with a 24 px hit area. Choices are radio pills at 24 px.
 - Ledgers and feeds: Recent changes, Backups, the Machines detail and the Review page are panels of

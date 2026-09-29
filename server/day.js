@@ -219,6 +219,19 @@ async function meetingsSoft() {
 function chasesSoft() {
   try { return reminders.chase() } catch (err) { console.warn('[day] chase list:', err.message); return [] }
 }
+/**
+ * One line from Plan my day (roadmap 161) when its proposal would change Today: { add, out, text }, else null.
+ * Only with the brief on; it never counts towards an empty brief, so it never opens a panel by itself.
+ */
+async function planSoft(tasks, meetings, today) {
+  try {
+    if (settings.get().morningBrief === false) return null
+    const { proposeDay, summary } = await import('./dayplan.js')
+    const p = proposeDay(tasks, { today, meetings, workdayHours: Number(settings.get().workdayHours) || 8.4, cap: store.TODAY_CAP })
+    const text = summary(p)
+    return text ? { add: p.add.length, out: p.out.length, text } : null
+  } catch (err) { console.warn('[day] plan:', err.message); return null }
+}
 /** The brief waits this long for the sheet, then goes on without it. */
 export const DRIFT_WAIT_MS = 3000
 /**
@@ -268,6 +281,7 @@ export async function brief() {
     chases: chasesSoft(),
     drift: driftNow
   }
+  out.plan = await planSoft(tasks, meetings, state.date)
   return { ...out, empty: isEmptyBrief(out) }
 }
 

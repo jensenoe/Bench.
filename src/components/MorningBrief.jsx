@@ -92,6 +92,10 @@ export default function MorningBrief({ open, onClose, onChanged }) {
             </p>}
 
             {b && empty && <p className="mt-5 text-[14px]" style={{ color: 'var(--ink-2)' }}>Nothing left over, nothing new, nothing due. The day is yours.</p>}
+            {b?.plan?.text && <p className="mt-4 text-[13.5px]" style={{ color: 'var(--ink-2)' }}>
+              {b.plan.text}{' '}
+              <a href="#/board?plan=1" onClick={later} className="-my-1 inline-block py-1 underline underline-offset-2" style={{ color: 'var(--ink-2)' }}>See the plan</a>
+            </p>}
 
             {b && b.leftovers.length > 0 && (
               <Section title="Left from yesterday" n={b.leftovers.length}>

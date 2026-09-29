@@ -207,6 +207,21 @@ try {
   await page.keyboard.press('Escape'); await page.waitForTimeout(350)
   check('Escape closes the key sheet', !(await sheet.isVisible().catch(() => false)))
 
+  // Plan my day (roadmap 161): the button on Today opens the proposal, axe is clean, Escape closes and focus goes back
+  const planBtn = page.getByRole('button', { name: 'Plan my day' })
+  check('Today carries a Plan my day button', await planBtn.count() === 1, String(await planBtn.count()))
+  await planBtn.click()
+  const planDialog = page.getByRole('dialog', { name: "Today's plan." })
+  await planDialog.getByRole('button', { name: 'Plan it.' }).waitFor({ state: 'visible', timeout: 5000 }).catch(() => {})
+  for (let i = 0; i < 20 && await planDialog.getByRole('button', { name: 'Plan it.' }).isDisabled().catch(() => true); i++) await page.waitForTimeout(150)
+  check('Plan my day opens the proposal', await planDialog.isVisible().catch(() => false) && /planned of/.test(await planDialog.textContent().catch(() => '')))
+  await page.waitForTimeout(400)
+  const planAxe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze()
+  check('axe with the plan open: no accessibility violations', planAxe.violations.length === 0, violations(planAxe))
+  check('the plan has no button under 24 px', (await page.evaluate(smallTargets)).length === 0, (await page.evaluate(smallTargets)).slice(0, 4).join(' | '))
+  await page.keyboard.press('Escape'); await page.waitForTimeout(400)
+  check('Escape closes the plan and gives focus back to its button', !(await planDialog.isVisible().catch(() => false)) && (await page.evaluate(() => document.activeElement?.textContent?.trim())) === 'Plan my day')
+
   // the nav (roadmap 130): three pages on top, More for the rest, and More says which page is on screen
   const navLinks = await page.evaluate(() => [...document.querySelectorAll('nav[aria-label="Pages"] a[href^="#/"]')].map(a => a.textContent.trim()).filter(t => t && t !== 'Skip to content'))
   check('the nav shows the wordmark, Board, Logbook and Projects', JSON.stringify(navLinks) === JSON.stringify(['Bench.', 'Board', 'Logbook', 'Projects']), JSON.stringify(navLinks))

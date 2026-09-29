@@ -332,7 +332,7 @@ export function updateTask(id, patch) {
 
   // Entering the waiting lane starts the clock; leaving it stops.
   if (patch.lane && patch.lane !== t.lane) {
-    if (patch.lane === 'waiting' && !t.waitingSince) patch.waitingSince = now()
+    if (patch.lane === 'waiting' && !t.waitingSince && !patch.waitingSince) patch.waitingSince = now()   // an undo brings its own date back
     if (patch.lane !== 'waiting') patch.waitingSince = null
   }
   let spawned = null

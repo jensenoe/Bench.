@@ -4,6 +4,7 @@ import { AnimatePresence } from 'motion/react'
 import TaskCard, { DRAG_TYPE } from './TaskCard.jsx'
 import AddTask from './AddTask.jsx'
 import Capacity from './Capacity.jsx'
+import PlanDay from './DayPlan.jsx'   // Plan my day (roadmap 161)
 import { LANES } from '../copy.js'
 import { STATUS } from '../scenes.js'
 import { daysSince, p2Suggestions } from '../lanes.js'
@@ -50,8 +51,11 @@ export default function Lane({ laneKey, tasks, candidates = [], onPatch, onDelet
       style={over ? { borderColor: full ? STATUS.overdue : 'var(--accent)', background: `color-mix(in srgb, ${full ? STATUS.overdue : 'var(--accent)'} 6%, var(--panel))` } : undefined}>
       <header className="flex items-baseline justify-between gap-4">
         <h2 className={`display font-semibold leading-none ${wide ? 'text-[30px]' : 'text-[22px]'}`}>{lane.label}.</h2>
-        <span className="tnum text-[13.5px]" style={{ color: overCap ? STATUS.overdue : 'var(--ink-3)' }}>
-          {open.length}{lane.cap ? ` of ${lane.cap}` : ''}
+        <span className="flex items-center gap-3">
+          {laneKey === 'today' && <PlanDay />}
+          <span className="tnum text-[13.5px]" style={{ color: overCap ? STATUS.overdue : 'var(--ink-3)' }}>
+            {open.length}{lane.cap ? ` of ${lane.cap}` : ''}
+          </span>
         </span>
       </header>
       <p className="mt-1.5 max-w-[60ch] text-[13px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>{lane.blurb}</p>
