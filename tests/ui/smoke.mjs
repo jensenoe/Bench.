@@ -23,8 +23,10 @@ const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bench-ui-'))
 // the morning brief only calls a Today task a leftover when it was last touched before midnight (roadmap 100).
 const yesterday = new Date(Date.now() - 86400000).toISOString()
 const LEFTOVER = { id: crypto.randomUUID(), source: 'local', plannerId: null, title: 'Left from yesterday', notes: '', lane: 'today', done: false, dueDate: null, leadTimeDays: null, orderBy: null, waitingOn: null, waitingSince: null, planTitle: null, bucketName: null, createdAt: yesterday, updatedAt: yesterday, lastTouched: yesterday, completedAt: null, order: 0 }
+// One innovation project from Planner, so #/projects has a list and a timeline to check (roadmap 162).
+const INNO = { ...LEFTOVER, id: crypto.randomUUID(), source: 'planner', sourceId: 'pl-ui', plannerId: 'pl-ui', title: 'I-1050 Handgrip strength', lane: 'innovation', dueDate: new Date(Date.now() + 40 * 86400000).toISOString().slice(0, 10) + 'T00:00:00Z', planTitle: 'Innovation', bucketName: 'Prüfung (testing)', sourceStatus: 'open', order: 1 }
 fs.mkdirSync(path.join(dir, 'data'), { recursive: true })
-fs.writeFileSync(path.join(dir, 'data', 'tasks.json'), JSON.stringify({ tasks: [LEFTOVER], meta: { lastSync: null, lastSyncError: null, sources: {}, version: 2 } }, null, 2))
+fs.writeFileSync(path.join(dir, 'data', 'tasks.json'), JSON.stringify({ tasks: [LEFTOVER, INNO], meta: { lastSync: null, lastSyncError: null, sources: {}, version: 2 } }, null, 2))
 // The runner's clock is UTC and several checks depend on the hour; the server and the browser run on Zurich time.
 const TZ = 'Europe/Zurich'
 const server = spawn(process.execPath, [path.join(root, 'server', 'index.js')], { env: { ...process.env, TZ, BENCH_DATA_DIR: path.join(dir, 'data'), BENCH_USER_DIR: path.join(dir, 'user'), BENCH_SECRETS_DIR: path.join(dir, 'user'), PORT: String(port), SYNC_INTERVAL_MINUTES: '0' }, stdio: ['ignore', 'pipe', 'pipe'] })
@@ -320,6 +322,25 @@ try {
   check('Escape keeps the card', await confirmBox.count() === 0 && await page.locator('li.row.group').count() > 0)
   await page.goto(`${BASE}/#/nowhere`); await page.waitForTimeout(600)
   check('an unknown route shows the lost page', await page.getByRole('heading', { name: 'No such page.' }).count() === 1)
+
+  // the portfolio timeline (roadmap 162): Timeline is remembered, scrolls in its own box on a phone, passes axe
+  await page.goto(`${BASE}/#/projects`); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(700)
+  await page.getByRole('button', { name: 'Timeline', exact: true }).click(); await page.waitForTimeout(400)
+  const tl = page.getByRole('region', { name: /Timeline of the open projects/ })
+  check('Timeline shows the open project on the axis with This month above', await tl.isVisible().catch(() => false) && /I-1050/.test(await tl.textContent().catch(() => '')) && await page.getByRole('heading', { name: 'This month.' }).count() === 1)
+  await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(600)
+  check('the Timeline view is remembered', await page.getByRole('button', { name: 'Timeline', exact: true }).getAttribute('aria-pressed') === 'true')
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  const tlAxe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze()
+  check('axe on the portfolio timeline: no accessibility violations', tlAxe.violations.length === 0, violations(tlAxe))
+  check('the timeline has no button or link under 24 px', (await page.evaluate(smallTargets)).length === 0, (await page.evaluate(smallTargets)).slice(0, 4).join(' | '))
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(400)
+  check('the timeline holds at phone width without page scroll', !(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)))
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.evaluate(() => { try { localStorage.removeItem('bench.innovation.view') } catch { /* */ } })
+  const pfReport = await fetch(`${BASE}/api/report/portfolio`).then(async r => ({ status: r.status, text: await r.text() }))
+  check('GET /api/report/portfolio answers with the portfolio report', pfReport.status === 200 && /Innovation portfolio/.test(pfReport.text) && /I-1050/.test(pfReport.text) && /Needs attention/.test(pfReport.text), String(pfReport.status))
 
   check('no console errors across the run', errors.length === 0, [...errors.slice(0, 3), ...failedUrls.slice(0, 4)].join(' | '))
 } catch (err) {

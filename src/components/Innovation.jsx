@@ -5,6 +5,7 @@ import { createProject } from '../api/projects.js'
 import { openLink, exportReport } from '../api.js'
 import { PanelSkeleton } from './Skeleton.jsx'
 import LoadFailed from './LoadFailed.jsx'
+import { MonthSummary, PortfolioTimeline } from './PortfolioTimeline.jsx'
 import { STATUS } from '../scenes.js'
 
 /**
@@ -12,7 +13,8 @@ import { STATUS } from '../scenes.js'
  * bucket is the stage in the Phase Gate plan (Concept, Development, Procurement, Testing, Production), its
  * due date the project's. The page gathers what carries the code: your tasks, Logbook entries and their open
  * actions, Napkin maps, and the synced Teams folder. Planner stays the source: nothing here moves the card.
- * #/projects?i=I-1050 opens one.
+ * #/projects?i=I-1050 opens one. The list also shows as a timeline with the last 30 days above it
+ * (PortfolioTimeline.jsx, roadmap 162), and Export portfolio PDF prints the whole portfolio for management.
  */
 const plural = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`
 const btn = 'pill inline-flex min-h-[32px] items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium disabled:opacity-50'
@@ -43,6 +45,9 @@ export function StageTrack({ stages, stage, big = false }) {
   )
 }
 
+const VIEW_KEY = 'bench.innovation.view'
+const movedAgo = n => n <= 0 ? 'today' : n === 1 ? 'yesterday' : `${n} days ago`
+const localToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
 const dueLine = p => p.done ? 'done in Planner' : p.due ? (p.overdue ? `due ${fmt(p.due)}, ${p.overdue} days over` : `due ${fmt(p.due)}`) : 'no due date'
 
 // ── the list, above the plans on #/projects ───────────────────────────
@@ -51,17 +56,40 @@ export function InnovationList() {
   const [err, setErr] = useState(null)
   const load = useCallback(() => getPortfolio().then(d => { setData(d); setErr(null) }).catch(e => setErr(e.message)), [])
   useEffect(() => { load(); addEventListener('bench:refresh', load); return () => removeEventListener('bench:refresh', load) }, [load])
+  const [view, setView] = useState(() => { try { return localStorage.getItem(VIEW_KEY) === 'timeline' ? 'timeline' : 'list' } catch { return 'list' } })
+  const choose = v => { setView(v); try { localStorage.setItem(VIEW_KEY, v) } catch { /* the view is a convenience */ } }
   if (err && !data) return <LoadFailed title="The innovation projects did not load." message={`${err}. Try again asks once more.`} onRetry={load} />
   if (!data) return <PanelSkeleton />
-  const { stages, projects } = data
+  const { stages, projects, summary } = data
+  const exportIt = async () => {
+    const today = summary?.today || new Date().toISOString().slice(0, 10)
+    try { const at = await exportReport('/api/report/portfolio', `Innovation portfolio - ${today}.pdf`); if (at) toast('Report saved.', at) }
+    catch (e) { toast('The report did not save.', e.message) }
+  }
   return (
     <section className="panel p-6 sm:p-7" aria-label="Innovation projects">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
         <h2 className="display text-[22px] font-semibold leading-none">Innovation.</h2>
         <span className="tnum text-[13.5px]" style={{ color: 'var(--ink-3)' }}>{projects.length ? `${plural(projects.filter(p => !p.done).length, 'project')} under way, from Planner` : 'from Planner'}</span>
+        {projects.length > 0 && (
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <div role="group" aria-label="Show the projects as" className="flex items-center gap-1">
+              {[['list', 'List'], ['timeline', 'Timeline']].map(([k, label]) => (
+                <button key={k} type="button" onClick={() => choose(k)} aria-pressed={view === k}
+                  className={btn + ' btn-ghost'} style={view === k ? { background: 'var(--wash-2)', color: 'var(--ink)' } : undefined}>{label}</button>
+              ))}
+            </div>
+            <button type="button" onClick={exportIt} className={quiet} title="Stage counts, every open project, the moves and decisions of the last 30 days and what needs attention, on one or two A4 pages"><FilePdf size={13} weight="bold" /> Export portfolio PDF</button>
+          </div>
+        )}
       </div>
       {!projects.length ? (
         <p className="mt-3 max-w-[65ch] text-[13.5px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>No innovation project yet. A Planner card whose title starts with an I-code, like "I-1050 Handgrip strength", shows up here by itself once Planner is connected.</p>
+      ) : view === 'timeline' ? (
+        <>
+          <MonthSummary summary={summary} />
+          <PortfolioTimeline projects={projects} today={summary?.today || localToday()} />
+        </>
       ) : (
         <ul className="mt-4 flex flex-col">
           {projects.map(p => (
@@ -73,7 +101,7 @@ export function InnovationList() {
                 </span>
                 <span className="min-w-0">
                   <StageTrack stages={stages} stage={p.stage} />
-                  <span className="mt-1 block text-[12.5px]" style={{ color: 'var(--ink-3)' }}>{p.stageName || p.bucket || 'no stage'}</span>
+                  <span className="mt-1 block text-[12.5px]" style={{ color: 'var(--ink-3)' }} data-volatile>{p.stageName || p.bucket || 'no stage'}{p.stageSinceExact && p.stage >= 0 ? `, moved here ${movedAgo(p.daysInStage)}` : ''}</span>
                 </span>
                 <span className="tnum flex flex-wrap items-baseline justify-end gap-x-3 text-[13px]" data-volatile>
                   <span style={{ color: p.overdue ? STATUS.overdue : 'var(--ink-3)' }}>{dueLine(p)}</span>

@@ -418,7 +418,9 @@ export function mergeSource(source, remote) {
     const existing = db.tasks.find(t => t.source === source && t.sourceId === r.sourceId)
     if (existing) {
       const gainedCode = !codeOf(existing.title) && codeOf(r.title) && !existing.done && existing.lane !== 'innovation'
-      const beforeMove = gainedCode ? structuredClone(existing) : null
+      // a Planner card that changed bucket moved stage: the feed keeps it, portfolio.js reads the moves back (roadmap 162)
+      const bucketMoved = source === 'planner' && (existing.bucketName ?? null) !== (r.subgroup ?? null)
+      const beforeMove = gainedCode || bucketMoved ? structuredClone(existing) : null
       Object.assign(existing, {
         title: r.title, dueDate: r.dueDate ?? null, url: r.url ?? null,
         planTitle: r.group ?? null, bucketName: r.subgroup ?? null,
@@ -426,7 +428,8 @@ export function mergeSource(source, remote) {
       })
       if (r.done && !existing.done) { existing.done = true; existing.completedAt = now() }
       if (!r.done && existing.done && existing.completedBy !== 'local') { existing.done = false; existing.completedAt = null }
-      if (gainedCode) { existing.lane = 'innovation'; events.push({ before: beforeMove, after: existing }) }
+      if (gainedCode) existing.lane = 'innovation'
+      if (beforeMove) events.push({ before: beforeMove, after: existing })
       updated++
     } else {
       db.tasks.push({
