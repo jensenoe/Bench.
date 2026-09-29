@@ -148,12 +148,25 @@ async function doDownload({ fetchImpl }) {
     const size = fs.statSync(part).size
     if (!size) throw fail('The installer came back empty.', 502)
     if (info.asset.size != null && size !== info.asset.size) throw fail(`The installer is ${size} bytes, GitHub said ${info.asset.size}.`, 502)
-    fs.renameSync(part, dest)
+    renameRetry(part, dest)
     writeState({ version: info.latest, path: dest, at: new Date().toISOString(), size })
     return { path: dest, version: info.latest, size }
   } catch (err) {
     try { fs.unlinkSync(part) } catch { /* nothing to remove */ }
     throw err
+  }
+}
+/**
+ * Windows: Defender scans a fresh .exe, and an installer deleted while it is open stays "delete pending";
+ * the rename over it then fails with EPERM (or EBUSY / EACCES). Retry for about half a second before
+ * giving up. The pause is Atomics.wait, not a timer, so fake clocks do not stall it.
+ */
+function renameRetry(from, to) {
+  for (let i = 1; ; i++) {
+    try { return fs.renameSync(from, to) } catch (err) {
+      if (i > 10 || !['EPERM', 'EBUSY', 'EACCES'].includes(err.code)) throw err
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10 * i)
+    }
   }
 }
 

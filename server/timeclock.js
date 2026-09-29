@@ -68,7 +68,20 @@ function save() {
   fs.mkdirSync(path.dirname(STATE_FILE), { recursive: true })
   const tmp = STATE_FILE + '.tmp'
   fs.writeFileSync(tmp, JSON.stringify(state, null, 2))
-  fs.renameSync(tmp, STATE_FILE)
+  renameRetry(tmp, STATE_FILE)
+}
+/**
+ * Windows: a virus scanner or the search indexer can hold the file for a moment after a write, and the
+ * rename over it then fails with EPERM (or EBUSY / EACCES). Retry for about half a second before giving
+ * up. The pause is Atomics.wait, not a timer, so it stays synchronous and fake clocks do not stall it.
+ */
+function renameRetry(from, to) {
+  for (let i = 1; ; i++) {
+    try { return fs.renameSync(from, to) } catch (err) {
+      if (i > 10 || !['EPERM', 'EBUSY', 'EACCES'].includes(err.code)) throw err
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10 * i)
+    }
+  }
 }
 
 /** One day's punches folded into numbers: worked and break in ms, first in, last out. */
@@ -92,7 +105,8 @@ function rollover() {
   const d = today()
   if (state.date === d) return
   const unclosed = (state.status === 'in' || state.status === 'lunch') ? { date: state.date, status: state.status } : null
-  const pending = state.events.filter(e => !e.written)   // keep retrying yesterday's unwritten punches
+  // keep retrying yesterday's unwritten punches, and whatever was still waiting from the days before
+  const pending = [...(state.pendingFromEarlier || []), ...state.events].filter(e => !e.written)
   const history = (state.history || []).filter(h => h.date !== state.date)
   if (state.events.some(e => e.kind === 'in')) history.push({ date: state.date, ...summarize(state.events), open: !!unclosed })
   state = { ...fresh(d), unclosed, pendingFromEarlier: pending, history: history.slice(-90) }

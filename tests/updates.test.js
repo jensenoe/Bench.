@@ -1,4 +1,4 @@
-import { describe, it, expect, afterAll } from 'vitest'
+import { describe, it, expect, afterAll, vi } from 'vitest'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -11,7 +11,9 @@ const bytes = (status, buf) => ({ status, ok: status >= 200 && status < 300, bod
 const NAME = 'Bench-Setup-99.0.0-test.exe'
 const FILE = path.join(DOWNLOAD_DIR, NAME)
 const release = (size) => ({ tag_name: 'v99.0.0', html_url: 'https://github.com/x/y/releases/tag/v99.0.0', assets: [{ id: 4242, name: NAME, size, browser_download_url: `https://dl/${NAME}` }] })
-const clean = () => { for (const f of [FILE, FILE + '.part', path.join(process.env.BENCH_USER_DIR, 'update.json')]) { try { fs.unlinkSync(f) } catch { /* not there */ } } }
+// Defender scans a fresh .exe; rmSync retries EPERM/EBUSY while it holds the file, where unlinkSync gives up at once.
+const rm = f => fs.rmSync(f, { force: true, maxRetries: 20, retryDelay: 25 })
+const clean = () => { for (const f of [FILE, FILE + '.part', path.join(process.env.BENCH_USER_DIR, 'update.json')]) rm(f) }
 afterAll(clean)
 
 describe('compare', () => {
@@ -110,8 +112,22 @@ describe('download', () => {
     await check({ force: true, fetchImpl })
     await download({ fetchImpl })
     expect(downloaded()).not.toBeNull()
-    fs.unlinkSync(FILE)
+    rm(FILE)
     expect(downloaded()).toBeNull()
+  })
+  it('retries the rename while a virus scanner still holds the installer', async () => {
+    clean()
+    const payload = Buffer.from('MZ scanned')
+    const fetchImpl = async (url) => url.endsWith('/releases/latest') ? res(200, release(payload.length)) : bytes(200, payload)
+    await check({ force: true, fetchImpl })
+    const held = () => { throw Object.assign(new Error('EPERM: operation not permitted, rename'), { code: 'EPERM' }) }
+    const spy = vi.spyOn(fs, 'renameSync').mockImplementationOnce(held).mockImplementationOnce(held)
+    try {
+      await expect(download({ fetchImpl })).resolves.toMatchObject({ version: '99.0.0', path: FILE })
+      expect(spy.mock.calls.length).toBeGreaterThanOrEqual(3)   // two held, then real renames (a real scanner may add more)
+    } finally { spy.mockRestore() }
+    expect(fs.readFileSync(FILE)).toEqual(payload)
+    expect(fs.existsSync(FILE + '.part')).toBe(false)
   })
 })
 

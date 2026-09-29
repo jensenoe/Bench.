@@ -53,7 +53,7 @@ describe('an open day', () => {
     expect(tc.snapshot().unclosed).toEqual({ date: '2026-09-22', status: 'lunch' })
     tc.closeUnclosed('16:00')
     const kinds = tc.snapshot().pending
-    expect(kinds).toBeGreaterThanOrEqual(5)              // in, lunchOut, lunchIn, pause, out from Tuesday plus Monday's two
+    expect(kinds).toBe(7)                                // in, lunchOut, lunchIn, pause, out from Tuesday plus Monday's two
     expect(tc.snapshot().unclosed).toBeNull()
   })
   it('can also be waved away', async () => {
@@ -61,5 +61,17 @@ describe('an open day', () => {
     vi.setSystemTime(local(2026, 9, 24, 9, 0))
     expect(tc.snapshot().unclosed?.date).toBe('2026-09-23')
     expect(tc.dismissUnclosed().unclosed).toBeNull()
+  })
+})
+
+describe('saving', () => {
+  it('retries a rename that a virus scanner holds up for a moment', () => {
+    const held = () => { throw Object.assign(new Error('EPERM: operation not permitted, rename'), { code: 'EPERM' }) }
+    const spy = vi.spyOn(fs, 'renameSync').mockImplementationOnce(held).mockImplementationOnce(held)
+    try {
+      expect(() => tc.dismissUnclosed()).not.toThrow()
+      expect(spy).toHaveBeenCalledTimes(3)
+    } finally { spy.mockRestore() }
+    expect(JSON.parse(fs.readFileSync(path.join(dir, 'timeclock.json'), 'utf8')).date).toBe('2026-09-24')
   })
 })
