@@ -7,7 +7,8 @@ import useFocusTrap from '../hooks/useFocusTrap.js'
 /**
  * The evening close (roadmap 69). Offered right after the out punch: each open Today task rolls to
  * tomorrow or goes back to Active, and a day note goes into the Logbook with the hours, what was
- * ticked, the meetings and what rolls over. "Close the day." does it and shuts the panel.
+ * ticked, the meetings and what rolls over. "Close the day." does it and shuts the panel. With more than one
+ * left, Keep for tomorrow and Back to Active set them all at once (roadmap 161); nothing moves before the click.
  */
 const hm = ms => { const m = Math.round((ms || 0) / 60000); return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}` }
 const toast = (text, by) => window.dispatchEvent(new CustomEvent('bench:toast', { detail: { text, by, plain: true } }))
@@ -65,6 +66,8 @@ export default function EveningClose({ open, onClose, onChanged }) {
     } catch (e) { setErr(e.message) } finally { setBusy(false) }
   }
   const toggle = (id, toActive) => setBack(s => { const n = new Set(s); toActive ? n.add(id) : n.delete(id); return n })
+  const allBack = Boolean(info?.today.length) && back.size === info.today.length
+  const setAll = toActive => setBack(toActive && info ? new Set(info.today.map(t => t.id)) : new Set())
 
   return (
     <AnimatePresence>
@@ -86,9 +89,15 @@ export default function EveningClose({ open, onClose, onChanged }) {
 
             {info && (
               <section className="mt-6" aria-label="Still on Today">
-                <div className="flex items-baseline justify-between gap-4">
-                  <h3 className="display text-[18px] font-semibold leading-none">Still on Today.</h3>
-                  <span className="tnum text-[13px]" style={{ color: 'var(--ink-3)' }}>{info.today.length}</span>
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                  <h3 className="display tnum text-[18px] font-semibold leading-none">Still on Today: {info.today.length}.</h3>
+                  {/* all at once (roadmap 161): nothing moves until Close the day, and Keep for tomorrow changes nothing */}
+                  {info.today.length > 1 && (
+                    <span role="radiogroup" aria-label="Where everything still on Today goes" onKeyDown={radioKeys(allBack, v => setAll(v))} className="flex shrink-0 gap-1">
+                      <Choice on={back.size === 0} focusable={!allBack} onClick={() => setAll(false)}>Keep for tomorrow</Choice>
+                      <Choice on={allBack} onClick={() => setAll(true)}>Back to Active</Choice>
+                    </span>
+                  )}
                 </div>
                 {info.today.length === 0 && <p className="mt-2.5 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>Today is clear. Nothing rolls over.</p>}
                 <ul className="mt-2.5 flex flex-col gap-1.5">
@@ -129,9 +138,9 @@ export default function EveningClose({ open, onClose, onChanged }) {
   )
 }
 
-function Choice({ on, onClick, children }) {
+function Choice({ on, onClick, children, focusable = on }) {
   return (
-    <button type="button" role="radio" aria-checked={on} tabIndex={on ? 0 : -1} onClick={onClick} className="pill h-6 px-3 text-[12.5px] font-medium"
+    <button type="button" role="radio" aria-checked={on} tabIndex={focusable ? 0 : -1} onClick={onClick} className="pill h-6 px-3 text-[12.5px] font-medium"
       style={on ? { background: 'var(--ink)', color: 'var(--bg)' } : { border: '1px solid var(--line-2)', color: 'var(--ink-2)' }}>{children}</button>
   )
 }

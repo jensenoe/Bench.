@@ -100,6 +100,10 @@ without publishing and leaves the exes as a workflow artifact.
 - **P1 goes to Today.** A task set to P1, created as P1 or arriving as P1 (Urgent in Planner) moves to Today
   when there is room, once: move it out by hand and it stays out. With room left, Today suggests up to two
   P2 tasks (Important in Planner) with Add to Today and Not today, and the Bell says so once in the morning.
+- **Plan my day.** A button on Today proposes the day: what stays, what comes in and what goes back to
+  Active, each with its reason, inside the five places and the hours the calendar leaves free. Untick what
+  you disagree with, Plan it., and Undo in the toast puts the lanes back. The morning brief says when a plan
+  is ready.
 - **Project reports.** Export PDF on a project's page puts its stage, plan and room, tasks, open actions and
   decisions on one A4 page to share; the desktop app asks where to save it and opens it.
 - **Innovation projects.** Every Planner card whose title starts with an I-code (I-1050 Handgrip strength)
