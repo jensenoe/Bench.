@@ -19,6 +19,7 @@ import * as settings from './settings.js'
 import { suggest as suggestLead } from './leadtimes.js'
 import { isOff, rules, offBetween } from './workdays.js'
 import * as playbooks from './playbooks.js'
+import { codeOf, mentions } from './codes.js'
 
 const wrap = fn => (req, res) => Promise.resolve().then(() => fn(req, res)).catch(err => res.status(err.status || 500).json({ error: err.message }))
 const col = db.collection('projects')
@@ -57,6 +58,10 @@ export const STARTER_PHASES = [
   { name: 'Electrical', days: 5 }, { name: 'Software', days: 5 }, { name: 'Test', days: 5 }, { name: 'Handover', days: 2 }
 ]
 export const LABELS = ['FAT', 'Delivery', 'Handover', 'Milestone']
+/** An innovation project's plan starts from the Phase Gate stages (roadmap 143), in working days. */
+export const INNOVATION_PHASES = [
+  { name: 'Concept', days: 10 }, { name: 'Development', days: 20 }, { name: 'Procurement', days: 15 }, { name: 'Testing', days: 10 }, { name: 'Production', days: 5 }
+]
 
 /** Walks back from the deadline: the last phase ends on it, every phase before ends the working day before the next starts. */
 export function scheduleBackwards(phases, deadline) {
@@ -74,7 +79,16 @@ export function scheduleBackwards(phases, deadline) {
 }
 
 /** Tasks of the project: the same text in `project`, case-insensitive. */
-const belongs = (t, project) => (t.project || '').trim().toLowerCase() === (project.machine || '').trim().toLowerCase()
+/**
+ * Tasks of the project: the same text in `project`, case-insensitive. An innovation project (an I-code in its
+ * machine field, roadmap 143) takes every task that names the code in its title or project, except its own
+ * Planner card, which is the project itself.
+ */
+const belongs = (t, project) => {
+  const code = codeOf(project.machine)
+  if (code) return !(t.source === 'planner' && codeOf(t.title) === code) && (mentions(t.title, code) || mentions(t.project, code))
+  return (t.project || '').trim().toLowerCase() === (project.machine || '').trim().toLowerCase()
+}
 
 /**
  * Parts to order: tasks with a supplier and no order yet. Need-by is the start of the task's phase, or of
@@ -155,7 +169,8 @@ const clean = (p, input = {}) => {
 export const list = () => load().items.slice().sort((a, b) => (a.deadline || '9999').localeCompare(b.deadline || '9999'))
 export function create(input = {}) {
   const db = load()
-  const p = clean({ id: crypto.randomUUID(), createdAt: now(), phases: null }, { ...input, phases: input.phases || STARTER_PHASES })
+  const starter = codeOf(input.machine) || codeOf(input.name) ? INNOVATION_PHASES : STARTER_PHASES
+  const p = clean({ id: crypto.randomUUID(), createdAt: now(), phases: null }, { ...input, phases: input.phases || starter })
   if (p.deadline) p.phases = scheduleBackwards(p.phases, p.deadline)
   db.items.push(p); save(); return p
 }

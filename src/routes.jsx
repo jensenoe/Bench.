@@ -72,7 +72,7 @@ export function Routes({
       </>)}
 
       {r === 'projects' && page('projects', <>
-        <TerrainHeader compact scene={sceneAt(timeKey, now, 8)} title="Projects" line="A machine, the one date that matters, and the phases before it. The dates fall out of the deadline." />
+        <TerrainHeader compact scene={sceneAt(timeKey, now, 8)} title="Projects" line="Your innovation projects from Planner, and plans back from the one date that matters." />
         <div className="relative">
           <Coach id="projects" steps={COACH.projects} />
           <Projects />

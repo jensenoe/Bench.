@@ -10,7 +10,7 @@ export const PAGES = [
   { id: '', title: 'Home', key: '1', line: 'The day at a glance' },
   { id: 'board', title: 'Board', key: '2', primary: true, line: 'Five lanes, a cap of five on Today' },
   { id: 'logbook', title: 'Logbook', key: '3', primary: true, line: 'Meetings, decisions, actions' },
-  { id: 'projects', title: 'Projects', key: '4', primary: true, line: 'A machine planned back from its deadline' },
+  { id: 'projects', title: 'Projects', key: '4', primary: true, line: 'Innovation projects and their plans' },
   { id: 'procurement', title: 'Procurement', key: '5', group: 'Parts and machines', line: 'Order dates, suppliers, lead times' },
   { id: 'machines', title: 'Machines', key: '6', group: 'Parts and machines', line: 'Everything that hangs on one machine' },
   { id: 'playbooks', title: 'Playbooks', group: 'Parts and machines', line: 'The standard task set for a machine' },

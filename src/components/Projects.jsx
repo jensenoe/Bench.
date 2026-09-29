@@ -9,6 +9,7 @@ import LoadFailed from './LoadFailed.jsx'
 import { ask } from './Confirm.jsx'
 import { STATUS } from '../scenes.js'
 import { patchTask, saveSettings } from '../api.js'
+import { InnovationList, InnovationDetail, codeFromHash } from './Innovation.jsx'
 
 /**
  * Projects (roadmap 121 to 125): one page that plans a machine. A project is a goal, a machine, the one date
@@ -16,6 +17,7 @@ import { patchTask, saveSettings } from '../api.js'
  * it, every phase before ends the working day before the next begins. Tasks join a phase through their
  * project text and a phase select; parts with a supplier get an order-by date from the learned lead times.
  * The timeline, the slack and the fit are read from that, nothing is typed twice. #/projects?p=<id> opens one.
+ * Above the plans sit the innovation projects from Planner (Innovation.jsx, roadmap 143); #/projects?i=<code> opens one.
  */
 const toast = (text, by) => window.dispatchEvent(new CustomEvent('bench:toast', { detail: { text, by, plain: true } }))
 const refresh = () => window.dispatchEvent(new Event('bench:refresh'))
@@ -507,11 +509,12 @@ const Figure = ({ value, label, tone }) => (
 
 export default function Projects() {
   const [id, setId] = useState(idFromHash)
+  const [code, setCode] = useState(codeFromHash)
   const [items, setItems] = useState(null)
   const [machines, setMachines] = useState([])
   const [listErr, setListErr] = useState(null)
   useEffect(() => {
-    const on = () => setId(idFromHash())
+    const on = () => { setId(idFromHash()); setCode(codeFromHash()) }
     addEventListener('hashchange', on); return () => removeEventListener('hashchange', on)
   }, [])
   // A list that did not load is not an empty list: say so, and keep what was on screen when a refresh fails.
@@ -539,11 +542,16 @@ export default function Projects() {
   useEffect(() => { getMachines().then(ms => setMachines((Array.isArray(ms) ? ms : []).map(m => m.name).filter(Boolean))).catch(() => {}) }, [])
   const sorted = useMemo(() => (items || []).slice(), [items])
   if (id) return <ProjectDetail id={id} onBack={() => { setHash(null); load() }} />
+  if (code) return <InnovationDetail code={code} onBack={() => { location.hash = '#/projects' }} />
   return (
     <main className="mx-auto col flex flex-col gap-4 px-6">
-      <div className="flex flex-wrap items-center gap-3"><NewProject machines={machines} onCreated={(p) => { load(); setHash(p.id) }} /></div>
+      <InnovationList />
+      <div className="mt-4 flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="display text-[22px] font-semibold leading-none">Plans.</h2>
+        <NewProject machines={machines} onCreated={(p) => { load(); setHash(p.id) }} />
+      </div>
       {items === null ? (listErr ? <LoadFailed title="The projects did not load." message={`${listErr}. Nothing is lost; Try again asks for them once more.`} onRetry={() => { setListErr(null); load() }} /> : <PanelSkeleton />) : sorted.length ? <div className="grid gap-4 md:grid-cols-2">{sorted.map(p => <ProjectCard key={p.id} p={p} />)}</div>
-        : <p className="max-w-[60ch] text-[14px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>No project yet. A project is a machine, the one date that matters and the phases before it; the dates fall out of the deadline. Tasks whose project reads the machine's name join by themselves.</p>}
+        : <p className="max-w-[60ch] text-[14px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>No plan yet. A plan is a machine or an innovation project, the one date that matters and the phases before it; the dates fall out of the deadline. On an innovation project, Plan it back from a date starts one with the five stages.</p>}
     </main>
   )
 }

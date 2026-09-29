@@ -12,7 +12,7 @@
 Installing over an older Bench. keeps your board, hours and settings. `Bench-portable-…exe` on the
 same page is the no-install version: keep it in any folder and run it from there.
 
-**0.11, twentieth beta (0.11.0-beta.20).** Everything here works on my machine and on the mocks; the
+**0.11, twenty-first beta (0.11.0-beta.21).** Everything here works on my machine and on the mocks; the
 Microsoft paths (Planner, the hours workbook, the issue list, the calendar) still want a
 first real run in the tom.fit tenant, and the issue list and calendar need a one-time admin
 approval, see below.
@@ -54,7 +54,7 @@ Administrator; `build-exe.bat plain` skips the icon stamping instead, and `build
 Bump `version` in `package.json`, commit, then tag and push:
 
 ```bash
-git tag v0.11.0-beta.20 && git push --tags
+git tag v0.11.0-beta.21 && git push --tags
 ```
 
 The *Release* workflow in `.github/workflows/release.yml` builds both exes on a Windows
@@ -86,7 +86,11 @@ without publishing and leaves the exes as a workflow artifact.
 - **Bench. speaks MCP.** `scripts/mcp.mjs` is a Model Context Protocol server: register it once with
   `claude mcp add bench -- node <repo>\scripts\mcp.mjs` and Claude can read and write the board, the
   Logbook, machines, hours and the review while Bench. runs. Nothing leaves the machine. See `docs/mcp.md`.
-- **Projects.** `#/projects` plans a machine backwards from the one date that matters: phases in
+- **Innovation projects.** Every Planner card whose title starts with an I-code (I-1050 Handgrip strength)
+  is a project on `#/projects`, with its stage from the card's bucket (Concept, Development, Procurement,
+  Testing, Production) and its due date. Its page gathers what names the code: your tasks, Logbook entries
+  and open actions, Napkin maps, and the synced Teams folder. Planner stays the source; Bench. only reads it.
+- **Projects.** `#/projects` also plans a machine or an innovation project backwards from the one date that matters: phases in
   working days, dates that fall out of the deadline, parts that get their order-by from the learned lead
   times, and slack and fit per phase. Weekends, the Zurich holidays and your own days off are skipped.
   A task can wait for others; Bench. walks the chain forward and names the task where the room runs out.

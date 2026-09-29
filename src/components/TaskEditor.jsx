@@ -7,6 +7,7 @@ import { STATUS } from '../scenes.js'
 import { fmtDate } from '../lanes.js'
 import { suggestOrderBy } from '../api/leadtimes.js'
 import { getMachines } from '../api/machines.js'
+import { getPortfolio } from '../api/portfolio.js'
 
 const L = ({ label, children, span }) => (
   <label className={`block text-[13px] ${span ? 'col-span-2' : ''}`} style={{ color: 'var(--ink-3)' }}>{label}{children}</label>
@@ -82,7 +83,8 @@ export default function TaskEditor({ task, onPatch, onClose }) {
   const [machineOffered, setMachineOffered] = useState(true)
   useEffect(() => {
     let on = true
-    getMachines().then(ms => { if (on) setMachines((Array.isArray(ms) ? ms : []).map(m => m.name).filter(Boolean)) }).catch(() => { /* the field stays free text */ })
+    Promise.all([getMachines().catch(() => []), getPortfolio().then(d => (d?.projects || []).filter(p => !p.done).map(p => p.title)).catch(() => [])])
+      .then(([ms, innov]) => { if (on) setMachines([...new Set([...innov, ...(Array.isArray(ms) ? ms : []).map(m => m.name).filter(Boolean)])]) })   // innovation projects first (roadmap 143)
     return () => { on = false }
   }, [])
   // The project's phases, when the project text names a planned machine (roadmap 121).

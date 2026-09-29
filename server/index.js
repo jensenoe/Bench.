@@ -43,6 +43,7 @@ const hero = await import('./hero.js')               // the briefing under the g
 const commute = await import('./commute.js')         // the drive home with live traffic (roadmap 120)
 const projects = await import('./projects.js')       // plans with phases and a deadline (roadmap 121)
 const nudges = await import('./nudges.js')           // water and coffee at the right moments (roadmap 139)
+const portfolio = await import('./portfolio.js')     // the innovation projects, from the I-coded Planner cards (roadmap 143)
 const issuesSource = await import('./sources/issues.js')   // its site and list, for the admin's Sites.Selected grant (roadmap 140)
 
 const PORT = Number(process.env.PORT || 5178)
@@ -220,6 +221,7 @@ hero.registerRoutes(app)
 commute.registerRoutes(app)
 projects.registerRoutes(app)
 nudges.registerRoutes(app)
+portfolio.registerRoutes(app)
 updates.registerRoutes(app)                          // /api/updates and the background download (roadmap 76)
 
 // Serve the built frontend when it exists (npm run build && npm start)
