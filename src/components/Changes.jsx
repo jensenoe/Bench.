@@ -44,7 +44,10 @@ const words = (c) => {
 export const describe = (e) => {
   if (e.kind === 'created') return { who: e.who, what: 'added' }
   if (e.kind === 'deleted') return { who: e.who, what: 'deleted' }
-  if (e.kind === 'synced') return { who: `${e.who} sync`, what: e.changes.some(c => c.field === 'done' && c.to) ? 'closed' : 'added' }
+  if (e.kind === 'synced') {
+    const moved = e.changes.find(c => c.field === 'bucketName' && c.from && c.to)   // a Planner card changed bucket (roadmap 162)
+    return { who: `${e.who} sync`, what: e.changes.some(c => c.field === 'done' && c.to) ? 'closed' : moved ? `moved to ${moved.to}` : 'added' }
+  }
   const list = e.changes.map(words)
   return { who: e.who, what: list.length > 3 ? `${list.slice(0, 3).join(', ')} and ${list.length - 3} more` : list.join(', ') }
 }

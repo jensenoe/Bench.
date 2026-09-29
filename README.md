@@ -106,6 +106,10 @@ without publishing and leaves the exes as a workflow artifact.
   is a project on `#/projects`, with its stage from the card's bucket (Concept, Development, Procurement,
   Testing, Production) and its due date. Its page gathers what names the code: your tasks, Logbook entries
   and open actions, Napkin maps, and the synced Teams folder. Planner stays the source; Bench. only reads it.
+  Bench. remembers when a card moves bucket, so the list also shows as a timeline (eight weeks back, twelve
+  ahead) with each project's stage, since when, its due date and open work, and the last 30 days above it:
+  projects per stage, stage moves, overdue projects, decisions. Export portfolio PDF puts the whole portfolio,
+  what needs attention, the moves and the decisions on one or two A4 pages for management.
 - **Innovation lane.** Cards whose title carries an I-code land in the Board's Innovation lane; one
   moved by hand stays where it is put.
 - **Projects.** `#/projects` also plans a machine or an innovation project backwards from the one date that matters: phases in

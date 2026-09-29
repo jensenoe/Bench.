@@ -6,7 +6,8 @@
  *
  *   innovationReport(d, { today, author })   pure: HTML from GET /api/portfolio/:code
  *   planReport(d, { today, author })         pure: HTML from GET /api/projects/:id
- *   GET /api/report/innovation/:code   GET /api/report/project/:id
+ *   portfolioReport(list, { today, author, moves, decisions })   pure: the innovation portfolio (roadmap 162)
+ *   GET /api/report/innovation/:code   GET /api/report/project/:id   GET /api/report/portfolio
  */
 import * as portfolio from './portfolio.js'
 import * as projects from './projects.js'
@@ -48,6 +49,15 @@ td.n, th.n { text-align: right; white-space: nowrap; }
 .done td { color: #777; }
 .none { color: #777; margin: 1mm 0; }
 footer { margin-top: 9mm; padding-top: 2mm; border-top: .5pt solid #ccc; color: #777; font-size: 8pt; }
+.cap { color: #555; font-size: 8.5pt; margin: 0 0 2mm; }
+.stages { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.5mm; margin: 0 0 1mm; }
+.stages div { border-top: 3pt solid #ddd; padding-top: 1.5mm; color: #777; }
+.stages div.on { border-color: #111; color: #111; }
+.stages b { display: block; font-size: 16pt; font-weight: 650; line-height: 1.15; }
+.stages span { font-size: 8.5pt; }
+table.dense td, table.dense th { font-size: 9pt; }
+td.nw, th.nw { white-space: nowrap; }
+.note { color: #777; font-size: 8pt; margin: 1.5mm 0 0; }
 `
 function page({ title, kicker, meta, body, today, print }) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -124,12 +134,57 @@ ${orderRows.length ? `<h2>Parts to order</h2>${table(['Part', 'Supplier', { t: '
   return page({ title: p.name, kicker: 'Project plan', meta: [p.machine && p.machine !== p.name ? p.machine : null, author ? `Prepared by ${author}` : null, fmt(today)].filter(Boolean).join(' · '), body, today, print })
 }
 
+const clip = (s, n) => { const t = String(s ?? '').replace(/\s+/g, ' ').trim(); return t.length > n ? `${t.slice(0, n - 1).trimEnd()}…` : t }
+/** "12 days late" or "40 days of room" from a project's due date; empty without one. */
+const lateOrRoom = p => p.overdue > 0 ? plural(p.overdue, 'day') + ' late' : typeof p.daysToDue === 'number' ? (p.daysToDue === 0 ? 'due today' : `${plural(p.daysToDue, 'day')} of room`) : ''
+const DECISIONS_MAX = 14
+
+/**
+ * The portfolio for management (roadmap 162): one or two A4 pages with the open projects per stage, what needs
+ * attention (overdue, stuck in a stage, actions left open), every open project with its stage, since when and
+ * its due date, the stage moves and the Logbook decisions of the last 30 days. list is portfolio.portfolio(),
+ * moves and decisions come from portfolio.summary(). Tasks' notes and entries' notes stay out.
+ */
+export function portfolioReport(list, { today, author = '', moves = [], decisions = [], print = false } = {}) {
+  const open = list.filter(p => !p.done)
+  const counts = portfolio.STAGES.map((s, i) => ({ name: s.name, n: open.filter(p => p.stage === i).length }))
+  const other = open.filter(p => p.stage < 0).length
+  const overdue = open.filter(p => p.overdue > 0).length
+  const attention = portfolio.needsAttention(open)
+  const stages = `<p class="cap">Open projects by stage</p><div class="stages">${counts.map(c => `<div class="${c.n ? 'on' : ''}"><b>${c.n}</b><span>${esc(c.name)}</span></div>`).join('')}</div>
+${other ? `<p class="note">${esc(plural(other, 'project'))} in a bucket that is not one of the five stages.</p>` : ''}`
+  const figs = `<div class="figs">
+${fig(open.length, open.length === 1 ? 'open project' : 'open projects')}
+${fig(new Set(moves.map(m => m.code)).size, 'moved stage in 30 days')}
+${fig(overdue, 'past their due date', overdue ? 'late' : '')}
+${fig(decisions.length, decisions.length === 1 ? 'decision in 30 days' : 'decisions in 30 days')}
+</div>`
+  const attentionRows = attention.map(a => `<tr><td class="nw">${esc(a.code)}</td><td>${esc(a.name)}</td><td>${a.reasons.map(r => `<span${r.kind === 'overdue' ? ' class="late"' : ''}>${esc(r.text)}</span>`).join('; ')}</td></tr>`)
+  const since = p => p.stageSince ? `${p.stageSinceExact ? '' : 'by '}${fmt(p.stageSince)}` : ''
+  const anyBy = open.some(p => p.stageSince && !p.stageSinceExact)
+  const projectRows = open.map(p => `<tr><td class="nw">${esc(p.code)}</td><td>${esc(p.name)}</td><td>${esc(p.stageName || (p.bucket ? `"${p.bucket}"` : 'none'))}</td><td class="nw">${esc(since(p))}</td><td class="n">${esc(fmt(p.due))}</td><td class="n${p.overdue > 0 ? ' late' : ''}">${esc(lateOrRoom(p))}</td><td class="n">${p.openActions || ''}</td></tr>`)
+  const moveRows = moves.map(m => `<tr><td class="nw">${esc(fmt(m.date))}</td><td class="nw">${esc(m.code)}</td><td>${esc(m.name)}</td><td>${esc(m.from)}</td><td>${esc(m.to)}</td></tr>`)
+  const decisionRows = decisions.slice(0, DECISIONS_MAX).map(d => `<tr><td class="nw">${esc(fmt(d.date))}</td><td class="nw">${esc(d.code)}</td><td>${esc(clip(d.text, 180))}</td><td>${esc(clip(d.entry, 40))}</td></tr>`)
+  const body = `${stages}${figs}
+<h2>Needs attention</h2>${table(['Code', 'Project', 'Why'], attentionRows, `Nothing stands out: no project is past its due date, in one stage for ${portfolio.STUCK_DAYS} days or more, or has actions open longer than ${portfolio.STALE_ACTION_DAYS} days.`)}
+<h2>Open projects</h2>${table(['Code', 'Project', 'Stage', { t: 'Stage since' }, { t: 'Due', n: true }, { t: 'Late or room', n: true }, { t: 'Actions', n: true }], projectRows, 'No open innovation project. A Planner card whose title starts with an I-code becomes one.').replace('<table>', '<table class="dense">')}
+${anyBy ? '<p class="note">"by" is the day Bench. first saw the card in that stage; it may have been there longer.</p>' : ''}
+<h2>Moved this month</h2>${table(['Date', 'Code', 'Project', 'From', 'To'], moveRows, 'No project changed stage in the last 30 days.').replace('<table>', '<table class="dense">')}
+<h2>Decisions this month</h2>${table(['Date', 'Code', 'Decision', 'Meeting'], decisionRows, 'No Logbook decision in the last 30 days names an I-code.').replace('<table>', '<table class="dense">')}
+${decisions.length > DECISIONS_MAX ? `<p class="note">And ${esc(plural(decisions.length - DECISIONS_MAX, 'more decision'))} in the Logbook.</p>` : ''}`
+  return page({ title: 'Innovation portfolio', kicker: 'Management report', meta: [author ? `Prepared by ${author}` : null, fmt(today)].filter(Boolean).join(' · '), body, today, print })
+}
+
 const todayIso = () => projects.isoOf(new Date())
 const author = () => { try { return String(settings.get().name || '').trim() } catch { return '' } }
 const send = (res, html) => res.set('Cache-Control', 'no-store').type('html').send(html)
 const wrap = fn => (req, res) => Promise.resolve().then(() => fn(req, res)).catch(err => res.status(err.status || 500).json({ error: err.message }))
 
 export function registerRoutes(app) {
+  app.get('/api/report/portfolio', wrap((req, res) => {
+    const today = todayIso(), { projects: list, summary } = portfolio.overview(today)
+    send(res, portfolioReport(list, { today, author: author(), moves: summary.moved, decisions: summary.decisions, print: req.query.print === '1' }))
+  }))
   app.get('/api/report/innovation/:code', wrap((req, res) => {
     const today = todayIso(), d = portfolio.detail(req.params.code, today)
     if (!d) return res.status(404).json({ error: 'not found' })
