@@ -130,12 +130,12 @@ export function AdminApproval({ auth, name = '' }) {
   const [copied, setCopied] = useState(null)
   const a = auth?.approval
   if (!a) return null
-  const on = { 'Tasks.ReadWrite': auth.signedIn, 'Files.ReadWrite': auth.signedIn, 'Calendars.ReadBasic': auth.extra?.granted, 'Sites.Selected': auth.extra?.granted }
+  const on = { 'Tasks.ReadWrite': auth.signedIn, 'Files.ReadWrite': auth.signedIn, 'Calendars.ReadBasic': auth.extra?.granted, 'Sites.Selected': auth.extra?.granted, 'Lists.SelectedOperations.Selected': auth.extra?.granted }
   const first = String(name || '').trim().split(/\s+/)[0] || ''
   const site = a.site || {}
   const note = [
     'Hi,', '',
-    `I've added Calendars.ReadBasic and Sites.Selected to "${a.app}" (client ID ${a.clientId}) and accepted them myself.`,
+    `The app "${a.app}" (client ID ${a.clientId}) asks for Calendars.ReadBasic, Sites.Selected and Lists.SelectedOperations.Selected for the calendar and the issue list.`,
     `Could you grant the app read on the one list, "${site.listName || 'the issue-ticket list'}" (list ID ${site.list || ''}) on ${site.url || 'our SharePoint'}?`, '',
     first ? `Thanks, ${first}` : 'Thanks'
   ].join('\n')
@@ -144,9 +144,9 @@ export function AdminApproval({ auth, name = '' }) {
   return (
     <div className="row mt-3 p-4 text-[13.5px]">
       <p className="font-medium">Permissions.</p>
-      <p className="mt-2 text-[13px]" style={{ color: 'var(--ink-3)' }}>You accept these yourself, in the Microsoft prompt: the first two when you connect, the other two when you sign in again below.</p>
+      <p className="mt-2 text-[13px]" style={{ color: 'var(--ink-3)' }}>In tom.fit these are approved for your account: the first two come with Connect, the others with Sign in again below.</p>
       <ul className="mt-1 flex flex-col gap-1 text-[13px]">{all.map(x => <PermissionLine key={x.scope} x={x} works={on[x.scope]} waiting={false} />)}</ul>
-      <p className="mt-3 text-[13px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>The issue list needs one more thing: your admin grants the app read on that one list, {site.listName ? `"${site.listName}"` : 'the issue-ticket list'}. Ask once the second sign-in is done.</p>
+      <p className="mt-3 text-[13px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>The issue list also needs the app granted read on that one list, {site.listName ? `"${site.listName}"` : 'the issue-ticket list'}; in tom.fit that is in place for your account.</p>
       {auth.signedIn && (
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <button onClick={() => copy(note, 'note')} className="pill btn-quiet inline-flex min-h-[32px] items-center gap-1.5 px-3.5 py-1.5 text-[13px]">{copied === 'note' ? 'Copied' : 'Copy a note for your admin'}</button>

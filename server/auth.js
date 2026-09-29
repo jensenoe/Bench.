@@ -22,7 +22,9 @@ const CORE = ['Tasks.ReadWrite', 'Files.ReadWrite'].map(g)
 // Least privilege (roadmap 140), as the tom.fit admin asked: the calendar through Calendars.ReadBasic (subject,
 // times, place, people, never bodies or attachments), the issue list through Sites.Selected, which reaches only
 // the sites an admin has granted to this app. Bench. reads exactly one list on one site.
-const EXTRA = ['Sites.Selected', 'Calendars.ReadBasic'].map(g)
+// Lists.SelectedOperations.Selected (roadmap 142): the issue list is granted to the app as a list, not a site; the
+// admin's grant for this account covers it together with Sites.Selected, so both are asked for.
+const EXTRA = ['Sites.Selected', 'Lists.SelectedOperations.Selected', 'Calendars.ReadBasic'].map(g)
 // Mail.Read is asked for on its own (roadmap 138): one refused scope fails the whole request, so an admin
 // who approves the calendar and the issue list without the mail must not leave the meetings blocked too.
 const MAIL = ['Mail.Read'].map(g)   // order confirmations and delivery notes (roadmap 113), only with mail reading on
@@ -45,7 +47,8 @@ export const SELF = [
 ]
 export const APPROVAL = [
   { scope: 'Calendars.ReadBasic', why: "today's meetings: subject, times, place and people, no bodies or attachments" },
-  { scope: 'Sites.Selected', why: 'the issue-ticket list, read only, once the admin grants the app that one list' }
+  { scope: 'Sites.Selected', why: 'the issue list\'s site, only as far as the admin grants it' },
+  { scope: 'Lists.SelectedOperations.Selected', why: 'the issue-ticket list, read only, the one list the admin granted' }
 ]
 export const adminConsentUrl = () => `https://login.microsoftonline.com/${TENANT_ID}/v2.0/adminconsent?client_id=${CLIENT_ID}&scope=${encodeURIComponent(APPROVAL.map(a => g(a.scope)).join(' '))}&redirect_uri=${encodeURIComponent(NATIVE_REDIRECT)}`
 /** What the Settings panel shows and copies for the admin. */

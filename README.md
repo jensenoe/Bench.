@@ -12,7 +12,7 @@
 Installing over an older Bench. keeps your board, hours and settings. `Bench-portable-…exe` on the
 same page is the no-install version: keep it in any folder and run it from there.
 
-**0.11, nineteenth beta (0.11.0-beta.19).** Everything here works on my machine and on the mocks; the
+**0.11, twentieth beta (0.11.0-beta.20).** Everything here works on my machine and on the mocks; the
 Microsoft paths (Planner, the hours workbook, the issue list, the calendar) still want a
 first real run in the tom.fit tenant, and the issue list and calendar need a one-time admin
 approval, see below.
@@ -54,7 +54,7 @@ Administrator; `build-exe.bat plain` skips the icon stamping instead, and `build
 Bump `version` in `package.json`, commit, then tag and push:
 
 ```bash
-git tag v0.11.0-beta.19 && git push --tags
+git tag v0.11.0-beta.20 && git push --tags
 ```
 
 The *Release* workflow in `.github/workflows/release.yml` builds both exes on a Windows
@@ -171,22 +171,23 @@ SYNC_INTERVAL_MINUTES=2
 The registration has *Allow public client flows* on. Everything is delegated, so Bench. sees only what you
 can see, and it asks for the least it needs:
 
-| Permission | For | Who approves |
-|---|---|---|
-| `Tasks.ReadWrite` | Planner | you, in the prompt at the first sign-in |
-| `Files.ReadWrite` | the Zeiterfassung workbook | you, in the prompt at the first sign-in |
-| `Calendars.ReadBasic` | today's meetings: subject, times, place, people; no bodies | you, in the prompt at the second sign-in |
-| `Sites.Selected` | the issue-ticket list, read only | you, at the second sign-in; then the admin grants the app read on that one list |
-| `Mail.Read` | order confirmations, only with mail reading on; asked for on its own | a tom.fit admin, only if ever wanted |
+| Permission | For |
+|---|---|
+| `Tasks.ReadWrite` | Planner |
+| `Files.ReadWrite` | the Zeiterfassung workbook |
+| `Calendars.ReadBasic` | today's meetings: subject, times, place, people; no bodies |
+| `Sites.Selected` | the issue list's site, only as far as an admin grants it |
+| `Lists.SelectedOperations.Selected` | the issue-ticket list, read only: the one list granted to the app |
+| `Mail.Read` | order confirmations, only with mail reading on; asked for on its own |
 
-In tom.fit all of these are user-consentable, but only once they are listed on the registration: under *API
-permissions* the registration must list Tasks.ReadWrite, Files.ReadWrite, Calendars.ReadBasic and Sites.Selected
-(delegated). Then press *Connect* in Settings > Tools > Microsoft 365 and accept, and *Sign in again* for the
-calendar and the issue list and accept again. The issue list, "hardware issues (trial)" on
-`https://netorgft10707311.sharepoint.com/sites/tom.fit`, also needs the admin to grant the app read on that one
-list; *Copy a note for your admin* asks for exactly that. A tenant that blocks user consent can use the admin
-link Bench. still builds (v2 admin consent naming only the two narrow permissions; the registration then needs
-the platform *Mobile and desktop applications* with the nativeclient reply address). If you were
+The registration lists all but `Mail.Read` under *API permissions* (delegated). The tom.fit tenant does not let users
+approve apps themselves, so the admin granted them for one account at a time (a delegated grant with consent
+type Principal, never tenant-wide) and gave the app read on the one list, "hardware issues (trial)" on
+`https://netorgft10707311.sharepoint.com/sites/tom.fit`. With that in place, press *Connect* in Settings >
+Tools > Microsoft 365, then *Sign in again* for the calendar and the issue list; no approval prompt appears.
+`Mail.Read` is not part of that grant. A tenant that prefers a tenant-wide approval can use the admin link
+Bench. still builds (v2 admin consent naming only the narrow permissions; the registration then needs the
+platform *Mobile and desktop applications* with the nativeclient reply address). If you were
 connected before the time clock existed, the pill goes back to *Connect* once: sign in
 again and consent to the second scope.
 

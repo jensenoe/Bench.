@@ -77,7 +77,7 @@ export default function Connect({ auth, onRefresh, tier = 'core', label = 'Conne
         <p className="mt-2 leading-relaxed" style={{ color: 'var(--ink-3)' }}>
           {tier === 'core'
             ? 'Planner tasks in, hours out to the workbook. Asks for Tasks.ReadWrite and Files.ReadWrite, which you accept yourself; the issue list and the calendar come in a second step.'
-            : 'The issue-ticket list and today\'s meetings. Asks for Calendars.ReadBasic and Sites.Selected, which you accept yourself; the issue list also needs your admin to grant the app read on that one list.'}
+            : 'The issue-ticket list and today\'s meetings. Asks for Calendars.ReadBasic, Sites.Selected and Lists.SelectedOperations.Selected; the issue list reads only the one list the admin granted.'}
         </p>
       )}
     </div>
