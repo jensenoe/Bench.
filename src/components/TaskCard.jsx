@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Check, X, ArrowSquareOut, SlidersHorizontal, DotsSixVertical, ArrowsClockwise, Timer, LinkSimple } from '@phosphor-icons/react'
+import { Check, X, ArrowSquareOut, SlidersHorizontal, DotsSixVertical, ArrowsClockwise, Timer, LinkSimple, BellSimple } from '@phosphor-icons/react'
+import { remindLabel } from '../remind.js'
 import TaskEditor from './TaskEditor.jsx'
 import { openExternal, openLink } from '../api.js'
 import { LANES } from '../copy.js'
@@ -135,6 +136,30 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true, fo
   }
   const startFocus = () => focus.start({ taskId: task.id, title: task.title, minutes: focusMinutes(focusProp) })
 
+  const actions = (
+    <>
+      {!task.done && task.lane !== 'today' && (
+          <button onClick={() => onPatch(task.id, { lane: 'today' })} aria-label="Pull to Today" title="Pull to Today"
+            className="pill btn-quiet inline-flex h-6 items-center px-2 text-[12px] font-medium">Today</button>
+      )}
+      {!task.done && task.lane === 'today' && (
+          <button onClick={startFocus} aria-label={`Focus on ${task.title}`} title={`Focus, ${focusMinutes(focusProp)} minutes`}
+            className="pill btn-quiet inline-flex h-6 items-center gap-1 px-2 text-[12px] font-medium"><Timer size={12} weight="bold" />Focus</button>
+      )}
+      {!task.done && <SizeChips task={task} onPatch={onPatch} />}
+      {task.url && <button onClick={() => openExternal(task.url)} aria-label="Open in the tool" title="Open in the tool"
+          className="grid h-6 w-6 place-items-center rounded-md" style={{ color: 'var(--ink-3)' }}><ArrowSquareOut size={12} weight="bold" /></button>}
+        <select aria-label="Move to lane" value={task.lane}
+          onChange={e => onPatch(task.id, { lane: e.target.value })}
+          className="field cursor-pointer px-1.5 py-0.5 text-[12px]">
+          {LANE_ORDER.map(k => <option key={k} value={k}>{LANES[k].label}</option>)}
+        </select>
+        <button onClick={remove} aria-label={`Delete ${task.title}`} title="Delete"
+          className="grid h-6 w-6 place-items-center rounded-md" style={{ color: 'var(--ink-3)' }}>
+          <X size={12} weight="bold" />
+        </button>
+    </>
+  )
   return (
     <motion.li layout
       initial={{ opacity: 0, y: 6 }} animate={{ opacity: task.done ? .4 : dragging ? .5 : 1, y: 0 }}
@@ -160,8 +185,19 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true, fo
           <p className="cursor-text pr-14 text-[14px] leading-snug" onClick={() => setEditing(v => !v)}
             style={{ textDecoration: task.done ? 'line-through' : 'none' }}>{task.title}</p>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5 empty:hidden">
+            {task.remindAt && !task.done && (
+              <button onClick={() => setEditing(true)} title="Reminder. Details to change or clear it" aria-label={`Reminder at ${remindLabel(task.remindAt)}. Open the details to change it`}
+                className="tag -my-[2px] inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-[12px] font-medium tracking-wide tnum"
+                style={{ color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 14%, transparent)' }}>
+                <BellSimple size={11} weight="bold" />{remindLabel(task.remindAt)}
+              </button>
+            )}
             {task.priority && <Tag color={PRIO_COLOR[task.priority]}>P{task.priority}</Tag>}
-            {ORIGIN[task.source] && <Tag color="var(--accent)">{ORIGIN[task.source]}</Tag>}
+            {ORIGIN[task.source] && (task.url
+              ? <button onClick={() => openExternal(task.url)} title={`Open in ${ORIGIN[task.source]}`} aria-label={`Open ${task.title} in ${ORIGIN[task.source]}`}
+                  className="tag -my-[2px] inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-[12px] font-medium tracking-wide"
+                  style={{ color: 'var(--accent)', background: 'color-mix(in srgb, var(--accent) 14%, transparent)' }}>{ORIGIN[task.source]}<ArrowSquareOut size={10} weight="bold" aria-hidden="true" /></button>
+              : <Tag color="var(--accent)">{ORIGIN[task.source]}</Tag>)}
             {task.project && <Tag color={STATUS.muted}>{task.project}</Tag>}
             {from && <Tag color={STATUS.muted}>from {from}</Tag>}
             {task.lead && <Tag color={STATUS.muted}>lead {task.lead}</Tag>}
@@ -204,33 +240,17 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true, fo
           className="grid h-6 w-6 place-items-center rounded-md transition-opacity" style={{ color: editing ? 'var(--ink)' : 'var(--ink-3)' }}><SlidersHorizontal size={13} weight="bold" /></button>
         {canDrag && <span aria-hidden="true" className="hidden opacity-0 transition-opacity group-hover:opacity-60 sm:block" style={{ color: 'var(--ink-3)' }}><DotsSixVertical size={13} weight="bold" /></span>}
       </div>
-      {/* On hover, on focus, while editing: the rest, as a small toolbar riding the card's top edge so it covers neither title nor chips. */}
-      <div className={`row absolute -top-4 right-10 z-10 items-center gap-1 px-1.5 py-1 ${editing ? 'flex' : 'hidden group-hover:flex group-focus-within:flex'}`}
-        style={{ borderColor: 'var(--line-2)', boxShadow: 'var(--shadow-pop)' }}>
-        {!task.done && task.lane !== 'today' && (
-          <button onClick={() => onPatch(task.id, { lane: 'today' })} aria-label="Pull to Today" title="Pull to Today"
-            className="pill btn-quiet inline-flex h-6 items-center px-2 text-[12px] font-medium">Today</button>
-        )}
-        {!task.done && task.lane === 'today' && (
-          <button onClick={startFocus} aria-label={`Focus on ${task.title}`} title={`Focus, ${focusMinutes(focusProp)} minutes`}
-            className="pill btn-quiet inline-flex h-6 items-center gap-1 px-2 text-[12px] font-medium"><Timer size={12} weight="bold" />Focus</button>
-        )}
-        {!task.done && <SizeChips task={task} onPatch={onPatch} />}
-        {task.url && <button onClick={() => openExternal(task.url)} aria-label="Open in the tool" title="Open in the tool"
-          className="grid h-6 w-6 place-items-center rounded-md" style={{ color: 'var(--ink-3)' }}><ArrowSquareOut size={12} weight="bold" /></button>}
-        <select aria-label="Move to lane" value={task.lane}
-          onChange={e => onPatch(task.id, { lane: e.target.value })}
-          className="field cursor-pointer px-1.5 py-0.5 text-[12px]">
-          {LANE_ORDER.map(k => <option key={k} value={k}>{LANES[k].label}</option>)}
-        </select>
-        <button onClick={remove} aria-label={`Delete ${task.title}`} title="Delete"
-          className="grid h-6 w-6 place-items-center rounded-md" style={{ color: 'var(--ink-3)' }}>
-          <X size={12} weight="bold" />
-        </button>
-      </div>
+      {/* On hover and on focus: the actions, as a small toolbar riding the card's top edge. While the details are open
+          the same actions sit inside them instead, so nothing floats over the title (roadmap 146). */}
+      {!editing && (
+        <div className="row absolute -top-4 right-10 z-10 hidden items-center gap-1 px-1.5 py-1 group-hover:flex group-focus-within:flex"
+          style={{ borderColor: 'var(--line-2)', boxShadow: 'var(--shadow-pop)' }}>
+          {actions}
+        </div>
+      )}
 
       <AnimatePresence initial={false}>
-        {editing && <TaskEditor key="ed" task={task} onPatch={onPatch} onClose={closeEditor} />}
+        {editing && <TaskEditor key="ed" task={task} onPatch={onPatch} onClose={closeEditor} toolbar={actions} />}
       </AnimatePresence>
     </motion.li>
   )

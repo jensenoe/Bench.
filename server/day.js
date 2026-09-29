@@ -25,7 +25,7 @@ import * as notes from './notes.js'
 import * as timeclock from './timeclock.js'
 import * as calendar from './calendar.js'
 import * as settings from './settings.js'
-import { notify } from './notify.js'
+import { notify, setMeetings } from './notify.js'
 import * as reminders from './reminders.js'
 import * as drift from './drift.js'
 
@@ -344,7 +344,10 @@ let calCache = { date: null, at: 0, events: [] }
 /** Today's meetings, fetched at most every ten minutes; the hero line on Home reads the same cache. */
 export async function meetingsCached(now = new Date()) {
   const today = dayKey(now)
-  if (calCache.date !== today || now.getTime() - calCache.at > 10 * 60_000) calCache = { date: today, at: now.getTime(), events: await meetingsSoft() }
+  if (calCache.date !== today || now.getTime() - calCache.at > 10 * 60_000) {
+    calCache = { date: today, at: now.getTime(), events: await meetingsSoft() }
+    setMeetings(calCache.events, now)   // the notification policy holds toasts while one runs (roadmap 150)
+  }
   return calCache.events
 }
 const norm = s => String(s || '').trim().toLowerCase()
@@ -359,7 +362,7 @@ export async function checkMeetings(now = new Date()) {
   for (const m of ended) {
     if (state.notified.ids.includes(m.id) || written.has(norm(m.subject))) continue
     state.notified.ids.push(m.id); save()
-    notify({ title: 'Write it down?', body: `${m.subject} just ended.`, route: `#/logbook?new=${encodeURIComponent(m.subject)}` })
+    notify({ title: 'Write it down?', body: `${m.subject} just ended.`, route: `#/logbook?new=${encodeURIComponent(m.subject)}`, category: 'logbook', key: `ended:${m.id}` })
     fired.push(m.id)
   }
   return fired

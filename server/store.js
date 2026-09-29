@@ -5,6 +5,7 @@ import crypto from 'node:crypto'
 import { backupOnce } from './backup.js'
 import * as history from './history.js'
 import * as db from './db.js'
+import { codeOf } from './codes.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // Electron sets BENCH_DATA_DIR to a folder next to the executable, so a copy in a
@@ -169,8 +170,9 @@ const now = () => new Date().toISOString()
  *   supplier, poNumber, orderedOn   the procurement side of a part with a lead time
  *   deliveredOn  the day the part arrived; with orderedOn it is one lead-time sample for the supplier
  *   links        files and pages that belong to the task, [{ id, href, label }], photographs included
+ *   remindAt     an ISO date-time: a desktop reminder with the title goes out once then, and the field clears (roadmap 150)
  */
-export const OWN_FIELDS = ['assignedBy', 'lead', 'project', 'priority', 'effortHours', 'tags', 'checklist', 'repeat', 'supplier', 'poNumber', 'orderedOn', 'deliveredOn', 'links', 'phase', 'after']
+export const OWN_FIELDS = ['assignedBy', 'lead', 'project', 'priority', 'effortHours', 'tags', 'checklist', 'repeat', 'supplier', 'poNumber', 'orderedOn', 'deliveredOn', 'links', 'phase', 'after', 'remindAt']
 const clampPrio = p => (p === null || p === undefined || p === '') ? null : Math.min(3, Math.max(1, Number(p) || 3))
 const normTags = t => Array.isArray(t) ? [...new Set(t.map(x => String(x).trim()).filter(Boolean))].slice(0, 12)
   : typeof t === 'string' ? normTags(t.split(/[,;]/)) : []
@@ -187,6 +189,8 @@ export const cleanLinks = (v) => Array.isArray(v) ? v.map(l => typeof l === 'str
   return { id: l.id || crypto.randomUUID(), href, label: label.slice(0, 120) }
 }).filter(l => l.href).slice(0, 40) : []
 /** "Waits for": up to twenty task ids, strings, no repeats. */
+/** A reminder time: a date-time that parses, as ISO; anything else is no reminder. */
+export const normRemind = v => { if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v)) return null; const t = new Date(v); return Number.isNaN(t.getTime()) ? null : t.toISOString() }
 const normAfter = v => Array.isArray(v) ? [...new Set(v.filter(x => typeof x === 'string' && x.trim()).map(x => x.trim()))].slice(0, 20) : []
 const ownFields = (input = {}) => ({
   assignedBy: str(input.assignedBy),
@@ -203,6 +207,7 @@ const ownFields = (input = {}) => ({
   deliveredOn: dateStr(input.deliveredOn),
   phase: str(input.phase),   // a phase id of the project plan (roadmap 121); null when the task is unplanned
   after: normAfter(input.after),   // task ids this one waits for (roadmap 132)
+  remindAt: normRemind(input.remindAt),   // a reminder of your own (roadmap 150); null when none
   links: cleanLinks(input.links)
 })
 
@@ -288,7 +293,8 @@ function spawnNext(db, t) {
     checklist: (t.checklist || []).map(c => ({ ...c, id: crypto.randomUUID(), done: false })),
     waitingSince: t.lane === 'waiting' ? now() : null,
     createdAt: now(), updatedAt: now(), lastTouched: now(), order: db.tasks.length,
-    repeatOf: t.id
+    repeatOf: t.id,
+    remindAt: null   // a reminder belongs to the one it was set on
   }
   delete next.completedBy
   // Today is capped; a repeat that would overflow it waits in Active.
@@ -333,6 +339,7 @@ export function updateTask(id, patch) {
   if ('orderedOn' in patch) t.orderedOn = dateStr(patch.orderedOn)
   if ('phase' in patch) t.phase = str(patch.phase)
   if ('after' in patch) t.after = normAfter(patch.after).filter(x => x !== t.id)
+  if ('remindAt' in patch) t.remindAt = normRemind(patch.remindAt)
   if ('deliveredOn' in patch) t.deliveredOn = dateStr(patch.deliveredOn)
   if ('links' in patch) t.links = cleanLinks(patch.links)
 
@@ -341,6 +348,19 @@ export function updateTask(id, patch) {
   save()
   history.record('changed', before, t)
   return spawned ? { ...t, spawned } : t
+}
+
+/**
+ * A reminder went out: clear it, only when it still says the time that fired (it may have been moved since).
+ * Not a change by you, so updatedAt and lastTouched stay: the card does not look touched and does not age.
+ */
+export function clearReminder(id, firedAt) {
+  const db = load()
+  const t = db.tasks.find(x => x.id === id)
+  if (!t || !t.remindAt || (firedAt && t.remindAt !== firedAt)) return false
+  t.remindAt = null
+  save()
+  return true
 }
 
 export function deleteTask(id) {
@@ -378,6 +398,8 @@ export function mergeSource(source, remote) {
     seen.add(r.sourceId)
     const existing = db.tasks.find(t => t.source === source && t.sourceId === r.sourceId)
     if (existing) {
+      const gainedCode = !codeOf(existing.title) && codeOf(r.title) && !existing.done && existing.lane !== 'innovation'
+      const beforeMove = gainedCode ? structuredClone(existing) : null
       Object.assign(existing, {
         title: r.title, dueDate: r.dueDate ?? null, url: r.url ?? null,
         planTitle: r.group ?? null, bucketName: r.subgroup ?? null,
@@ -385,6 +407,7 @@ export function mergeSource(source, remote) {
       })
       if (r.done && !existing.done) { existing.done = true; existing.completedAt = now() }
       if (!r.done && existing.done && existing.completedBy !== 'local') { existing.done = false; existing.completedAt = null }
+      if (gainedCode) { existing.lane = 'innovation'; events.push({ before: beforeMove, after: existing }) }
       updated++
     } else {
       db.tasks.push({
@@ -409,6 +432,15 @@ export function mergeSource(source, remote) {
       events.push({ before, after: t })
     }
   }
+  if (!db.meta.innovationLane) {
+    for (const t of db.tasks) {
+      if (t.done || t.lane === 'innovation' || !codeOf(t.title)) continue
+      const before = structuredClone(t)
+      t.lane = 'innovation'
+      events.push({ before, after: t })
+    }
+    db.meta.innovationLane = now()   // done once; a lane chosen by hand after this is never overridden
+  }
   db.meta.sources[source] = { ...(db.meta.sources[source] || {}), lastSync: now(), count: remote.length, error: null }
   save()
   for (const e of events) history.record('synced', e.before, e.after, { who: source })
@@ -429,9 +461,10 @@ export function noteSourceError(source, error) {
 
 /** Kept for the existing Planner path. */
 export const mergePlannerTasks = (remote) =>
-  mergeSource('planner', remote.map(r => ({ sourceId: r.plannerId, title: r.title, dueDate: r.dueDate, done: r.done, group: r.planTitle, subgroup: r.bucketName, status: r.done ? 'done' : 'open', url: null })))
+  mergeSource('planner', remote.map(r => ({ sourceId: r.plannerId, title: r.title, dueDate: r.dueDate, done: r.done, group: r.planTitle, subgroup: r.bucketName, status: r.done ? 'done' : 'open', url: r.url ?? null })))
 
 function inferLane(r) {
+  if (codeOf(r.title)) return 'innovation'   // an innovation project's card (roadmap 145)
   if (!r.dueDate) return 'active'
   const due = new Date(r.dueDate)
   const endOfToday = new Date()

@@ -148,7 +148,7 @@ const TITLE = { water: 'Water.', coffee: 'Coffee.', tea: 'Tea.', pause: 'A pause
 export async function tick(now = new Date()) {
   for (const name of ['before', 'stretch']) {
     const n = await moment(name, now)
-    if (n) { notify({ title: TITLE[n.kind] || 'Water.', body: n.text, route: '#/' }); return n }
+    if (n) { notify({ title: TITLE[n.kind] || 'Water.', body: n.text, route: '#/', category: 'nudge' }); return n }
   }
   return null
 }

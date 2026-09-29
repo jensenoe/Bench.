@@ -9,7 +9,12 @@ process.env.BENCH_USER_DIR = dir
 vi.mock('../server/auth.js', () => ({ getTokenSilent: async () => null, getAccount: async () => null, isConfigured: () => false }))
 
 let rem, bridge
-beforeAll(async () => { rem = await import('../server/reminders.js'); ({ bridge } = await import('../server/bridge.js')) })
+beforeAll(async () => {
+  // no quiet hours, so the desktop half does not depend on when the tests run (roadmap 150)
+  const settings = await import('../server/settings.js')
+  settings.update({ quietFrom: '00:00', quietTo: '00:00', quietWeekends: false })
+  rem = await import('../server/reminders.js'); ({ bridge } = await import('../server/bridge.js'))
+})
 
 const today = new Date(2026, 8, 23, 9, 0)   // Wed 23 Sep
 const stats = [{ key: 'bosch', supplier: 'Bosch', median: 12, samples: [12], last: 12, count: 1 }]

@@ -1585,6 +1585,177 @@
       }
     ]
   },
+  "redwoods": {
+    "label": "Redwoods",
+    "dawn": [
+      {
+        "file": "redwoods-dawn-3222686.jpg",
+        "url": "https://images.pexels.com/photos/3222686/pexels-photo-3222686.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "Tim Mossholder"
+      },
+      {
+        "file": "redwoods-dawn-1784577.jpg",
+        "url": "https://images.pexels.com/photos/1784577/pexels-photo-1784577.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "Zetong Li"
+      },
+      {
+        "file": "redwoods-dawn-18387612.jpg",
+        "url": "https://images.pexels.com/photos/18387612/pexels-photo-18387612.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "Tom Fournier"
+      },
+      {
+        "file": "redwoods-dawn-26225674.jpg",
+        "url": "https://images.pexels.com/photos/26225674/pexels-photo-26225674.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "Peter B"
+      },
+      {
+        "file": "redwoods-dawn-2645414.jpg",
+        "url": "https://images.pexels.com/photos/2645414/pexels-photo-2645414.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "Mike Krejci"
+      },
+      {
+        "file": "redwoods-dawn-2645411.jpg",
+        "url": "https://images.pexels.com/photos/2645411/pexels-photo-2645411.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "Mike Krejci"
+      },
+      {
+        "file": "redwoods-dawn-29909713.jpg",
+        "url": "https://images.pexels.com/photos/29909713/pexels-photo-29909713.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "Ambient Vista"
+      },
+      {
+        "file": "redwoods-dawn-8146976.jpg",
+        "url": "https://images.pexels.com/photos/8146976/pexels-photo-8146976.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "ArtHouse Studio"
+      }
+    ],
+    "day": [
+      {
+        "file": "redwoods-day-5586123.jpg",
+        "url": "https://images.pexels.com/photos/5586123/pexels-photo-5586123.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "Mick Haupt"
+      },
+      {
+        "file": "redwoods-day-8146960.jpg",
+        "url": "https://images.pexels.com/photos/8146960/pexels-photo-8146960.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "ArtHouse Studio"
+      },
+      {
+        "file": "redwoods-day-35745123.jpg",
+        "url": "https://images.pexels.com/photos/35745123/pexels-photo-35745123.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "Frances W"
+      },
+      {
+        "file": "redwoods-day-17084701.jpg",
+        "url": "https://images.pexels.com/photos/17084701/pexels-photo-17084701.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "Josh Hild"
+      },
+      {
+        "file": "redwoods-day-20733034.jpg",
+        "url": "https://images.pexels.com/photos/20733034/pexels-photo-20733034.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "Umay Isik"
+      },
+      {
+        "file": "redwoods-day-31359373.jpg",
+        "url": "https://images.pexels.com/photos/31359373/pexels-photo-31359373.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "John Hanson"
+      },
+      {
+        "file": "redwoods-day-28489224.jpg",
+        "url": "https://images.pexels.com/photos/28489224/pexels-photo-28489224.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "Sergey Guk"
+      },
+      {
+        "file": "redwoods-day-15888983.jpg",
+        "url": "https://images.pexels.com/photos/15888983/pexels-photo-15888983.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "Airam Dato-on"
+      }
+    ],
+    "dusk": [
+      {
+        "file": "redwoods-dusk-2847282.jpg",
+        "url": "https://images.pexels.com/photos/2847282/pexels-photo-2847282.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "Ray Z"
+      },
+      {
+        "file": "redwoods-dusk-33463020.jpg",
+        "url": "https://images.pexels.com/photos/33463020/pexels-photo-33463020.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "Katie Mukhina"
+      },
+      {
+        "file": "redwoods-dusk-19877487.jpg",
+        "url": "https://images.pexels.com/photos/19877487/pexels-photo-19877487.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "Joshua Woroniecki"
+      },
+      {
+        "file": "redwoods-dusk-36084801.jpg",
+        "url": "https://images.pexels.com/photos/36084801/pexels-photo-36084801.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "James Wilson"
+      },
+      {
+        "file": "redwoods-dusk-10529692.jpg",
+        "url": "https://images.pexels.com/photos/10529692/pexels-photo-10529692.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "Ted McDonnell"
+      },
+      {
+        "file": "redwoods-dusk-8146378.jpg",
+        "url": "https://images.pexels.com/photos/8146378/pexels-photo-8146378.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "ArtHouse Studio"
+      },
+      {
+        "file": "redwoods-dusk-30989078.jpg",
+        "url": "https://images.pexels.com/photos/30989078/pexels-photo-30989078.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "Naveen Ketterer"
+      },
+      {
+        "file": "redwoods-dusk-33462970.jpg",
+        "url": "https://images.pexels.com/photos/33462970/pexels-photo-33462970.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "Katie Mukhina"
+      }
+    ],
+    "night": [
+      {
+        "file": "redwoods-night-c877ff1ab3.jpg",
+        "url": "https://images.unsplash.com/photo-1672196800671-c877ff1ab34e?w=3200&h=1800&fit=crop&q=80",
+        "by": "Spencer DeMera"
+      },
+      {
+        "file": "redwoods-night-5201716.jpg",
+        "url": "https://images.pexels.com/photos/5201716/pexels-photo-5201716.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "Mick Haupt"
+      },
+      {
+        "file": "redwoods-night-73d512cdac.jpg",
+        "url": "https://images.unsplash.com/photo-1704494943596-73d512cdacb2?w=3200&h=1800&fit=crop&q=80",
+        "by": "Spencer DeMera"
+      },
+      {
+        "file": "redwoods-night-18006690.jpg",
+        "url": "https://images.pexels.com/photos/18006690/pexels-photo-18006690.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "Frank Minjarez"
+      },
+      {
+        "file": "redwoods-night-ddd0175eb3.jpg",
+        "url": "https://images.unsplash.com/photo-1704494941230-ddd0175eb3fd?w=3200&h=1800&fit=crop&q=80",
+        "by": "Spencer DeMera"
+      },
+      {
+        "file": "redwoods-night-29355978.jpg",
+        "url": "https://images.pexels.com/photos/29355978/pexels-photo-29355978.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
+        "by": "Vasilis Karkalas"
+      },
+      {
+        "file": "redwoods-night-5790a70548.jpg",
+        "url": "https://images.unsplash.com/photo-1672196806112-5790a70548e4?w=3200&h=1800&fit=crop&q=80",
+        "by": "Spencer DeMera"
+      },
+      {
+        "file": "redwoods-night-619ecbb135.jpg",
+        "url": "https://images.unsplash.com/photo-1672196801880-619ecbb135c1?w=3200&h=1800&fit=crop&q=80",
+        "by": "Spencer DeMera"
+      }
+    ]
+  },
   "lunch": {
     "label": "Lunch",
     "images": [

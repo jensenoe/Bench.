@@ -4,15 +4,15 @@ import library from './library.json'
  * The pictures follow the sky. Four scenes set by the real sunrise and sunset; inside each scene
  * the photograph changes every hour, and the hour-to-picture mapping shifts from day to day.
  *
- * Eleven libraries share that clock (Alps, Tropics, Urban, Monochrome, Pacific Northwest, Desert,
- * Brutalist, Italian coast, Canada, Autumn, Gothic).
+ * Twelve libraries share that clock (Alps, Tropics, Urban, Monochrome, Pacific Northwest, Desert,
+ * Brutalist, Italian coast, Canada, Autumn, Gothic, Redwoods).
  * Any subset can be switched on; the pools are interleaved so consecutive hours change mood.
  * Photos arrive via fetch-photos.bat; until then each scene falls back to a procedural render.
  */
 /**
  * Each scene also grades the photographs: `filter` runs on the picture itself, `grade` is the colour laid
  * over it in soft light (see .grade in index.css). Dawn and dusk lean warm, day and night lean cool, so
- * pictures from eleven libraries and dozens of photographers read as one product.
+ * pictures from twelve libraries and dozens of photographers read as one product.
  */
 const SCENES = {
   dawn:  { label: 'Dawn',  start: 5,  glow: '#3A2C4A', accent: '#F0A483', accentInk: '#2A1810', filter: 'saturate(.9) contrast(1.04) sepia(.1)',            grade: '240,164,131', light: { glow: '#F1DCD2', accent: '#B85A34', accentInk: '#FFF7F2' } },
@@ -23,7 +23,7 @@ const SCENES = {
 /** Functional colours as tokens (index.css defines them per theme). Keys kept for the components. */
 export const STATUS = { overdue: 'var(--late)', caution: 'var(--caution)', held: 'var(--held)', done: 'var(--ok)', muted: 'rgba(var(--ink-rgb),.7)' }
 
-export const COLLECTIONS = ['alps', 'tropics', 'urban', 'mono', 'pnw', 'desert', 'brutalist', 'italy', 'canada', 'autumn', 'gothic'].map(key => ({ key, label: library[key].label }))
+export const COLLECTIONS = ['alps', 'tropics', 'urban', 'mono', 'pnw', 'desert', 'brutalist', 'italy', 'canada', 'autumn', 'gothic', 'redwoods'].map(key => ({ key, label: library[key].label }))
 export const DEFAULT_COLLECTIONS = COLLECTIONS.map(c => c.key)
 
 /**

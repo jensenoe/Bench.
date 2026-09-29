@@ -1,4 +1,12 @@
-import { getTokenSilent, scopes } from './auth.js'
+import { getTokenSilent, scopes, getAccount } from './auth.js'
+
+/**
+ * The card in Planner on the web (roadmap 146), from the plan and task IDs Graph gives. The tenant ID makes
+ * the page open in the right organisation for an account that belongs to several.
+ */
+export const plannerUrl = (planId, taskId, tenantId = null) => planId && taskId
+  ? `https://planner.cloud.microsoft/webui/plan/${encodeURIComponent(planId)}/view/board/task/${encodeURIComponent(taskId)}${tenantId ? `?tid=${encodeURIComponent(tenantId)}` : ''}`
+  : null
 import { mergePlannerTasks, setMeta } from './store.js'
 
 const GRAPH = 'https://graph.microsoft.com/v1.0'
@@ -55,6 +63,7 @@ export async function syncFromPlanner() {
 
   try {
     const raw = await graphGetAll(token, '/me/planner/tasks')
+    const tenantId = (await getAccount().catch(() => null))?.tenantId || null
     const mapped = []
     for (const t of raw) {
       mapped.push({
@@ -63,7 +72,8 @@ export async function syncFromPlanner() {
         dueDate: t.dueDateTime || null,
         done: (t.percentComplete ?? 0) >= 100,
         planTitle: await planTitle(token, t.planId),
-        bucketName: await bucketName(token, t.bucketId)
+        bucketName: await bucketName(token, t.bucketId),
+        url: plannerUrl(t.planId, t.id, tenantId)
       })
     }
     const result = mergePlannerTasks(mapped)

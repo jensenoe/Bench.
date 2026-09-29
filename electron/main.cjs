@@ -173,15 +173,21 @@ function quietSettings() {
   quietCache = { at: Date.now(), settings: { ...QUIET_DEFAULTS, ...(file && typeof file === 'object' ? file : {}) } }
   return quietCache.settings
 }
-/** One toast. `force: true` gets through quiet hours; nothing from the server sets it, and that is intended. */
+/**
+ * One toast. `force: true` gets through quiet hours; only the Settings test button sets it. The server's policy
+ * (server/notify-policy.js) already holds toasts in the quiet hours; the check here stays as the backstop, and
+ * for what the window sends itself. `url` (an https link, a Teams meeting) opens outside on a click, the way
+ * bench:open-external does, instead of the route.
+ */
 function notify(payload) {
-  const { title, body, route, force } = payload && typeof payload === 'object' ? payload : {}
+  const { title, body, route, force, url } = payload && typeof payload === 'object' ? payload : {}
   try {
     if (force !== true && isQuiet(new Date(), quietSettings())) return log(`[notify] quiet hours, dropped: ${title}`)
     if (!Notification.isSupported()) return log('[notify] not supported on this system')
     const n = new Notification({ title, body, silent: false })
     n.on('click', () => {
       try {
+        if (typeof url === 'string' && /^https:/.test(url)) { shell.openExternal(url); return }
         if (!mainWin || mainWin.isDestroyed()) return
         if (mainWin.isMinimized()) mainWin.restore()
         mainWin.show(); mainWin.focus()

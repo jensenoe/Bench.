@@ -2,18 +2,26 @@ import { useEffect, useRef, useState } from 'react'
 import { Pause, Play, Stop } from '@phosphor-icons/react'
 import * as focus from '../focus.js'
 import { getState, patchTask, nudge as askNudge, nudgeLater } from '../api.js'
+import { setFocusUntil, sendFocusDone } from '../api/notify.js'
 
 const toast = (text, by) => window.dispatchEvent(new CustomEvent('bench:toast', { detail: { text, by, plain: true } }))
 
 /**
  * The focus timer as a pill in the nav (roadmap 82): "24:59 · title", pause and stop. Hidden when idle.
  * When it runs out the task gets the time as effort (to a quarter hour), a toast and a system notification.
+ * While it runs the server knows until when, so other notifications wait in the Bell (roadmap 150).
  */
 export default function FocusTimer() {
   const [s, setS] = useState(focus.get)
   const [left, setLeft] = useState(() => focus.remaining())
   const finishing = useRef(false)
   useEffect(() => focus.subscribe(next => { setS(next); setLeft(focus.remaining(next)) }), [])
+  // Running: until when; paused or stopped: null. A reload says it again, so the server never keeps a stale one for long.
+  const running = Boolean(s && !s.pausedAt)
+  useEffect(() => {
+    const until = running ? new Date(Date.now() + focus.remaining()).toISOString() : null
+    setFocusUntil(until).catch(() => { /* the toasts are simply not held */ })
+  }, [running, s?.startedAt])
   useEffect(() => {
     if (!s || s.pausedAt) return
     const id = setInterval(() => setLeft(focus.remaining()), 500)
@@ -51,6 +59,7 @@ async function finish(done) {
   } catch (err) { window.bench?.log?.(`focus: could not book ${minutes} min on ${taskId}: ${err.message}`) }
   const n = (await askNudge('focus').catch(() => null))?.nudge
   window.dispatchEvent(new CustomEvent('bench:toast', { detail: { text: 'Focus done.', by: `${minutes} minutes on ${title}`, plain: true, ...(n ? { nudge: n.text, nudgeKind: n.kind, onLater: () => nudgeLater().catch(() => {}) } : {}) } }))
-  try { window.bench?.notify?.({ title: 'Focus done.', body: title, route: '#/board' }) } catch { /* not the desktop */ }
+  // Through the server: it lands in the Bell and follows Settings > Notifications. The desktop's own path is the fallback.
+  try { await sendFocusDone(title) } catch { try { window.bench?.notify?.({ title: 'Focus done.', body: title, route: '#/board' }) } catch { /* not the desktop */ } }
   window.dispatchEvent(new Event('bench:refresh'))
 }

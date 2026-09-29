@@ -22,7 +22,9 @@ export async function todaysMeetings(date = new Date()) {
       location: e.location?.displayName || null,
       organizer: e.organizer?.emailAddress?.name || null,
       attendees: (e.attendees || []).map(a => a.emailAddress?.name).filter(Boolean),
-      link: e.webLink || null
+      link: e.webLink || null,
+      online: Boolean(e.onlineMeeting),
+      joinUrl: e.onlineMeeting?.joinUrl || null   // the Teams link the five-minute reminder opens (roadmap 150)
     }))
   }
 }

@@ -9,7 +9,12 @@ process.env.BENCH_USER_DIR = dir
 process.env.BENCH_DATA_DIR = dir
 
 let notify, bridge
-beforeAll(async () => { notify = await import('../server/notify.js'); ({ bridge } = await import('../server/bridge.js')) })
+beforeAll(async () => {
+  // no quiet hours, so the desktop half does not depend on when the tests run (roadmap 150)
+  const settings = await import('../server/settings.js')
+  settings.update({ quietFrom: '00:00', quietTo: '00:00', quietWeekends: false })
+  notify = await import('../server/notify.js'); ({ bridge } = await import('../server/bridge.js'))
+})
 
 describe('notify', () => {
   it('records newest first, forwards the payload to the desktop, and persists', () => {

@@ -73,7 +73,11 @@ surface. The glow is a radial at the top of work pages and at the footer seam, a
 
 ## 3. Photographs
 
-302 pictures from eleven libraries and dozens of photographers must read as one product. Three
+The moving hero (Themes 2.0) is the one place where the picture moves: aerial clips under the same grade,
+grain and veil as the photographs, crossfading on opacity only, following the time of day, and never
+without the photograph underneath. It is opt-in, and with reduced motion it is a still.
+
+334 pictures from twelve libraries and dozens of photographers must read as one product. Three
 layers do that, on every picture, in this order:
 
 1. `.photo` on the image: the scene's filter (table above).
@@ -133,6 +137,11 @@ dark theme and 12 to 22 on paper, so a dusk panel throws a plum shadow and a day
 Shadows are never black, and no component writes its own.
 
 ## 6. Components
+
+- Notifications: every one has a kind and goes through server/notify-policy.js; the desktop is for what is
+  time-critical or asked for (a meeting in five minutes, your own reminder, the clock), the Bell for the rest.
+  Text is one plain line, no exclamation marks. Never on the desktop during a meeting, a focus session or the
+  quiet hours; the Bell keeps it.
 
 - Button: pill, three kinds and no more, as classes in `index.css`. `.btn-primary`: accent fill with
   `--accent-ink`, the one primary action on a screen. `.btn-quiet`: the `--wash`, `--ink-2` type, no

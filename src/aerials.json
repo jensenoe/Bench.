@@ -1,0 +1,61 @@
+{
+  "_about": "Aerial film for the moving hero on Home (Themes 2.0). Pexels videos, free to use and modify. Each clip: id (Pexels video id), file (a 1920x1080 rendition, checked with a HEAD request), poster (a still from the same clip), place, scene (dawn, day, dusk or night, tagged from the still), by (the uploader when the page names one). server/aerials.js downloads these into BENCH_USER_DIR/aerials on demand; nothing here ships in the installer.",
+  "collections": [
+    {
+      "key": "cities",
+      "label": "Cities",
+      "clips": [
+        { "id": 5538825, "file": "https://videos.pexels.com/video-files/5538825/5538825-hd_1920_1080_30fps.mp4", "poster": "https://images.pexels.com/videos/5538825/pexels-photo-5538825.jpeg", "place": "Hong Kong, Victoria Harbour", "scene": "night", "by": "" },
+        { "id": 5396818, "file": "https://videos.pexels.com/video-files/5396818/5396818-hd_1920_1080_30fps.mp4", "poster": "https://images.pexels.com/videos/5396818/asian-city-at-night-city-at-night-city-lights-5396818.jpeg", "place": "Hong Kong, Central waterfront", "scene": "night", "by": "Henry" },
+        { "id": 4711694, "file": "https://videos.pexels.com/video-files/4711694/4711694-hd_1920_1080_30fps.mp4", "poster": "https://images.pexels.com/videos/4711694/aerial-footage-drone-japan-tokyo-4711694.jpeg", "place": "Tokyo, Tokyo Tower", "scene": "night", "by": "Jose Carlos" },
+        { "id": 9396326, "file": "https://videos.pexels.com/video-files/9396326/9396326-hd_1920_1080_30fps.mp4", "poster": "https://images.pexels.com/videos/9396326/japan-olympic-paralympic-tokyo-skytree-9396326.jpeg", "place": "Tokyo, Skytree", "scene": "night", "by": "Ito Junichi" },
+        { "id": 31111824, "file": "https://videos.pexels.com/video-files/31111824/13294153_1920_1080_30fps.mp4", "poster": "https://images.pexels.com/videos/31111824/ho-chi-minh-city-31111824.jpeg", "place": "Ho Chi Minh City", "scene": "night", "by": "Toàn BDS" },
+        { "id": 30289036, "file": "https://videos.pexels.com/video-files/30289036/12984234_1920_1080_30fps.mp4", "poster": "https://images.pexels.com/videos/30289036/4k-aerial-bung-binh-me-linh-c-u-bason-c-u-th-thiem-2-30289036.jpeg", "place": "Ho Chi Minh City, Saigon River", "scene": "night", "by": "Duy Nguyen" },
+        { "id": 5005628, "file": "https://videos.pexels.com/video-files/5005628/5005628-hd_1920_1080_24fps.mp4", "poster": "https://images.pexels.com/videos/5005628/pexels-photo-5005628.jpeg", "place": "Kuala Lumpur, Petronas Towers", "scene": "night", "by": "" },
+        { "id": 31776600, "file": "https://videos.pexels.com/video-files/31776600/13536900_1920_1080_30fps.mp4", "poster": "https://images.pexels.com/videos/31776600/shanghai-31776600.jpeg", "place": "Shanghai, Pudong from the Bund", "scene": "night", "by": "Tianwang Xiao" },
+        { "id": 5396819, "file": "https://videos.pexels.com/video-files/5396819/5396819-hd_1920_1080_30fps.mp4", "poster": "https://images.pexels.com/videos/5396819/asian-city-city-at-night-city-lights-city-timelapse-5396819.jpeg", "place": "Hong Kong, Wan Chai", "scene": "dusk", "by": "Henry" },
+        { "id": 19297594, "file": "https://videos.pexels.com/video-files/19297594/19297594-hd_1920_1080_25fps.mp4", "poster": "https://images.pexels.com/videos/19297594/aerial-architecture-asia-b-roll-19297594.jpeg", "place": "Bangkok, Sathorn", "scene": "dusk", "by": "Pitipat Usanakornkul" },
+        { "id": 30048213, "file": "https://videos.pexels.com/video-files/30048213/12888884_1920_1080_30fps.mp4", "poster": "https://images.pexels.com/videos/30048213/pexels-photo-30048213.jpeg", "place": "Dubai, Sheikh Zayed Road", "scene": "dusk", "by": "" },
+        { "id": 8464868, "file": "https://videos.pexels.com/video-files/8464868/8464868-hd_1920_1080_30fps.mp4", "poster": "https://images.pexels.com/videos/8464868/7star-hotel-abu-dhabi-biker-bikers-8464868.jpeg", "place": "Dubai, Burj Al Arab", "scene": "dusk", "by": "Yash Rao" },
+        { "id": 4511381, "file": "https://videos.pexels.com/video-files/4511381/4511381-hd_1920_1080_30fps.mp4", "poster": "https://images.pexels.com/videos/4511381/tokyo-skytree---4511381.jpeg", "place": "Tokyo, Skytree", "scene": "dawn", "by": "Ito Junichi" },
+        { "id": 33702863, "file": "https://videos.pexels.com/video-files/33702863/14314699_1920_1080_60fps.mp4", "poster": "https://images.pexels.com/videos/33702863/apartment-building-apartment-house-asia-beautiful-landscape-drone-33702863.jpeg", "place": "Singapore, Marina Bay", "scene": "dawn", "by": "Florian Delée" },
+        { "id": 1660911, "file": "https://videos.pexels.com/video-files/1660911/1660911-hd_1920_1080_30fps.mp4", "poster": "https://images.pexels.com/videos/1660911/free-video-1660911.jpg", "place": "Dubai, Jumeirah coast", "scene": "dawn", "by": "The Lazy Artist Gallery" },
+        { "id": 38569813, "file": "https://videos.pexels.com/video-files/38569813/16382323_1920_1080_30fps.mp4", "poster": "https://images.pexels.com/videos/38569813/pexels-photo-38569813.jpeg", "place": "Hong Kong, from the Peak", "scene": "day", "by": "" },
+        { "id": 7082731, "file": "https://videos.pexels.com/video-files/7082731/7082731-hd_1920_1080_30fps.mp4", "poster": "https://images.pexels.com/videos/7082731/aerial-aerial-footage-drone-drone-footage-7082731.jpeg", "place": "Tokyo", "scene": "day", "by": "Hide" },
+        { "id": 14372137, "file": "https://videos.pexels.com/video-files/14372137/14372137-hd_1920_1080_25fps.mp4", "poster": "https://images.pexels.com/videos/14372137/architecture-boat-bridge-building-14372137.jpeg", "place": "Singapore, Marina Bay Sands", "scene": "day", "by": "Maksim Romashkin" },
+        { "id": 31120402, "file": "https://videos.pexels.com/video-files/31120402/13297048_1920_1080_60fps.mp4", "poster": "https://images.pexels.com/videos/31120402/4k-aerial-view-bangkok-bts-skytrain-31120402.jpeg", "place": "Bangkok, Chao Phraya", "scene": "day", "by": "LayG Traveller" }
+      ]
+    },
+    {
+      "key": "coast",
+      "label": "Coastlines",
+      "clips": [
+        { "id": 9209847, "file": "https://videos.pexels.com/video-files/9209847/9209847-hd_1920_1080_24fps.mp4", "poster": "https://images.pexels.com/videos/9209847/pexels-photo-9209847.jpeg", "place": "Beach at first light", "scene": "dawn", "by": "" },
+        { "id": 32132550, "file": "https://videos.pexels.com/video-files/32132550/13700178_1920_1080_30fps.mp4", "poster": "https://images.pexels.com/videos/32132550/4k-aerial-footage-4k-beach-5k-beach-sunrise-32132550.jpeg", "place": "Beach at sunrise", "scene": "dawn", "by": "Creative Ruckus" },
+        { "id": 13326421, "file": "https://videos.pexels.com/video-files/13326421/13326421-hd_1920_1080_30fps.mp4", "poster": "https://images.pexels.com/videos/13326421/beach-brasil-calm-waters-horizon-13326421.jpeg", "place": "Brazil, Atlantic coast", "scene": "dawn", "by": "Matheus De Moraes Gugelmim" },
+        { "id": 5542386, "file": "https://videos.pexels.com/video-files/5542386/5542386-hd_1920_1080_24fps.mp4", "poster": "https://images.pexels.com/videos/5542386/pexels-photo-5542386.jpeg", "place": "Open sea, low sun", "scene": "dusk", "by": "" },
+        { "id": 7666608, "file": "https://videos.pexels.com/video-files/7666608/7666608-hd_1920_1080_30fps.mp4", "poster": "https://images.pexels.com/videos/7666608/pexels-photo-7666608.jpeg", "place": "Surf from above", "scene": "day", "by": "" },
+        { "id": 8438342, "file": "https://videos.pexels.com/video-files/8438342/8438342-hd_1920_1080_30fps.mp4", "poster": "https://images.pexels.com/videos/8438342/pexels-photo-8438342.jpeg", "place": "Pacific headland", "scene": "day", "by": "" }
+      ]
+    },
+    {
+      "key": "islands",
+      "label": "Islands",
+      "clips": [
+        { "id": 4010941, "file": "https://videos.pexels.com/video-files/4010941/4010941-hd_1920_1080_25fps.mp4", "poster": "https://images.pexels.com/videos/4010941/arial-maldives-beach-island-drone-video-free-download-4010941.jpeg", "place": "Maldives, reef lagoon", "scene": "day", "by": "Videographer Shiyaz" },
+        { "id": 4022224, "file": "https://videos.pexels.com/video-files/4022224/4022224-hd_1920_1080_25fps.mp4", "poster": "https://images.pexels.com/videos/4022224/beach-resort-drone-camera-drone-footage-drone-photography-4022224.jpeg", "place": "Maldives, beach resort", "scene": "day", "by": "Videographer Shiyaz" },
+        { "id": 8356897, "file": "https://videos.pexels.com/video-files/8356897/8356897-hd_1920_1080_25fps.mp4", "poster": "https://images.pexels.com/videos/8356897/pexels-photo-8356897.jpeg", "place": "Maldives, resort island", "scene": "day", "by": "Mikhail Nilov" },
+        { "id": 1550082, "file": "https://videos.pexels.com/video-files/1550082/1550082-hd_1920_1080_30fps.mp4", "poster": "https://images.pexels.com/videos/1550082/free-video-1550082.jpg", "place": "Forest island", "scene": "day", "by": "Tom Fisk" }
+      ]
+    },
+    {
+      "key": "australia",
+      "label": "Australia",
+      "clips": [
+        { "id": 3760659, "file": "https://videos.pexels.com/video-files/3760659/3760659-hd_1920_1080_25fps.mp4", "poster": "https://images.pexels.com/videos/3760659/sydney-harbour-rain-3760659.jpeg", "place": "Sydney, Harbour Bridge in the fog", "scene": "dawn", "by": "Amit" },
+        { "id": 11851642, "file": "https://videos.pexels.com/video-files/11851642/11851642-hd_1920_1080_60fps.mp4", "poster": "https://images.pexels.com/videos/11851642/above-sea-aerial-drone-afternoon-australia-11851642.jpeg", "place": "New South Wales, Sea Cliff Bridge", "scene": "dusk", "by": "Ivan A" },
+        { "id": 15528238, "file": "https://videos.pexels.com/video-files/15528238/15528238-hd_1920_1080_30fps.mp4", "poster": "https://images.pexels.com/videos/15528238/4k-aerial-australia-beach-15528238.jpeg", "place": "Port Macquarie, rock pools", "scene": "day", "by": "Tetrakis Sphericon" }
+      ]
+    }
+  ]
+}

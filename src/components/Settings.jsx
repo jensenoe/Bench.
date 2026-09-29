@@ -9,11 +9,15 @@ import { fmtDate } from '../lanes.js'
 import Connect from './Connect.jsx'
 import Health from './Health.jsx'
 import { MailReading, PhoneView, StorageLine, DriveHome, AdminApproval } from './SettingsIntegrations.jsx'
+import { NotifyCategories, TestNotification } from './SettingsNotifications.jsx'
+import AerialCache from './SettingsAerials.jsx'
+import { AERIAL_COLLECTIONS, aerialCredits } from '../aerials.js'
 import { ask } from './Confirm.jsx'
 import { Bar } from './Skeleton.jsx'
 
 const TABS = [
   { key: 'you', label: 'You' },
+  { key: 'notify', label: 'Notifications' },
   { key: 'look', label: 'Look' },
   { key: 'hours', label: 'Hours' },
   { key: 'tools', label: 'Tools' },
@@ -76,7 +80,7 @@ const hhmm = (iso) => new Date(iso).toLocaleTimeString('de-CH', { hour: '2-digit
 
 /**
  * Everything adjustable, in one panel off the gear, in sections (roadmap 92). Saves as you go.
- * You, Look, Hours, Tools, This machine, About: tabs along the top, arrow keys move between them,
+ * You, Notifications, Look, Hours, Tools, This machine, About: tabs along the top, arrow keys move between them,
  * the last one you were on is remembered. Every panel stays in the tree so a field keeps its
  * draft while you look elsewhere; only the current one is shown.
  */
@@ -232,13 +236,29 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
               </div>
               <Field draft={draft} set={set} save={save} errs={errs} label="Hours in a working day" k="workdayHours" type="number" step="0.1" mono placeholder="8.4" hint="Today's free hours are what is left of this after the cards on it." />
             </Sec>
+            <Note>Quiet hours and what may interrupt you are under <button onClick={() => pickTab('notify', true)} className={link} style={{ color: 'var(--ink-2)' }}>Notifications</button>.</Note>
+          </div>
+
+          {/* Notifications (roadmap 150) */}
+          <div {...panelProps('notify')}>
+            <Sec first>
+              <Note>Desktop shows a Windows notification and keeps it in the Bell. Bell only keeps it in the Bell, without a sound. Off drops it.</Note>
+              <NotifyCategories modes={draft.notifyModes} onPick={(k, m) => saveNow({ notifyModes: { ...(draft.notifyModes || {}), [k]: m } })} />
+            </Sec>
+            <Sec title="While you are busy">
+              <Toggle on={draft.notifyNotInMeetings !== false} onChange={() => saveNow({ notifyNotInMeetings: draft.notifyNotInMeetings === false })} label="Not during meetings" hint="While a meeting from the calendar runs, notifications go to the Bell only. The one for the next meeting still comes." />
+              <Toggle on={draft.notifyNotInFocus !== false} onChange={() => saveNow({ notifyNotInFocus: draft.notifyNotInFocus === false })} label="Not during focus" hint="While the focus timer runs, the same. Your own reminders wait for the end instead." />
+            </Sec>
             <Sec title="Quiet hours">
               <div className="grid grid-cols-2 gap-2">
                 <Field draft={draft} set={set} save={save} errs={errs} label="Quiet from" k="quietFrom" mono placeholder="19:00" />
                 <Field draft={draft} set={set} save={save} errs={errs} label="Quiet to" k="quietTo" mono placeholder="07:00" />
               </div>
               <Toggle on={draft.quietWeekends !== false} onChange={() => saveNow({ quietWeekends: draft.quietWeekends === false })} label="Quiet at the weekend" />
-              <Note>No notification between these times or on a quiet weekend day, the lunch reminders included; the board itself keeps working.</Note>
+              <Note>No Windows notification between these times or on a quiet weekend day, the lunch reminders included; the Bell still records them and the board keeps working.</Note>
+            </Sec>
+            <Sec title="Try it">
+              <TestNotification />
             </Sec>
           </div>
 
@@ -270,6 +290,17 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
                 <Note>New picture every</Note>
                 <div className="mt-1.5"><Chips items={CADENCES.map(m => ({ key: m, label: m === 60 ? 'hour' : `${m} min` }))} value={draft.pictureMinutes || 20} onPick={v => saveNow({ pictureMinutes: v })} /></div>
               </div>
+            </Sec>
+            <Sec title="Moving hero">
+              <Toggle on={draft.aerials === true} onChange={() => saveNow({ aerials: draft.aerials !== true })} label="Aerial film on Home"
+                hint="Cities at night, coastlines, islands, following the time of day like the pictures. Clips download in the background and stay on this machine; until one is here, the photograph shows." />
+              {draft.aerials === true && <>
+                <div>
+                  <Note>Collection</Note>
+                  <div className="mt-1.5"><Chips items={[{ key: 'all', label: 'All collections' }, ...AERIAL_COLLECTIONS]} value={draft.aerialCollection || 'all'} onPick={v => saveNow({ aerialCollection: v })} /></div>
+                </div>
+                <AerialCache active={open && tab === 'look'} />
+              </>}
             </Sec>
             <Sec title="Density">
               <Chips items={[{ key: 'comfortable', label: 'Comfortable' }, { key: 'compact', label: 'Compact' }]} value={draft.density === 'compact' ? 'compact' : 'comfortable'} onPick={v => saveNow({ density: v })} />
@@ -417,7 +448,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
             <Sec first>
               <p className="text-[13.5px] leading-relaxed" style={{ color: 'var(--ink-2)' }}>{ABOUT.long}</p>
               <p className="text-[12.5px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>
-                Photographs from Pexels and Unsplash, free licences. {credits().slice(0, 12).join(', ')} and others.{info ? ` Bench. v${String(info.version).replace(/-beta\.(\d+)/, ' beta $1')}.` : ''}
+                Photographs from Pexels and Unsplash, free licences. {credits().slice(0, 12).join(', ')} and others. Aerial film from Pexels by {aerialCredits().join(', ')} and others.{info ? ` Bench. v${String(info.version).replace(/-beta\.(\d+)/, ' beta $1')}.` : ''}
               </p>
               {info?.logFile && <p className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>If something broke, <button onClick={() => window.bench.openLog()} className={link} style={{ color: 'var(--ink-2)' }}>open bench.log</button> and send it along.</p>}
               <div className="row p-4 text-[13.5px]">

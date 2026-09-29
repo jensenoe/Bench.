@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 5177,
-    proxy: { '/api': 'http://127.0.0.1:5178' }
+    proxy: { '/api': 'http://127.0.0.1:5178', '/media': 'http://127.0.0.1:5178' }   // /media: the moving hero's cached clips
   },
   build: { outDir: 'dist' }
 })

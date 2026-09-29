@@ -3,8 +3,8 @@ setlocal
 cd /d "%~dp0public\terrain"
 title Fetch photographs
 echo.
-echo   Fetching 302 photographs (Pexels and Unsplash, free licences).
-echo   Eleven libraries from the Alps to Edinburgh, plus Lunch and Cockpit covers.
+echo   Fetching 334 photographs (Pexels and Unsplash, free licences).
+echo   Twelve libraries from the Alps to Edinburgh, plus Lunch and Cockpit covers.
 echo   Existing files are skipped, so rerunning is cheap. Pictures no longer in the
 echo   library are removed at the end.
 echo.
@@ -305,6 +305,38 @@ echo gothic-night-37423357.jpg
 echo gothic-night-36631587.jpg
 echo gothic-night-18668994.jpg
 echo gothic-night-15770539.jpg
+echo redwoods-dawn-3222686.jpg
+echo redwoods-dawn-1784577.jpg
+echo redwoods-dawn-18387612.jpg
+echo redwoods-dawn-26225674.jpg
+echo redwoods-dawn-2645414.jpg
+echo redwoods-dawn-2645411.jpg
+echo redwoods-dawn-29909713.jpg
+echo redwoods-dawn-8146976.jpg
+echo redwoods-day-5586123.jpg
+echo redwoods-day-8146960.jpg
+echo redwoods-day-35745123.jpg
+echo redwoods-day-17084701.jpg
+echo redwoods-day-20733034.jpg
+echo redwoods-day-31359373.jpg
+echo redwoods-day-28489224.jpg
+echo redwoods-day-15888983.jpg
+echo redwoods-dusk-2847282.jpg
+echo redwoods-dusk-33463020.jpg
+echo redwoods-dusk-19877487.jpg
+echo redwoods-dusk-36084801.jpg
+echo redwoods-dusk-10529692.jpg
+echo redwoods-dusk-8146378.jpg
+echo redwoods-dusk-30989078.jpg
+echo redwoods-dusk-33462970.jpg
+echo redwoods-night-c877ff1ab3.jpg
+echo redwoods-night-5201716.jpg
+echo redwoods-night-73d512cdac.jpg
+echo redwoods-night-18006690.jpg
+echo redwoods-night-ddd0175eb3.jpg
+echo redwoods-night-29355978.jpg
+echo redwoods-night-5790a70548.jpg
+echo redwoods-night-619ecbb135.jpg
 echo lunch-6344695.jpg
 echo lunch-2583495.jpg
 echo lunch-28441558.jpg
@@ -613,6 +645,38 @@ call :get gothic-night-37423357 "https://images.pexels.com/photos/37423357/pexel
 call :get gothic-night-36631587 "https://images.pexels.com/photos/36631587/pexels-photo-36631587.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Yasar Baskurt"
 call :get gothic-night-18668994 "https://images.pexels.com/photos/18668994/pexels-photo-18668994.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Line Knipst"
 call :get gothic-night-15770539 "https://images.pexels.com/photos/15770539/pexels-photo-15770539.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Hoang Vu"
+call :get redwoods-dawn-3222686 "https://images.pexels.com/photos/3222686/pexels-photo-3222686.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Tim Mossholder"
+call :get redwoods-dawn-1784577 "https://images.pexels.com/photos/1784577/pexels-photo-1784577.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Zetong Li"
+call :get redwoods-dawn-18387612 "https://images.pexels.com/photos/18387612/pexels-photo-18387612.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Tom Fournier"
+call :get redwoods-dawn-26225674 "https://images.pexels.com/photos/26225674/pexels-photo-26225674.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Peter B"
+call :get redwoods-dawn-2645414 "https://images.pexels.com/photos/2645414/pexels-photo-2645414.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Mike Krejci"
+call :get redwoods-dawn-2645411 "https://images.pexels.com/photos/2645411/pexels-photo-2645411.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Mike Krejci"
+call :get redwoods-dawn-29909713 "https://images.pexels.com/photos/29909713/pexels-photo-29909713.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Ambient Vista"
+call :get redwoods-dawn-8146976 "https://images.pexels.com/photos/8146976/pexels-photo-8146976.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "ArtHouse Studio"
+call :get redwoods-day-5586123 "https://images.pexels.com/photos/5586123/pexels-photo-5586123.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Mick Haupt"
+call :get redwoods-day-8146960 "https://images.pexels.com/photos/8146960/pexels-photo-8146960.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "ArtHouse Studio"
+call :get redwoods-day-35745123 "https://images.pexels.com/photos/35745123/pexels-photo-35745123.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Frances W"
+call :get redwoods-day-17084701 "https://images.pexels.com/photos/17084701/pexels-photo-17084701.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Josh Hild"
+call :get redwoods-day-20733034 "https://images.pexels.com/photos/20733034/pexels-photo-20733034.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Umay Isik"
+call :get redwoods-day-31359373 "https://images.pexels.com/photos/31359373/pexels-photo-31359373.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "John Hanson"
+call :get redwoods-day-28489224 "https://images.pexels.com/photos/28489224/pexels-photo-28489224.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Sergey Guk"
+call :get redwoods-day-15888983 "https://images.pexels.com/photos/15888983/pexels-photo-15888983.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Airam Dato-on"
+call :get redwoods-dusk-2847282 "https://images.pexels.com/photos/2847282/pexels-photo-2847282.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Ray Z"
+call :get redwoods-dusk-33463020 "https://images.pexels.com/photos/33463020/pexels-photo-33463020.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Katie Mukhina"
+call :get redwoods-dusk-19877487 "https://images.pexels.com/photos/19877487/pexels-photo-19877487.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Joshua Woroniecki"
+call :get redwoods-dusk-36084801 "https://images.pexels.com/photos/36084801/pexels-photo-36084801.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "James Wilson"
+call :get redwoods-dusk-10529692 "https://images.pexels.com/photos/10529692/pexels-photo-10529692.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Ted McDonnell"
+call :get redwoods-dusk-8146378 "https://images.pexels.com/photos/8146378/pexels-photo-8146378.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "ArtHouse Studio"
+call :get redwoods-dusk-30989078 "https://images.pexels.com/photos/30989078/pexels-photo-30989078.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Naveen Ketterer"
+call :get redwoods-dusk-33462970 "https://images.pexels.com/photos/33462970/pexels-photo-33462970.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Katie Mukhina"
+call :get redwoods-night-c877ff1ab3 "https://images.unsplash.com/photo-1672196800671-c877ff1ab34e?w=3200&h=1800&fit=crop&q=80" "Spencer DeMera"
+call :get redwoods-night-5201716 "https://images.pexels.com/photos/5201716/pexels-photo-5201716.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Mick Haupt"
+call :get redwoods-night-73d512cdac "https://images.unsplash.com/photo-1704494943596-73d512cdacb2?w=3200&h=1800&fit=crop&q=80" "Spencer DeMera"
+call :get redwoods-night-18006690 "https://images.pexels.com/photos/18006690/pexels-photo-18006690.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Frank Minjarez"
+call :get redwoods-night-ddd0175eb3 "https://images.unsplash.com/photo-1704494941230-ddd0175eb3fd?w=3200&h=1800&fit=crop&q=80" "Spencer DeMera"
+call :get redwoods-night-29355978 "https://images.pexels.com/photos/29355978/pexels-photo-29355978.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Vasilis Karkalas"
+call :get redwoods-night-5790a70548 "https://images.unsplash.com/photo-1672196806112-5790a70548e4?w=3200&h=1800&fit=crop&q=80" "Spencer DeMera"
+call :get redwoods-night-619ecbb135 "https://images.unsplash.com/photo-1672196801880-619ecbb135c1?w=3200&h=1800&fit=crop&q=80" "Spencer DeMera"
 call :get lunch-6344695 "https://images.pexels.com/photos/6344695/pexels-photo-6344695.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Christian Buergi"
 call :get lunch-2583495 "https://images.pexels.com/photos/2583495/pexels-photo-2583495.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Guillaume Hankenne"
 call :get lunch-28441558 "https://images.pexels.com/photos/28441558/pexels-photo-28441558.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "K"

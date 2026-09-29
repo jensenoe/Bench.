@@ -6,6 +6,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { cleanModes } from './notify-policy.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const FILE = path.join(
@@ -47,7 +48,12 @@ export const DEFAULTS = {
   homePlace: '',            // where the drive home ends, a place name geocoded once (roadmap 120)
   trafficKey: '',           // TomTom API key for the commute with live traffic; stays in this file, never exported
   holidayRegion: 'ZH',      // public holidays the plans skip: ZH (canton Zurich), CH (federal only) or none (roadmap 131)
-  daysOff: ''               // company days off, dates and ranges: "2026-12-24 to 2027-01-01, 2027-05-07"
+  daysOff: '',              // company days off, dates and ranges: "2026-12-24 to 2027-01-01, 2027-05-07"
+  aerials: false,           // the moving hero on Home: aerial film instead of the photograph (server/aerials.js, Themes 2.0)
+  aerialCollection: 'all',  // all, or one collection key from src/aerials.json
+  notifyModes: {},          // category -> desktop | bell | off; a category not named takes its default (server/notify-policy.js, roadmap 150)
+  notifyNotInMeetings: true,   // no toast while a meeting runs; the Bell still records it
+  notifyNotInFocus: true       // no toast while a focus session runs; the Bell still records it
 }
 
 const ALLOWED = Object.keys(DEFAULTS)
@@ -86,6 +92,10 @@ export function update(patch = {}) {
     if (k === 'trafficKey') v = String(v || '').trim().slice(0, 120)
     if (k === 'holidayRegion') v = ['ZH', 'CH', 'none'].includes(v) ? v : 'ZH'
     if (k === 'daysOff') v = String(v || '').slice(0, 2000)
+    if (k === 'aerials') v = v === true
+    if (k === 'aerialCollection') v = /^[a-z]{2,20}$/.test(String(v)) ? String(v) : 'all'
+    if (k === 'notifyModes') v = { ...cleanModes(cur.notifyModes), ...cleanModes(v) }   // a patch names only what changes
+    if (k === 'notifyNotInMeetings' || k === 'notifyNotInFocus') v = v !== false
     if (k === 'sceneOverride') v = ['dawn', 'day', 'dusk', 'night'].includes(v) ? v : null
     if ((k === 'lunchAt' || k === 'lunchEnds') && !/^\d{1,2}:\d{2}$/.test(String(v))) continue
     if (typeof v === 'string') v = v.trim()

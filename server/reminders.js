@@ -89,7 +89,7 @@ function chaseTick(today) {
   let sent = 0
   for (const c of chase()) {
     if (m.chased[c.id] === date) continue
-    notify(chaseMessage(c))
+    notify({ ...chaseMessage(c), category: 'parts', key: c.id })
     m.chased[c.id] = date
     sent++
   }
@@ -110,7 +110,7 @@ async function driftTick(today) {
   const r = await drift.check(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`)
   if (!r.ok) return false                       // no token or a Graph error: try again next Monday tick
   m.drift = date; save()
-  if (r.rows.length) { notify(driftMessage(new Set(r.rows.map(x => x.date)).size)); return true }
+  if (r.rows.length) { notify({ ...driftMessage(new Set(r.rows.map(x => x.date)).size), category: 'sheet', key: 'drift' }); return true }
   return false
 }
 

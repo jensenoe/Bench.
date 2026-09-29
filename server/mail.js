@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url'
 import * as store from './store.js'
 import * as settings from './settings.js'
 import { getTokenSilent, getAccount } from './auth.js'
-import { bridge } from './bridge.js'
+import { notify as sendNotice } from './notify.js'
 import { stats } from './leadtimes.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -122,7 +122,7 @@ async function readMessages(token, { fetchImpl = fetch, now = new Date() } = {})
 }
 
 /** Apply what `classify` found: one store write per change, one notification, remembered so it never repeats. */
-export function applyChanges(changes, { notify = bridge.notify } = {}) {
+export function applyChanges(changes, { notify = p => sendNotice({ ...p, category: 'parts' }) } = {}) {   // through the policy and the Bell (roadmap 150)
   const s = load()
   const applied = []
   for (const c of changes) {

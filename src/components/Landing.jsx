@@ -57,7 +57,7 @@ function Door({ s, tall = false, wide = false, sheetState, doorImages }) {
   )
 }
 
-export default function Landing({ scene, stats, pressing, sheetState, doorImages = {}, name, late = false, hoursIn = 0 }) {
+export default function Landing({ scene, stats, pressing, sheetState, doorImages = {}, name, late = false, hoursIn = 0, aerials = null }) {
   // A fresh line each time you land here, and a new one on the hour; the status line stays live.
   const hour = new Date().getHours()
   const [lead, setLead] = useState(() => greeting(stats, scene, name, { random: true }).lead)
@@ -69,7 +69,7 @@ export default function Landing({ scene, stats, pressing, sheetState, doorImages
 
   return (
     <div>
-      <Vista scene={scene}>
+      <Vista scene={scene} aerials={aerials}>
         <div className="on-photo mx-auto flex h-full col flex-col justify-end px-6 pb-[14vh]">
           <motion.div initial={{ opacity: 0, y: 26 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .9, ease: EASE }}
             className="glass inline-block w-fit max-w-full px-8 py-7 sm:px-10 sm:py-9">

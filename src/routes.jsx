@@ -58,7 +58,7 @@ export function Routes({
 }) {
   return (
     <AnimatePresence mode="wait">
-      {r === '' && page('home', <Landing scene={scene} stats={stats} pressing={pressing} sheetState={sheetState} doorImages={{ board: boardImage, procurement: { src: sceneAt(timeKey, now, 2).terrain, fallback: `/terrain/${timeKey}.jpg` }, tools: { src: sceneAt(timeKey, now, 3).terrain, fallback: `/terrain/${timeKey}.jpg` }, cockpit: cockpitCover(now), logbook: { src: sceneAt(timeKey, now, 4).terrain, fallback: `/terrain/${timeKey}.jpg` }, napkin: { src: sceneAt(timeKey, now, 1).terrain, fallback: `/terrain/${timeKey}.jpg` } }} name={settings.name} late={workingLate} hoursIn={hoursIn} />)}
+      {r === '' && page('home', <Landing scene={scene} stats={stats} pressing={pressing} sheetState={sheetState} doorImages={{ board: boardImage, procurement: { src: sceneAt(timeKey, now, 2).terrain, fallback: `/terrain/${timeKey}.jpg` }, tools: { src: sceneAt(timeKey, now, 3).terrain, fallback: `/terrain/${timeKey}.jpg` }, cockpit: cockpitCover(now), logbook: { src: sceneAt(timeKey, now, 4).terrain, fallback: `/terrain/${timeKey}.jpg` }, napkin: { src: sceneAt(timeKey, now, 1).terrain, fallback: `/terrain/${timeKey}.jpg` } }} name={settings.name} late={workingLate} hoursIn={hoursIn} aerials={settings.aerials === true ? settings.aerialCollection || 'all' : null} />)}
 
       {onLunch && page('lunch', <Lunch clock={timeclock.clock} punch={punch} now={now} scene={scene} />)}
 

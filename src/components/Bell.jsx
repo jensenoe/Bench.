@@ -1,13 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Bell as BellIcon } from '@phosphor-icons/react'
-import { getNotifications, markNotificationsRead } from '../api/notify.js'
+import { getNotifications, markNotificationsRead, snoozeNotification } from '../api/notify.js'
+import { openExternal } from '../api.js'
+import { toast } from '../api/extras.js'
 import { fmtDate } from '../lanes.js'
 
 /**
- * Notification history in the nav (roadmap 107). The bell carries a dot while something is unread; the
- * panel lists the last 20 with when they came, newest first. A row goes where the toast would have gone
- * and counts as read from then on; "Mark all read" clears the dot. Polls every minute and on bench:refresh.
+ * Notification history in the nav (roadmap 107, 150). The bell carries a dot while something is unread; the
+ * panel lists the last 30, grouped into today, yesterday and earlier, newest first. Open goes where the toast
+ * would have gone (a meeting opens its Teams link) and counts the row as read. A row that asks you to do
+ * something (a reminder, due tasks, a project, parts, the clock) can be snoozed for an hour or to 08:30
+ * tomorrow: it comes back as a fresh notification then. "Mark all read" clears the dot. Polls every minute
+ * and on bench:refresh.
  */
 const POLL_MS = 60_000
 /** "just now", "12 min ago", "3 h ago", then the date. */
@@ -19,6 +24,21 @@ export const ago = (iso, now = new Date()) => {
   if (h < 24) return `${h} h ago`
   return fmtDate(iso)
 }
+const dayKey = d => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+/** Today, Yesterday, Earlier: the groups that have rows, in that order. */
+export function groupByDay(items, now = new Date()) {
+  const y = new Date(now); y.setDate(y.getDate() - 1)
+  const today = dayKey(now), yesterday = dayKey(y)
+  const groups = [{ key: 'today', label: 'Today', items: [] }, { key: 'yesterday', label: 'Yesterday', items: [] }, { key: 'earlier', label: 'Earlier', items: [] }]
+  for (const n of items) {
+    const k = dayKey(new Date(n.at))
+    groups[k === today ? 0 : k === yesterday ? 1 : 2].items.push(n)
+  }
+  return groups.filter(g => g.items.length)
+}
+const hm = iso => { const d = new Date(iso); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }
+const backAt = (iso, now = new Date()) => dayKey(new Date(iso)) === dayKey(now) ? `back at ${hm(iso)}` : `back ${fmtDate(iso)} at ${hm(iso)}`
+const act = 'pill btn-ghost inline-flex h-6 items-center px-2 text-[12.5px] font-medium'
 
 export default function Bell() {
   const [open, setOpen] = useState(false)
@@ -29,7 +49,7 @@ export default function Bell() {
 
   const poll = useCallback(async () => {
     try {
-      const r = await getNotifications(20)
+      const r = await getNotifications(30)
       setItems(Array.isArray(r.items) ? r.items : []); setUnread(r.unread || 0); setNow(new Date())
     } catch { /* the next poll tries again */ }
   }, [])
@@ -48,19 +68,33 @@ export default function Bell() {
     return () => { removeEventListener('mousedown', onDoc); removeEventListener('keydown', onKey) }
   }, [open, poll])
 
+  const markLocal = (id) => {
+    setItems(list => list.map(i => i.id === id ? { ...i, read: true } : i))
+    setUnread(u => Math.max(0, u - 1))
+  }
   const go = (n) => {
     setOpen(false)
     if (!n.read) {
-      setItems(list => list.map(i => i.id === n.id ? { ...i, read: true } : i)); setUnread(u => Math.max(0, u - 1))
+      markLocal(n.id)
       markNotificationsRead([n.id]).catch(() => { /* the next poll shows the truth */ })
     }
-    if (typeof n.route === 'string' && n.route.startsWith('#')) location.hash = n.route
+    if (typeof n.url === 'string' && /^https:/.test(n.url)) openExternal(n.url)
+    else if (typeof n.route === 'string' && n.route.startsWith('#')) location.hash = n.route
+  }
+  const snooze = async (n, preset) => {
+    try {
+      const r = await snoozeNotification(n.id, preset)
+      setItems(list => list.map(i => i.id === n.id ? { ...i, read: true, snoozedUntil: r.until } : i)); setUnread(r.unread ?? 0)
+      const line = backAt(r.until, new Date())
+      toast('Snoozed.', `${line[0].toUpperCase()}${line.slice(1)}.`)
+    } catch (e) { toast('Not snoozed.', e?.message ? `${e.message}. Try again.` : 'Try again.') }
   }
   const allRead = () => {
     setItems(list => list.map(i => ({ ...i, read: true }))); setUnread(0)
     markNotificationsRead('all').catch(() => { /* the next poll shows the truth */ })
   }
   const label = unread ? `Notifications, ${unread} unread` : 'Notifications'
+  const groups = groupByDay(items, now)
 
   return (
     <div ref={box} className="relative">
@@ -74,7 +108,7 @@ export default function Bell() {
       <AnimatePresence>
         {open && (
           <motion.div key="panel" role="dialog" aria-label="Notifications" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: .18 }}
-            className="panel off-photo absolute right-0 top-full z-[60] mt-2 w-[360px] p-4 text-[13.5px]" style={{ boxShadow: 'var(--shadow-pop)' }}>
+            className="panel off-photo absolute right-0 top-full z-[60] mt-2 w-[380px] max-w-[calc(100vw-2rem)] p-4 text-[13.5px]" style={{ boxShadow: 'var(--shadow-pop)' }}>
             <div className="flex items-baseline justify-between">
               <span className="display text-[17px] font-semibold">Notifications.</span>
               <span className="tnum text-[13px]" style={{ color: 'var(--ink-3)' }}>{unread ? `${unread} unread` : items.length ? 'all read' : ''}</span>
@@ -82,23 +116,35 @@ export default function Bell() {
             {items.length === 0
               ? <p className="mt-3 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>Nothing yet. What Bench. tells you lands here as well.</p>
               : (
-                <ul className="mt-3 flex max-h-[60vh] flex-col gap-1 overflow-y-auto">
-                  {items.map(n => (
-                    <li key={n.id}>
-                      <button onClick={() => go(n)} aria-label={`${n.title} ${n.body || ''}, ${ago(n.at, now)}${n.read ? '' : ', unread'}`}
-                        className="row flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors hover:bg-[var(--wash)]">
-                        <span aria-hidden="true" className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: n.read ? 'transparent' : 'var(--accent)' }} />
-                        <span className="min-w-0 flex-1">
-                          <span className="flex items-baseline justify-between gap-3">
-                            <span className="truncate font-medium" style={{ color: n.read ? 'var(--ink-2)' : 'var(--ink)' }}>{n.title}</span>
-                            <span className="tnum shrink-0 text-[12.5px]" style={{ color: 'var(--ink-3)' }}>{ago(n.at, now)}</span>
-                          </span>
-                          {n.body && <span className="mt-0.5 text-[13px] leading-snug" style={{ color: 'var(--ink-3)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{n.body}</span>}
-                        </span>
-                      </button>
-                    </li>
+                <div className="mt-2 flex max-h-[60vh] flex-col overflow-y-auto">
+                  {groups.map(g => (
+                    <section key={g.key} aria-label={g.label} className="mt-2 first:mt-0">
+                      <h3 className="px-3 pb-1 text-[12.5px] font-medium" style={{ color: 'var(--ink-3)' }}>{g.label}</h3>
+                      <ul className="flex flex-col gap-1">
+                        {g.items.map(n => (
+                          <li key={n.id} className="row flex items-start gap-2.5 px-3 py-2">
+                            <span aria-hidden="true" className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: n.read ? 'transparent' : 'var(--accent)' }} />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-baseline justify-between gap-3">
+                                <span className="truncate font-medium" style={{ color: n.read ? 'var(--ink-2)' : 'var(--ink)' }}>{n.title}{n.read ? '' : <span className="sr-only">, unread</span>}</span>
+                                <span className="tnum shrink-0 text-[12.5px]" style={{ color: 'var(--ink-3)' }}>{ago(n.at, now)}</span>
+                              </div>
+                              {n.body && <p className="mt-0.5 text-[13px] leading-snug" style={{ color: 'var(--ink-3)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{n.body}</p>}
+                              <div className="-ml-2 mt-1 flex flex-wrap items-center gap-1">
+                                {(n.route || n.url) && <button onClick={() => go(n)} aria-label={`Open: ${n.title} ${n.body || ''}`} className={act} style={{ color: 'var(--ink-2)' }}>Open</button>}
+                                {n.snoozable && !n.snoozedUntil && <>
+                                  <button onClick={() => snooze(n, 'hour')} aria-label={`Snooze ${n.title} for an hour`} className={act} style={{ color: 'var(--ink-3)' }}>Snooze 1 hour</button>
+                                  <button onClick={() => snooze(n, 'tomorrow')} aria-label={`Snooze ${n.title} to 08:30 tomorrow`} className={act} style={{ color: 'var(--ink-3)' }}>Tomorrow 08:30</button>
+                                </>}
+                                {n.snoozedUntil && <span className="tnum px-2 text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Snoozed, {backAt(n.snoozedUntil, now)}</span>}
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
                   ))}
-                </ul>
+                </div>
               )}
             {items.length > 0 && (
               <div className="mt-3 flex justify-end">

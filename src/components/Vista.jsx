@@ -1,12 +1,15 @@
 import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'motion/react'
 import Photo from './Photo.jsx'
+import AerialHero from './AerialHero.jsx'
 
 /**
  * Photographic hero. The photograph follows the hour (dawn, day, dusk, night)
  * and drifts slower than the page, so the copy appears to float in front of it.
+ * With the moving hero on (`aerials` is the collection), aerial film plays over the photograph, under the
+ * same grade, grain and veil; until a clip is cached the photograph is all there is, as before.
  */
-export default function Vista({ scene, children }) {
+export default function Vista({ scene, aerials = null, children }) {
   const ref = useRef(null)
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] })
   const imgY = useTransform(scrollYProgress, [0, 1], ['0%', '18%'])
@@ -19,6 +22,7 @@ export default function Vista({ scene, children }) {
       <Photo animated key={scene.terrain} src={scene.terrain} fallback={scene.fallback}
         style={{ y: imgY, scale: imgScale }}
         className="photo absolute inset-0 h-full w-full object-cover object-center will-change-transform" />
+      {aerials && <AerialHero scene={scene.key} collection={aerials} style={{ y: imgY, scale: imgScale }} className="absolute inset-0 h-full w-full will-change-transform" />}
       <div aria-hidden="true" className="grade absolute inset-0" />
       <div aria-hidden="true" className="grain absolute inset-0" />
       <div className="pointer-events-none absolute inset-0" style={{
