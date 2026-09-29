@@ -192,12 +192,13 @@ export default function App() {
   const closeDay = useCallback(async (time) => { try { await api.closeUnclosed(time); await refreshClock(); showToast({ text: 'Closed.', by: 'The out punch is on its way to the sheet.', plain: true }) } catch (e) { setError(e.message) } }, [refreshClock, showToast])
   const dismissDay = useCallback(async () => { try { await api.dismissUnclosed(); await refreshClock() } catch (e) { setError(e.message) } }, [refreshClock])
   const retry = useCallback(async () => { setRetrying(true); try { await refresh(); await refreshClock() } finally { setRetrying(false) } }, [refresh, refreshClock])
-  // The brief opens once per start, when the setting is on and today's brief has not been seen.
+  // The brief opens once per start, when the setting is on, today's brief has not been seen and it has something
+  // to say. An empty brief is marked seen without a panel: a modal that says "nothing" is only in the way.
   const briefChecked = useRef(false)
   useEffect(() => {
     if (briefChecked.current || !state?.settings?.setupDone || settings.morningBrief === false) return
     briefChecked.current = true
-    dayApi.getBrief().then(b => { if (!b.seen) setBriefOpen(true) }).catch(() => {})
+    dayApi.getBrief().then(b => { if (b.seen) return; if (b.empty) dayApi.briefSeen().catch(() => {}); else setBriefOpen(true) }).catch(() => {})
   }, [state?.settings?.setupDone, settings.morningBrief])
   // j and k walk the cards on the Board (roadmap 88); Ctrl Alt B anywhere in Windows opens the quick add (roadmap 80).
   useBoardKeys(r === 'board')

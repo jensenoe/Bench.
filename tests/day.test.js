@@ -193,6 +193,26 @@ describe('driftSoft', () => {
   })
 })
 
+describe('an empty brief', () => {
+  const blank = { leftovers: [], arrived: [], due: [], orders: [], meetings: [], chases: [], drift: { days: 0 }, sheet: { pending: 0, unclosed: null } }
+  it('is empty only when there is nothing to show and the sheet is in order', () => {
+    expect(day.isEmptyBrief(blank)).toBe(true)
+    expect(day.isEmptyBrief({ ...blank, due: [{ id: 'x' }] })).toBe(false)
+    expect(day.isEmptyBrief({ ...blank, meetings: [{ id: 'm' }] })).toBe(false)
+    expect(day.isEmptyBrief({ ...blank, drift: { days: 2 } })).toBe(false)
+    expect(day.isEmptyBrief({ ...blank, sheet: { pending: 1, unclosed: null } })).toBe(false)
+    expect(day.isEmptyBrief({ ...blank, sheet: { pending: 0, unclosed: { date: '2026-09-22' } } })).toBe(false)
+    expect(day.isEmptyBrief({ ...blank, chases: undefined, drift: undefined })).toBe(true)   // an older server has neither
+    expect(day.isEmptyBrief(null)).toBe(false)
+  })
+  it('the brief says so itself', async () => {
+    day._reset()
+    const b = await day.brief()
+    expect(typeof b.empty).toBe('boolean')
+    expect(b.empty).toBe(day.isEmptyBrief(b))
+  })
+})
+
 describe('the brief and the close against the store', () => {
   it('freezes leftovers on the first look, applies choices, and records Today for tomorrow', async () => {
     day._reset()

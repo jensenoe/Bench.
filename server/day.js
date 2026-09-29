@@ -242,13 +242,21 @@ export async function driftSoft(ym = dayKey().slice(0, 7), { check = drift.check
   finally { clearTimeout(timer) }
 }
 
+/**
+ * A brief with nothing in it: no leftovers, arrivals, due items, order dates, meetings, chases or sheet drift,
+ * and the time sheet in order. The app does not open a panel just to say so (audit 29 Sep); it marks the
+ * brief seen and lets the page through.
+ */
+export const isEmptyBrief = (b) => Boolean(b) && !b.leftovers?.length && !b.arrived?.length && !b.due?.length && !b.orders?.length
+  && !b.meetings?.length && !b.chases?.length && !(b.drift?.days > 0) && !b.sheet?.pending && !b.sheet?.unclosed
+
 export async function brief() {
   ensureDay()
   const tasks = store.allTasks()
   const brief = t => ({ id: t.id, title: t.title, project: t.project || null, source: t.source || 'local', tool: TOOL[t.source] || null, dueDate: t.dueDate || null, orderBy: t.orderBy || null, effortHours: t.effortHours ?? null })
   const snap = timeclock.snapshot()
   const [meetings, driftNow] = await Promise.all([meetingsSoft(), driftSoft()])
-  return {
+  const out = {
     date: state.date,
     seen: state.seen,
     leftovers: tasks.filter(t => t.lane === 'today' && !t.done && state.leftovers.includes(t.id)).map(brief),
@@ -260,6 +268,7 @@ export async function brief() {
     chases: chasesSoft(),
     drift: driftNow
   }
+  return { ...out, empty: isEmptyBrief(out) }
 }
 
 /** The brief was shown. What is on Today now is the record tomorrow's leftovers are read against. */

@@ -49,7 +49,9 @@ const alerts = await import('./alerts.js')           // meeting in five minutes,
 const issuesSource = await import('./sources/issues.js')   // its site and list, for the admin's Sites.Selected grant (roadmap 140)
 
 const PORT = Number(process.env.PORT || 5178)
+const { localGuard } = await import('./localguard.js')   // loopback Host only, no cross-site writes (audit 29 Sep)
 const app = express()
+app.use(localGuard())
 app.use(express.json({ limit: '1mb' }))
 
 // A synchronous throw (the Today cap) must land in the same catch as a rejected promise, hence .then.
