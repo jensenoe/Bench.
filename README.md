@@ -108,6 +108,11 @@ without publishing and leaves the exes as a workflow artifact.
   and open actions, Napkin maps, and the synced Teams folder. Planner stays the source; Bench. only reads it.
 - **Innovation lane.** Cards whose title carries an I-code land in the Board's Innovation lane; one
   moved by hand stays where it is put.
+- **Meeting prep.** Half an hour before a meeting, Home says what it is about and what to bring: the
+  I-codes, machines and plans in the subject, the people the board knows, their open tasks, the Logbook
+  actions owed and what waits on them. `#/meeting?id=` has all of it, the last time's decisions and Join
+  in Teams; the five-minute reminder opens it. After the meeting, Log this meeting starts the Logbook entry
+  with the title, the project, the people and what was open going in.
 - **Projects.** `#/projects` also plans a machine or an innovation project backwards from the one date that matters: phases in
   working days, dates that fall out of the deadline, parts that get their order-by from the learned lead
   times, and slack and fit per phase. Weekends, the Zurich holidays and your own days off are skipped.

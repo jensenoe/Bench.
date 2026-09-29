@@ -23,6 +23,7 @@ const Changes = lazy(() => import('./components/Changes.jsx'))
 const Playbooks = lazy(() => import('./components/Playbooks.jsx'))
 const Suppliers = lazy(() => import('./components/Suppliers.jsx'))
 const Projects = lazy(() => import('./components/Projects.jsx'))
+const Meeting = lazy(() => import('./components/Meeting.jsx'))
 
 /**
  * The pages (roadmap 103). App.jsx holds the state and the wiring; this file says which page shows for
@@ -36,7 +37,7 @@ const Aside = ({ n, label, tone }) => (
     <span className="ml-2 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>{label}</span>
   </div>
 )
-const KNOWN = new Set(['', 'board', 'procurement', 'tools', 'logbook', 'napkin', 'hours', 'review', 'machines', 'playbooks', 'projects'])
+const KNOWN = new Set(['', 'board', 'procurement', 'tools', 'logbook', 'napkin', 'hours', 'review', 'machines', 'playbooks', 'projects', 'meeting'])
 const page = (key, node) => (
   <motion.div key={key} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: .4, ease: EASE }}>{node}</motion.div>
 )
@@ -144,6 +145,11 @@ export function Routes({
         <TerrainHeader compact scene={sceneAt(timeKey, now, 3)} title="Tools" line={SHEETS[2].body}
           aside={<Aside n={open.filter(t => t.source && t.source !== 'local').length} label="assigned to you" tone="var(--accent)" />} />
         <div className="relative"><Tools state={state} onPatch={onPatch} onDelete={onDelete} onRefresh={refresh} onConnect={openSettings} /></div>
+      </>)}
+
+      {r === 'meeting' && page('meeting', <>
+        <TerrainHeader compact scene={sceneAt(timeKey, now, 4)} title="Meeting" line="What it is about and what to bring, from the board and the Logbook." />
+        <div className="relative"><Meeting /></div>
       </>)}
 
       {r === 'hours' && page('hours', <>

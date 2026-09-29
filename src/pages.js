@@ -17,10 +17,14 @@ export const PAGES = [
   { id: 'hours', title: 'Hours', key: '7', group: 'Time', line: 'The month as the time sheet sees it' },
   { id: 'review', title: 'Review', key: '8', group: 'Time', line: 'The week in short sentences' },
   { id: 'napkin', title: 'Napkin', key: '9', group: 'Notes and connections', line: 'Mind maps, one branch at a time' },
-  { id: 'tools', title: 'Tools', group: 'Notes and connections', line: 'What Bench. reads from the TomFit tools' }
+  { id: 'tools', title: 'Tools', group: 'Notes and connections', line: 'What Bench. reads from the TomFit tools' },
+  // hidden: no key, not on top, not in More; reached from Home and the meeting reminder (roadmap 163)
+  { id: 'meeting', title: 'Meeting', hidden: true, line: 'What a meeting is about and what to bring' }
 ]
 export const PRIMARY = PAGES.filter(p => p.primary)
 export const MORE = PAGES.filter(p => p.group)
+/** Pages with a route but no link of their own, opened from somewhere else. */
+export const HIDDEN = PAGES.filter(p => p.hidden)
 export const GROUPS = [...new Set(MORE.map(p => p.group))].map(g => ({ title: g, pages: MORE.filter(p => p.group === g) }))
 /** key -> route, for the 1 to 9 shortcut */
 export const PAGE_KEYS = Object.fromEntries(PAGES.filter(p => p.key).map(p => [p.key, p.id]))

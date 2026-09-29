@@ -42,7 +42,7 @@ const check = (name, ok, detail = '') => {
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']
 const violations = res => res.violations.map(v => { const d = v.nodes[0]?.any?.[0]?.data; return `${v.id} x${v.nodes.length} (${v.nodes[0]?.target?.[0]})${d?.contrastRatio ? ` ${d.fgColor} on ${d.bgColor} at ${d.contrastRatio}` : ''}` }).join(', ')
 // Every page but the wall has a nav; the wall has no controls at all, so its check is the other way round.
-const PAGES = ['', 'board', 'procurement', 'tools', 'logbook', 'napkin', 'hours', 'review', 'machines', 'projects', 'wall']
+const PAGES = ['', 'board', 'procurement', 'tools', 'logbook', 'napkin', 'hours', 'review', 'machines', 'projects', 'meeting', 'wall']
 const smallTargets = () => [...document.querySelectorAll('button, a, [role=button], [role=checkbox], [role=radio], [role=switch], [role=tab]')].map(el => ({ el, r: el.getBoundingClientRect() }))
   .filter(({ r }) => r.width > 0 && r.height > 0 && (r.width < 24 || r.height < 24))
   .map(({ el, r }) => `${el.tagName.toLowerCase()} "${(el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 28)}" ${Math.round(r.width)}x${Math.round(r.height)}`)
