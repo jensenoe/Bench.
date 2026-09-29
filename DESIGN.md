@@ -183,6 +183,9 @@ Shadows are never black, and no component writes its own.
   "Not now" link with a 24 px hit area. Choices are radio pills at 24 px.
 - Ledgers and feeds: Recent changes, Backups, the Machines detail and the Review page are panels of
   rows, 13 to 13.5 px, a headline with a period, empty sections left out or one sentence.
+- Meeting prep: on Home one panel, only while a meeting is close or just ended and has something to say;
+  topics are plain chips with the small icon of their kind, then short ledgers of three lines. A line's meta
+  says one fact (late, with whom, due), never the topic the chips already name.
 - Wall mode is the one page allowed larger type: nothing under 16 px, no controls, Escape leaves.
 - Photographs from the phone: thumbnails at 12 px radius, a task picker, Attach and Dismiss.
 - Empty state: one sentence that says what to do next, in `--ink-3`, never "No data".

@@ -32,6 +32,7 @@ import { portfolio } from './portfolio.js'
 import { codeOf } from './codes.js'
 import { meetingsCached } from './day.js'
 import { notify, holdFor, fireSnoozed } from './notify.js'
+import { prepRoute } from './meetprep-live.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const FILE = () => path.join(process.env.BENCH_USER_DIR || process.env.BENCH_SECRETS_DIR || process.env.BENCH_DATA_DIR || path.join(__dirname, '..', 'data'), 'alerts.json')
@@ -250,7 +251,7 @@ const jobs = [
   ['snoozed', (now) => fireSnoozed(now).length],
   ['meeting', async (now) => {
     let sent = 0
-    for (const m of meetingsSoon(await meetingsCached(now), now)) if (notify(meetingMessage(m), { now })) sent++
+    for (const m of meetingsSoon(await meetingsCached(now), now)) if (notify({ ...meetingMessage(m), ...prepRoute(m, now) }, { now })) sent++   // the prep page when there is something to bring (roadmap 163)
     return sent
   }],
   ['due', (now) => {
