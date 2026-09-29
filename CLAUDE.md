@@ -8,7 +8,7 @@ Read `HANDOFF.md` before changing anything; it lists what is verified, what is n
 
 - Vite 6, React 18, Tailwind v4 (`@theme` in `src/index.css`; base resets must sit in `@layer base` or they beat utilities), `motion/react`, `@phosphor-icons/react`, Outfit + Work Sans via fontsource variable fonts.
 - Express server in `server/` (ESM), embedded in Electron (`electron/main.cjs`, CommonJS, imports the server through `pathToFileURL`). `npm run dev` runs server + Vite; `npm start` server only; `npm run desktop` builds and opens Electron.
-- Electron 33, electron-builder 25: NSIS installer (`build/installer.nsh`, sidebar/header BMPs in `build/`) and a portable exe. `build-exe.bat` does everything on Windows; `build-exe.bat plain` skips exe stamping when winCodeSign's 7z symlink step fails (needs Developer Mode or admin).
+- Electron 44, electron-builder 26 (better-sqlite3 13 is Node-API: one binary for Node and Electron, no prebuild step): NSIS installer (`build/installer.nsh`, sidebar/header BMPs in `build/`) and a portable exe. `build-exe.bat` does everything on Windows (or `npm run dist`); both empty `release/` first through `scripts/clean-release.mjs`, which never deletes a folder holding an installed Bench.; `build-exe.bat plain` skips exe stamping when winCodeSign's 7z symlink step fails (needs Developer Mode or admin).
 - Microsoft Graph via MSAL device-code flow (`server/auth.js`). Public client, id baked in. Two scope tiers: CORE (`Tasks.ReadWrite`, `Files.ReadWrite`) which users can consent to; EXTRA (`Sites.Read.All`, `Calendars.Read`) which needs tenant-admin consent (`auth.adminConsentUrl()`).
 
 ## Where data lives

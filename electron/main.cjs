@@ -372,6 +372,36 @@ function runPendingInstaller() {
   } catch (err) { log('[update] installer', err) }
 }
 
+// ── installed inside a build folder (audit 29 Sep) ────────────────────
+// An installed Bench. whose folder sits in a checkout's release\ (…\mountain-dashboard\release\Bench) is
+// deleted by the next build. Say so once per version, plainly, with what to do; the data is not at risk.
+function insideBuildFolder(exeDir = EXE_DIR) {
+  if (!app.isPackaged || PORTABLE) return null
+  const release = path.dirname(exeDir)
+  if (path.basename(release).toLowerCase() !== 'release') return null
+  // only a real installation: release\win-unpacked straight from electron-builder has no uninstaller and is fine to run
+  try { if (!fs.readdirSync(exeDir).some(f => /^Uninstall Bench\.exe$/i.test(f))) return null } catch { return null }
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(path.dirname(release), 'package.json'), 'utf8'))
+    return pkg.name === 'bench' ? exeDir : null
+  } catch { return null }
+}
+async function warnIfInsideBuildFolder() {
+  const where = insideBuildFolder()
+  if (!where) return
+  const marker = path.join(USER_DIR, 'warned-install-location')
+  try { if (fs.readFileSync(marker, 'utf8').trim() === app.getVersion()) return } catch { /* first time */ }
+  log('[install] running from inside a build folder:', where)
+  await dialog.showMessageBox(mainWin, {
+    type: 'warning',
+    title: 'Bench. is installed in the build folder',
+    message: 'Bench. is installed inside the project\'s release folder.',
+    detail: `${where}\n\nThe next build empties that folder and would remove this copy. Uninstall it from Windows Settings > Apps, then run the installer again and keep the folder it suggests. Your board, hours and sign-ins are in your profile and stay where they are.`,
+    buttons: ['Understood']
+  })
+  try { fs.mkdirSync(USER_DIR, { recursive: true }); fs.writeFileSync(marker, app.getVersion()) } catch { /* ask again next start */ }
+}
+
 // ── app ───────────────────────────────────────────────────────────────
 let mainWin
 async function start() {
@@ -424,12 +454,14 @@ async function start() {
   })
   mainWin.webContents.on('unresponsive', () => log('[renderer] unresponsive'))
   mainWin.webContents.on('responsive', () => log('[renderer] responsive again'))
-  mainWin.webContents.on('console-message', (_e, level, message, line, source) => { if (level >= 3) log('[renderer] error', `${message} (${source}:${line})`) })
+  // Electron 35+ puts the details on the event and makes level a string; the positional arguments are gone for good soon.
+  mainWin.webContents.on('console-message', (e) => { if (e.level === 'error') log('[renderer] error', `${e.message} (${e.sourceId}:${e.lineNumber})`) })
   // The close button hides the window; Quit in the tray menu (or a real quit) ends the app.
   mainWin.on('close', e => { if (!quitting && closeToTray() && app.isPackaged) { e.preventDefault(); mainWin.hide() } })
   mainWin.on('hide', () => { refreshTray() })
   if (app.isPackaged) makeTray()
   await mainWin.loadURL(`http://127.0.0.1:${port}/`)
+  warnIfInsideBuildFolder().catch(err => log('[install] warning', err))
   const watchdog = setInterval(watchdogTick, WATCH_EVERY); watchdog.unref?.()
   // Ctrl+Alt+B from anywhere: bring the window up and open quick add (roadmap 80).
   try {
