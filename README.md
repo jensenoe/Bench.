@@ -12,7 +12,7 @@
 Installing over an older Bench. keeps your board, hours and settings. `Bench-portable-…exe` on the
 same page is the no-install version: keep it in any folder and run it from there.
 
-**0.12, third beta (0.12.0-beta.3).** Everything here works on my machine and on the mocks; the
+**0.12, fourth beta (0.12.0-beta.4).** Everything here works on my machine and on the mocks; the
 Microsoft paths (Planner, the hours workbook, the issue list, the calendar) still want a
 first real run in the tom.fit tenant, and the issue list and calendar need a one-time admin
 approval, see below.
@@ -54,7 +54,7 @@ Administrator; `build-exe.bat plain` skips the icon stamping instead, and `build
 Bump `version` in `package.json`, commit, then tag and push:
 
 ```bash
-git tag v0.12.0-beta.3 && git push --tags
+git tag v0.12.0-beta.4 && git push --tags
 ```
 
 The *Release* workflow in `.github/workflows/release.yml` builds both exes on a Windows
@@ -91,10 +91,11 @@ without publishing and leaves the exes as a workflow artifact.
   Teams), tasks still due at 15:00, Logbook actions due, innovation projects coming due, clock in and out,
   and your own "Remind me" on any task. Nothing on the desktop during a meeting or a focus session, none in
   the quiet hours; Snooze in the Bell.
-- **A moving hero.** Settings > Look > Moving hero plays aerial clips on Home (night cities, Iceland, lava,
-  Vietnam and Bali, Pripyat, fjords and mountains, deserts, coastlines), following the time of day and
-  crossfading from one clip into the next, with a light film grade. Clips download in the background into a
-  cache of about 1 GB and only cached clips play; offline the photograph stays. Morning lasts until 10:00, dusk
+- **A moving hero.** Settings > Look > Moving hero plays 76 clips from Pixabay on Home, chosen frame by frame for
+  colour: cities after dark, turquoise water, golden hour, fire and ice, above the clouds, terraces and
+  tropics, falling water and forests. They come in random order, every clip once before any repeats, and
+  crossfade from one into the next in their own colour. Clips download in the background (2560 px, about
+  3 GB for all) and only cached clips play; offline the photograph stays. Morning lasts until 10:00, dusk
   starts at 16:00.
 - **P1 goes to Today.** A task set to P1, created as P1 or arriving as P1 (Urgent in Planner) moves to Today
   when there is room, once: move it out by hand and it stays out. With room left, Today suggests up to two

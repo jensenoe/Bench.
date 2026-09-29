@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, animate, useReducedMotion } from 'motion/react'
-import { CLIPS, pickClip, wanted, videoUrl, posterUrl } from '../aerials.js'
+import { CLIPS, pickClip, wanted, shuffle, videoUrl, posterUrl } from '../aerials.js'
 import { getAerials, prefetchAerials } from '../api/aerials.js'
 
 const EASE = [0.16, 1, 0.3, 1]
 const FADE = 1.5            // seconds: the next clip starts this long before the current one ends and fades in over it
-const POLL = 30_000         // how often the hero asks which clips are cached, while the window shows
+const POLL = 20_000         // how often the hero asks which clips are cached and queues the next downloads, while the window shows
 const HAVE_FUTURE_DATA = 3  // the next clip can start without a stall
-// A light film treatment on the clips only, never on the photograph: a touch more contrast on the video (the
-// .photo filter on the box still applies on top), and a soft vignette in the veil colour that deepens the
-// corners so the copy keeps its ground. The vignette fades in with the first clip and out with it.
-const FILM = { filter: 'contrast(1.06) saturate(1.04)' }
+// The clips keep their own colour (roadmap 159): the photograph's muting filter and the scene's tint do not apply to
+// them. A light cinematic lift instead, a touch more contrast and colour, and a soft vignette in the veil colour
+// that deepens the corners so the copy keeps its ground. The vignette fades in with the first clip and out with it.
+const FILM = { filter: 'contrast(1.08) saturate(1.1)' }
 const VIGNETTE = { zIndex: 3, background: 'radial-gradient(ellipse 120% 100% at 50% 45%, transparent 55%, rgba(var(--veil), .42) 100%)' }
 
 // Everything the video callbacks touch lives in one mutable object (`s`), so play, pause and the swap never
@@ -21,7 +21,14 @@ const canPlay = (s) => s.visible && s.onScreen
 const fadeIn = (v) => animate(v, { opacity: [0, 1] }, { duration: FADE, ease: EASE })
 const hide = (v) => animate(v, { opacity: 0 }, { duration: 0 })
 const readyOf = (s) => new Set([...s.ready].filter(id => !s.bad.has(id)))
-const nextClip = (s) => pickClip({ clips: CLIPS, scene: s.scene, collection: s.collection, ready: readyOf(s), last: s.ids[s.front], recent: s.recent })
+/** Every clip once before any repeats; a pick from an exhausted round starts the next round. */
+const nextClip = (s) => {
+  const r = pickClip({ clips: CLIPS, collection: s.collection, ready: readyOf(s), last: s.ids[s.front], played: s.played })
+  if (!r) return null
+  if (!r.fresh) s.played = s.ids[s.front] ? [s.ids[s.front]] : []
+  s.played.push(r.clip.id)
+  return r.clip
+}
 function load(s, i, clip) {
   const v = s.vids[i]
   if (!v) return
@@ -47,7 +54,7 @@ function start(s) {
   load(s, s.front, clip)
   v.style.zIndex = '2'
   if (s.vids[1 - s.front]) s.vids[1 - s.front].style.zIndex = '1'
-  v.play().then(() => { fadeIn(v); if (s.vig) fadeIn(s.vig) }).catch(() => { s.started = false })
+  v.play().then(() => { fadeIn(v); if (s.vig) fadeIn(s.vig); s.onLive?.(true) }).catch(() => { s.started = false })
   prepare(s)
 }
 /**
@@ -64,7 +71,6 @@ function crossfade(s) {
   fadeIn(nxt).then(() => {
     cur.pause()
     hide(cur)
-    s.recent = [s.ids[f], ...s.recent].slice(0, 6)
     s.front = 1 - f
     s.fading = false
     prepare(s)
@@ -97,7 +103,7 @@ function onError(s, i) {
   if (s.fading) return
   // The clip on screen failed: the next one if it is ready, otherwise back to the photograph and try again.
   if (s.ids[1 - i] && s.vids[1 - i]?.readyState >= HAVE_FUTURE_DATA) return crossfade(s)
-  hide(s.vids[i]); if (s.vig) hide(s.vig); s.ids[i] = null; s.started = false
+  hide(s.vids[i]); if (s.vig) hide(s.vig); s.onLive?.(false); s.ids[i] = null; s.started = false
   start(s)
 }
 /** Plays what should be playing and nothing else. */
@@ -116,28 +122,36 @@ function sync(s) {
  * the front one plays while the back one loads the next clip; about 1.5 s before the front clip ends the
  * back one starts and fades in over it (opacity only), then they swap roles. No black frame, no jump.
  *
+ * Clips come in random order from the whole collection, whatever the hour, each once before any repeats; the
+ * download queue follows a shuffled order so variety arrives fast (roadmap 159).
  * Only cached clips play (server/aerials.js serves them from /media/aerials). The photograph stays underneath
  * in Vista, so until a clip is cached, offline or not, the hero looks exactly as before. Paused while the
  * window is hidden or Home is scrolled past it; with reduced motion, a still from a cached clip instead.
  */
-export default function AerialHero({ scene = 'day', collection = 'all', style, className = '' }) {
+export default function AerialHero({ collection = 'all', onLive, style, className = '' }) {
   const box = useRef(null)
   const reduce = useReducedMotion()
   const [status, setStatus] = useState(null)
   const [still, setStill] = useState(null)
-  const live = useRef({ vids: [null, null], vig: null, front: 0, ids: [null, null], fading: false, started: false, recent: [], bad: new Set(), ready: new Set(), scene, collection, visible: true, onScreen: true })
+  const live = useRef({ vids: [null, null], vig: null, front: 0, ids: [null, null], fading: false, started: false, played: [], bad: new Set(), ready: new Set(), collection, visible: true, onScreen: true, onLive })
+  // this session's download order: a different spread of places each start
+  const order = useRef(null)
+  if (!order.current) order.current = shuffle(CLIPS.map(c => c.id))
+  useEffect(() => { live.current.onLive = onLive }, [onLive])
   const setVid = useCallback((i, n) => { live.current.vids[i] = n }, [])
   const setVig = useCallback((n) => { live.current.vig = n }, [])
 
-  // The scene and collection steer the next pick; the clip already loaded behind is swapped for one that fits.
+  // The collection steers the next pick; the clip already loaded behind is swapped for one from it.
   useEffect(() => {
     const s = live.current
-    const changed = s.scene !== scene || s.collection !== collection
-    s.scene = scene; s.collection = collection
+    const changed = s.collection !== collection
+    s.collection = collection
+    if (changed) s.played = []
     if (changed && s.started && !s.fading) prepare(s)
-  }, [scene, collection])
+  }, [collection])
 
-  // Which clips are cached; ask for the next few for this scene (the server fetches one at a time).
+  // Which clips are cached; queue the next few of this session's order (the server fetches one at a time, so the
+  // queue runs on between polls and the whole collection is cached within the first sessions).
   useEffect(() => {
     let on = true
     const tick = async () => {
@@ -145,7 +159,7 @@ export default function AerialHero({ scene = 'day', collection = 'all', style, c
       try {
         let st = await getAerials()
         const ready = st.clips.filter(c => c.ready).map(c => c.id)
-        const ids = wanted({ scene, collection, ready, n: 3 })
+        const ids = wanted({ collection, ready, n: 6, order: order.current })
         if (ids.length && !st.busy && !st.queued) st = await prefetchAerials(ids)
         if (on) setStatus(st)
       } catch { /* offline, or the server is restarting: the photograph stays */ }
@@ -153,7 +167,7 @@ export default function AerialHero({ scene = 'day', collection = 'all', style, c
     tick()
     const id = setInterval(tick, POLL)
     return () => { on = false; clearInterval(id) }
-  }, [scene, collection])
+  }, [collection])
 
   // Cached clips reach the players; the first one starts as soon as there is one.
   useEffect(() => {
@@ -162,12 +176,12 @@ export default function AerialHero({ scene = 'day', collection = 'all', style, c
     s.ready = new Set(status.clips.filter(c => c.ready).map(c => c.id))
     if (reduce) {
       const posters = new Set(status.clips.filter(c => c.poster).map(c => c.id))
-      setStill(pickClip({ clips: CLIPS, scene, collection, ready: posters, random: () => 0 })?.id ?? null)
+      setStill(pickClip({ clips: CLIPS, collection, ready: posters })?.clip.id ?? null)
       return
     }
     if (!s.started) start(s)
     else if (!s.fading && !s.ids[1 - s.front]) prepare(s)
-  }, [status, reduce, scene, collection])
+  }, [status, reduce, collection])
 
   // A hidden window, or Home scrolled past the hero: nothing plays.
   useEffect(() => {
@@ -187,7 +201,7 @@ export default function AerialHero({ scene = 'day', collection = 'all', style, c
       style={FILM} className="absolute inset-0 h-full w-full object-cover object-center opacity-0" />
   )
   return (
-    <motion.div ref={box} aria-hidden="true" style={style} className={`photo pointer-events-none ${className}`}>
+    <motion.div ref={box} aria-hidden="true" style={style} className={`pointer-events-none ${className}`}>
       {reduce
         ? still && <>
             <motion.img key={still} src={posterUrl(still)} alt="" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: FADE, ease: EASE }}

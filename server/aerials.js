@@ -9,7 +9,7 @@
  *   GET  /media/aerials/<id>.mp4  a cached clip, with Range support (video needs it to seek and to start early)
  *   GET  /media/aerials/<id>.jpg  a cached poster
  *
- * The cache holds about 1.5 GB; past that the least recently served file goes first. Offline, a download
+ * The cache holds about 4 GB, the whole catalogue; past that the least recently served file goes first. Offline, a download
  * fails quietly, is tried again after a pause, and whatever is cached keeps playing. Nothing cached means the
  * hero keeps the photograph, as it did before.
  */
@@ -23,11 +23,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const userDir = () => process.env.BENCH_USER_DIR || process.env.BENCH_SECRETS_DIR || process.env.BENCH_DATA_DIR || path.join(__dirname, '..', 'data')
 const wrap = fn => (req, res) => Promise.resolve().then(() => fn(req, res)).catch(err => res.status(err.status || 500).json({ error: err.message }))
 
-export const CAP = 1.5 * 1024 ** 3
+export const CAP = 4 * 1024 ** 3                  // the whole catalogue fits, so after the first days every clip is at hand (roadmap 159)
 export const MAX_FILE = 150 * 1024 ** 2          // no single clip is near this; it stops a runaway download
 export const RETRY_MS = 10 * 60_000              // a failed download waits this long before it is tried again
-const HOSTS = ['videos.pexels.com', 'images.pexels.com']
-export const NAME = /^(\d{1,12})\.(mp4|jpg)$/
+const BASE_HOSTS = ['videos.pexels.com', 'images.pexels.com']
+/** Ids: "pexels-123", "mixkit-4k-2152", or a bare number from before roadmap 159. */
+export const ID = /^[a-z0-9][a-z0-9-]{0,47}$/
+export const NAME = /^([a-z0-9][a-z0-9-]{0,47})\.(mp4|jpg)$/
 const TYPES = { mp4: 'video/mp4', jpg: 'image/jpeg' }
 
 // ── the catalogue ─────────────────────────────────────────────────────
@@ -41,6 +43,12 @@ export function loadCatalogue() {
 }
 export const allClips = (cat = loadCatalogue()) => (cat.collections || []).flatMap(c => (c.clips || []).map(x => ({ ...x, collection: c.key })))
 const clipById = (id) => allClips().find(c => String(c.id) === String(id))
+/** Downloads go only to the hosts the catalogue itself names (Pexels, Mixkit, Pixabay...), over https. */
+export function hosts(cat = loadCatalogue()) {
+  const out = new Set(BASE_HOSTS)
+  for (const c of allClips(cat)) for (const u of [c.file, c.poster]) { try { const h = new URL(u); if (h.protocol === 'https:') out.add(h.hostname) } catch {} }
+  return out
+}
 
 // ── the cache ─────────────────────────────────────────────────────────
 /**
@@ -167,7 +175,7 @@ function fetchTo(url, dest, hops = 3) {
   return new Promise((resolve, reject) => {
     let u
     try { u = new URL(url) } catch { return reject(new Error('bad address')) }
-    if (u.protocol !== 'https:' || !HOSTS.includes(u.hostname)) return reject(new Error(`not a catalogue host: ${u.hostname}`))
+    if (u.protocol !== 'https:' || !hosts().has(u.hostname)) return reject(new Error(`not a catalogue host: ${u.hostname}`))
     const req = https.get(u, { headers: { 'User-Agent': 'Bench' }, timeout: 30_000 }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && hops > 0) {
         res.resume()
@@ -175,7 +183,8 @@ function fetchTo(url, dest, hops = 3) {
       }
       if (res.statusCode !== 200) { res.resume(); return reject(new Error(`HTTP ${res.statusCode}`)) }
       const type = String(res.headers['content-type'] || '')
-      if (!/^(video|image)\//.test(type)) { res.resume(); return reject(new Error(`unexpected ${type || 'content'}`)) }
+      // Pixabay labels some files binary/octet-stream; the bytes are checked once the file is in (looksRight)
+      if (!/^(video|image)\/|^(application|binary)\/octet-stream/.test(type)) { res.resume(); return reject(new Error(`unexpected ${type || 'content'}`)) }
       let got = 0
       const out = fs.createWriteStream(dest)
       // Whatever goes wrong mid-file (offline, too large, cleared), the .part is closed so it can be removed.
@@ -193,6 +202,13 @@ function fetchTo(url, dest, hops = 3) {
   })
 }
 
+/** A JPEG starts FF D8 FF; an MP4 has its ftyp box at byte 4. Anything else is not what the catalogue promised. */
+export function looksRight(file, ext) {
+  let b
+  try { const fd = fs.openSync(file, 'r'); b = Buffer.alloc(12); fs.readSync(fd, b, 0, 12, 0); fs.closeSync(fd) } catch { return false }
+  return ext === 'jpg' ? b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff : b.toString('latin1', 4, 8) === 'ftyp'
+}
+
 async function pump() {
   if (current) return
   const name = queue.shift()
@@ -201,12 +217,14 @@ async function pump() {
   const [, id, ext] = NAME.exec(name) || []
   const clip = id && clipById(id)
   if (!clip || c.has(name)) return pump()
-  const url = ext === 'jpg' ? `${clip.poster}?auto=compress&cs=tinysrgb&w=1920` : clip.file
+  // a Pexels still comes resized by its own CDN; other sources give a poster that is ready to use
+  const url = ext !== 'jpg' ? clip.file : /(^|\.)images\.pexels\.com$/.test(new URL(clip.poster).hostname) && !clip.poster.includes('?') ? `${clip.poster}?auto=compress&cs=tinysrgb&w=1920` : clip.poster
   const part = c.file(name) + '.part'
   current = { name, req: null }
   try {
     fs.mkdirSync(c.dir, { recursive: true })
     await fetchTo(url, part)
+    if (!looksRight(part, ext)) throw new Error('not a video or picture')
     fs.renameSync(part, c.file(name))
     c.add(name, queue.slice(0, 4))
     failedAt.delete(name)
@@ -224,7 +242,7 @@ async function pump() {
 /** Queue clips by id (their posters first). Unknown ids, cached files and recent failures are skipped. */
 export function prefetch(ids = []) {
   const c = getCache()
-  const clips = [...new Set(ids.map(String))].map(clipById).filter(Boolean).slice(0, 8)
+  const clips = [...new Set(ids.map(String))].map(clipById).filter(Boolean).slice(0, 12)
   const names = [...clips.map(x => `${x.id}.jpg`), ...clips.map(x => `${x.id}.mp4`)]
   let added = 0
   for (const n of names) {
@@ -262,7 +280,7 @@ export function registerRoutes(app) {
   app.post('/api/aerials/prefetch', wrap((req, res) => {
     // Nothing downloads until the moving hero is switched on.
     if (settings.get().aerials !== true) return res.json({ ...status(), added: 0, off: true })
-    const ids = Array.isArray(req.body?.ids) ? req.body.ids.filter(x => /^\d{1,12}$/.test(String(x))) : []
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids.filter(x => ID.test(String(x))) : []
     const added = prefetch(ids)
     res.json({ ...status(), added })
   }))

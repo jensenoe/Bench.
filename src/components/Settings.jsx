@@ -11,7 +11,7 @@ import Health from './Health.jsx'
 import { MailReading, PhoneView, StorageLine, DriveHome, AdminApproval } from './SettingsIntegrations.jsx'
 import { NotifyCategories, TestNotification } from './SettingsNotifications.jsx'
 import AerialCache from './SettingsAerials.jsx'
-import { AERIAL_COLLECTIONS, aerialCredits } from '../aerials.js'
+import { AERIAL_COLLECTIONS, aerialCredits, collectionOf } from '../aerials.js'
 import { ask } from './Confirm.jsx'
 import { Bar } from './Skeleton.jsx'
 
@@ -297,7 +297,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
               {draft.aerials === true && <>
                 <div>
                   <Note>Collection</Note>
-                  <div className="mt-1.5"><Chips items={[{ key: 'all', label: 'All collections' }, ...AERIAL_COLLECTIONS]} value={draft.aerialCollection || 'all'} onPick={v => saveNow({ aerialCollection: v })} /></div>
+                  <div className="mt-1.5"><Chips items={[{ key: 'all', label: 'All collections' }, ...AERIAL_COLLECTIONS]} value={collectionOf(draft.aerialCollection)} onPick={v => saveNow({ aerialCollection: v })} /></div>
                 </div>
                 <AerialCache active={open && tab === 'look'} />
               </>}
@@ -448,7 +448,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
             <Sec first>
               <p className="text-[13.5px] leading-relaxed" style={{ color: 'var(--ink-2)' }}>{ABOUT.long}</p>
               <p className="text-[12.5px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>
-                Photographs from Pexels and Unsplash, free licences. {credits().slice(0, 12).join(', ')} and others. Aerial film from Pexels by {aerialCredits().join(', ')} and others.{info ? ` Bench. v${String(info.version).replace(/-beta\.(\d+)/, ' beta $1')}.` : ''}
+                Photographs from Pexels and Unsplash, free licences. {credits().slice(0, 12).join(', ')} and others. Aerial film from Pixabay by {aerialCredits().slice(0, 12).join(', ')} and others.{info ? ` Bench. v${String(info.version).replace(/-beta\.(\d+)/, ' beta $1')}.` : ''}
               </p>
               {info?.logFile && <p className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>If something broke, <button onClick={() => window.bench.openLog()} className={link} style={{ color: 'var(--ink-2)' }}>open bench.log</button> and send it along.</p>}
               <div className="row p-4 text-[13.5px]">

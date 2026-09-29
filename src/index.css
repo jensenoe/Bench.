@@ -219,6 +219,8 @@ h1:focus-visible, h2:focus-visible { outline-offset: 8px; border-radius: 4px; }
   border-radius: 20px;
   box-shadow: 0 1px 0 rgba(var(--ink-rgb), .04) inset;
 }
+/* over moving film (roadmap 159): a deeper tint, since the frost does not reach every clip (see Vista) */
+.glass.film { background: rgba(var(--veil), .5); -webkit-backdrop-filter: blur(30px) saturate(1.2); backdrop-filter: blur(30px) saturate(1.2); }
 
 /* ambient motion */
 @keyframes drift-a { from { transform: translateX(-3%) } to { transform: translateX(3%) } }

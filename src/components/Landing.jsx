@@ -72,7 +72,7 @@ export default function Landing({ scene, stats, pressing, sheetState, doorImages
       <Vista scene={scene} aerials={aerials}>
         <div className="on-photo mx-auto flex h-full col flex-col justify-end px-6 pb-[14vh]">
           <motion.div initial={{ opacity: 0, y: 26 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .9, ease: EASE }}
-            className="glass inline-block w-fit max-w-full px-8 py-7 sm:px-10 sm:py-9">
+            className={`glass ${aerials ? 'film ' : ''}inline-block w-fit max-w-full px-8 py-7 sm:px-10 sm:py-9`}>
           <HeroWeather weather={hero?.weather} />
           <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .9, delay: .1, ease: EASE }}
             className="display max-w-[14ch] text-[48px] leading-[1.02] sm:text-[72px]"

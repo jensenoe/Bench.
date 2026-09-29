@@ -8,48 +8,69 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bench-aerials-'))
 process.env.BENCH_USER_DIR = path.join(tmp, 'user')
 process.env.BENCH_DATA_DIR = path.join(tmp, 'data')
 const aerials = await import('../server/aerials.js')
-const { CLIPS, SCENES, NEAR, pickClip, wanted, aerialCredits } = await import('../src/aerials.js')
+const { CLIPS, SCENES, aerialCredits } = await import('../src/aerials.js')
 const catalogue = JSON.parse(fs.readFileSync(new URL('../src/aerials.json', import.meta.url), 'utf8'))
 
 afterAll(() => fs.rmSync(tmp, { recursive: true, force: true }))
 
 describe('catalogue', () => {
-  it('has collections with a key, a label and clips', () => {
-    expect(catalogue.collections.length).toBeGreaterThanOrEqual(3)
+  // The hosts the clips and posters come from, spelt out here on purpose: a new host is a decision, not a side effect.
+  const FILE_HOSTS = ['cdn.pixabay.com']
+  const POSTER_HOSTS = ['cdn.pixabay.com']
+  const host = (u) => new URL(u).hostname
+
+  it('has six to nine collections, each with a key, a label and five clips or more', () => {
+    expect(catalogue.collections.length).toBeGreaterThanOrEqual(6)
+    expect(catalogue.collections.length).toBeLessThanOrEqual(9)
     for (const c of catalogue.collections) {
       expect(c.key).toMatch(/^[a-z]{2,20}$/)
       expect(c.label).toBeTruthy()
-      expect(c.clips.length).toBeGreaterThan(0)
+      expect(c.clips.length).toBeGreaterThanOrEqual(5)
     }
+    const keys = catalogue.collections.map(c => c.key)
+    expect(new Set(keys).size).toBe(keys.length)
   })
-  it('gives every clip an id, a file, a poster, a place and one of the four scenes', () => {
+  it('gives every clip a unique id the cache can use as a file name', () => {
+    expect(CLIPS.length).toBeGreaterThanOrEqual(30)
     for (const x of CLIPS) {
-      expect(Number.isInteger(x.id)).toBe(true)
-      expect(x.file).toMatch(/^https:\/\/videos\.pexels\.com\/video-files\/\d+\/[\w-]+\.mp4$/)
-      expect(x.file).toContain(`/${x.id}/`)
-      expect(x.poster).toMatch(/^https:\/\/images\.pexels\.com\/videos\/\d+\/(pictures\/)?[\w.-]+\.(jpe?g)$/)
-      expect(x.poster).toContain(`/${x.id}/`)
+      expect(typeof x.id).toBe('string')
+      expect(x.id).toMatch(/^[a-z0-9][a-z0-9-]{0,47}$/)
+      expect(aerials.NAME.test(`${x.id}.mp4`)).toBe(true)
+    }
+    expect(new Set(CLIPS.map(x => x.id)).size).toBe(CLIPS.length)
+  })
+  it('gives every clip a source page, a file, a poster, a place, a scene and who filmed it', () => {
+    for (const x of CLIPS) {
+      expect(x.source).toBeTruthy()
+      expect(x.page).toMatch(/^https:\/\/pixabay\.com\/videos\/[\w-]+-\d+\/$/)
+      expect(x.page).toContain(`-${x.id.split('-').pop()}/`)
+      expect(x.file).toMatch(/^https:\/\/[^/]+\/.+\.mp4$/)
+      expect(x.poster).toMatch(/^https:\/\/[^/]+\/.+\.jpe?g$/)
       expect(SCENES).toContain(x.scene)
       expect(typeof x.place).toBe('string')
       expect(x.place.length).toBeGreaterThan(1)
       expect(typeof x.by).toBe('string')
     }
   })
-  it('keeps every collection a saved setting may name, and has the wonders', () => {
-    // Settings stores aerialCollection by key: a key that disappears leaves that hero with nothing to play.
-    const keys = catalogue.collections.map(c => c.key)
-    for (const k of ['cities', 'coast', 'islands', 'australia', 'iceland', 'volcanoes', 'asia', 'lost', 'mountains', 'deserts']) expect(keys).toContain(k)
-    expect(new Set(keys).size).toBe(keys.length)
+  it('downloads only from the hosts listed here, over https', () => {
+    for (const x of CLIPS) {
+      expect(FILE_HOSTS).toContain(host(x.file))
+      expect(POSTER_HOSTS).toContain(host(x.poster))
+    }
+    const named = aerials.hosts(catalogue)
+    for (const h of [...FILE_HOSTS, ...POSTER_HOSTS]) expect(named.has(h)).toBe(true)
   })
-  it('streams a 1080p or 1440p rendition, never the 4K file', () => {
-    for (const x of CLIPS) expect(x.file).toMatch(/[_-](1920_1080|2560_1440)_\d+fps\.mp4$/)
-  })
-  it('has lava or aurora for the night outside the cities', () => {
-    expect(CLIPS.filter(x => x.scene === 'night' && x.collection !== 'cities').length).toBeGreaterThanOrEqual(3)
-  })
-  it('has no clip twice and several clips for every time of day', () => {
-    expect(new Set(CLIPS.map(x => x.id)).size).toBe(CLIPS.length)
-    for (const s of SCENES) expect(CLIPS.filter(x => x.scene === s).length).toBeGreaterThanOrEqual(3)
+  it('streams a sharp rendition that fits the cache: 1920 px wide or more, 120 MB or less, 10 to 60 s', () => {
+    for (const x of CLIPS) {
+      expect(x.width).toBeGreaterThanOrEqual(1920)
+      expect(x.height).toBeGreaterThanOrEqual(1080)
+      expect(Number.isInteger(x.bytes)).toBe(true)
+      expect(x.bytes).toBeGreaterThan(0)
+      expect(x.bytes).toBeLessThanOrEqual(120 * 1024 ** 2)
+      expect(x.duration).toBeGreaterThanOrEqual(10)
+      expect(x.duration).toBeLessThanOrEqual(60)
+    }
+    expect(CLIPS.reduce((n, x) => n + x.bytes, 0)).toBeLessThanOrEqual(3.5 * 1024 ** 3)
   })
   it('keeps to the house copy rules and lists who filmed what', () => {
     expect(JSON.stringify(catalogue)).not.toContain(String.fromCharCode(0x2014))   // no em dashes, written as a code so this file has none either
@@ -57,52 +78,6 @@ describe('catalogue', () => {
   })
   it('matches what the server reads', () => {
     expect(aerials.allClips().map(x => x.id)).toEqual(CLIPS.map(x => x.id))
-  })
-})
-
-describe('the clip picker', () => {
-  const clips = [
-    { id: 1, scene: 'night', collection: 'cities' },
-    { id: 2, scene: 'night', collection: 'cities' },
-    { id: 3, scene: 'dusk', collection: 'cities' },
-    { id: 4, scene: 'day', collection: 'coast' },
-    { id: 5, scene: 'dawn', collection: 'coast' },
-    { id: 6, scene: 'night', collection: 'coast' }
-  ]
-  const all = clips.map(c => c.id)
-
-  it('follows the scene', () => {
-    for (let r = 0; r < 20; r++) expect(pickClip({ clips, scene: 'night', ready: all, random: () => r / 20 }).scene).toBe('night')
-    expect(pickClip({ clips, scene: 'dusk', ready: all }).id).toBe(3)
-    expect(pickClip({ clips, scene: 'dawn', ready: all }).id).toBe(5)
-  })
-  it('never repeats the clip just shown', () => {
-    for (let r = 0; r < 20; r++) expect(pickClip({ clips, scene: 'night', ready: all, last: 1, random: () => r / 20 }).id).not.toBe(1)
-    // the only dusk clip was just shown: the next comes from the nearest scene, not a repeat
-    const p = pickClip({ clips, scene: 'dusk', ready: all, last: 3 })
-    expect(p.id).not.toBe(3)
-    expect(p.scene).toBe('night')
-  })
-  it('falls back to the neighbouring scenes when this one has nothing cached', () => {
-    expect(pickClip({ clips, scene: 'dusk', ready: [1, 4] }).scene).toBe('night')   // dusk borrows from night first
-    expect(pickClip({ clips, scene: 'dawn', ready: [3, 4] }).scene).toBe('day')     // dawn borrows from day first
-    expect(pickClip({ clips, scene: 'day', ready: [5, 6] }).scene).toBe('dawn')
-    expect(pickClip({ clips, scene: 'night', ready: [4, 3] }).scene).toBe('dusk')
-    for (const s of SCENES) { expect(NEAR[s][0]).toBe(s); expect([...NEAR[s]].sort()).toEqual([...SCENES].sort()) }
-  })
-  it('keeps to the collection, and gives nothing rather than the same clip again', () => {
-    expect(pickClip({ clips, scene: 'night', collection: 'coast', ready: all }).id).toBe(6)
-    expect(pickClip({ clips, scene: 'night', collection: 'coast', ready: all, last: 6 }).collection).toBe('coast')
-    expect(pickClip({ clips, scene: 'night', ready: [2], last: 2 })).toBeNull()
-    expect(pickClip({ clips, scene: 'night', ready: [] })).toBeNull()
-  })
-  it('prefers clips not shown lately when there is a choice', () => {
-    expect(pickClip({ clips, scene: 'night', ready: all, last: 1, recent: [2] }).id).toBe(6)
-  })
-  it('asks for this scene first, then its neighbours, a few at a time', () => {
-    expect(wanted({ clips, scene: 'night', ready: [], n: 3 })).toEqual([1, 2, 6])
-    expect(wanted({ clips, scene: 'night', ready: [1, 2, 6], n: 2 })).toEqual([3, 5])
-    expect(wanted({ clips, scene: 'day', collection: 'coast', ready: [4], n: 3 })).toEqual([5, 6])
   })
 })
 
@@ -194,8 +169,8 @@ describe('Range', () => {
   })
 
   it('serves only cached catalogue names under /media/aerials', () => {
-    for (const ok of ['5538825.mp4', '5538825.jpg']) expect(aerials.NAME.test(ok)).toBe(true)
-    for (const bad of ['../settings.json', '..\\x.mp4', 'a.mp4', '1.mp4.part', '1.exe', 'index.json', '1/2.mp4']) expect(aerials.NAME.test(bad)).toBe(false)
+    for (const ok of ['5538825.mp4', '5538825.jpg', 'a.mp4', 'pexels-5538825.mp4', 'mixkit-4k-2152.jpg', 'pixabay-127523.mp4']) expect(aerials.NAME.test(ok)).toBe(true)
+    for (const bad of ['../settings.json', '..\\x.mp4', '1.mp4.part', '1.exe', 'index.json', '1/2.mp4', 'A.mp4', '-x.mp4', 'a_b.mp4']) expect(aerials.NAME.test(bad)).toBe(false)
   })
 })
 
