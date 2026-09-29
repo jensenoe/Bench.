@@ -1,11 +1,18 @@
 import { useState } from 'react'
+import { Plus } from '@phosphor-icons/react'
 import { AnimatePresence } from 'motion/react'
 import TaskCard, { DRAG_TYPE } from './TaskCard.jsx'
 import AddTask from './AddTask.jsx'
 import Capacity from './Capacity.jsx'
 import { LANES } from '../copy.js'
 import { STATUS } from '../scenes.js'
-import { daysSince } from '../lanes.js'
+import { daysSince, p2Suggestions } from '../lanes.js'
+
+// "Not today" on a suggestion holds until midnight, on this computer only
+const NOT_TODAY = 'bench.notToday'
+const dayKey = () => new Date().toDateString()
+const readNotToday = () => { try { const v = JSON.parse(localStorage.getItem(NOT_TODAY) || 'null'); return v?.day === dayKey() ? v.ids : [] } catch { return [] } }
+const writeNotToday = ids => { try { localStorage.setItem(NOT_TODAY, JSON.stringify({ day: dayKey(), ids })) } catch { /* private window: it lasts this visit */ } }
 
 /** What an empty lane says: one sentence, what to do next (DESIGN.md, empty state). */
 const EMPTY = {
@@ -17,12 +24,15 @@ const EMPTY = {
 }
 
 /** One lane. A card dragged in from another lane lands here; the panel lights up while it hovers. */
-export default function Lane({ laneKey, tasks, onPatch, onDelete, onCreate, wide = false, span = '' }) {
+export default function Lane({ laneKey, tasks, candidates = [], onPatch, onDelete, onCreate, wide = false, span = '' }) {
   const lane = LANES[laneKey]
   const [over, setOver] = useState(false)
   const open = tasks.filter(t => !t.done), done = tasks.filter(t => t.done)
   const overCap = lane.cap && open.length > lane.cap
   const full = lane.cap && open.length >= lane.cap
+  const [notToday, setNotToday] = useState(readNotToday)
+  const suggested = laneKey === 'today' && lane.cap ? p2Suggestions(candidates, lane.cap - open.length, notToday) : []
+  const setAside = id => { const ids = [...notToday, id]; setNotToday(ids); writeNotToday(ids) }
   const coldest = laneKey === 'innovation' && open.length ? Math.max(...open.map(t => daysSince(t.lastTouched) ?? 0)) : null
 
   const accepts = (e) => [...(e.dataTransfer?.types || [])].includes(DRAG_TYPE)
@@ -63,6 +73,20 @@ export default function Lane({ laneKey, tasks, onPatch, onDelete, onCreate, wide
       {open.length === 0 && <p className="py-5 text-center text-[13px]" style={{ color: 'var(--ink-3)' }}>
         {EMPTY[laneKey] || 'Add a card, or drop one here.'}
       </p>}
+      {suggested.length > 0 && (
+        <div className="mt-4" aria-label="Suggested for Today">
+          <p className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Room for {suggested.length === 1 ? 'one more' : 'more'}. P2, waiting in {suggested.length === 1 ? 'another lane' : 'other lanes'}:</p>
+          <ul className="mt-1.5">
+            {suggested.map(t => (
+              <li key={t.id} className="rule flex flex-wrap items-center gap-x-3 gap-y-1 py-2">
+                <span className="min-w-0 flex-1 truncate text-[13.5px]" title={t.title}>{t.title}</span>
+                <button className="btn-quiet inline-flex h-7 items-center gap-1 px-2 text-[12.5px]" onClick={() => onPatch(t.id, { lane: 'today' })}><Plus size={12} weight="bold" aria-hidden="true" />Add to Today</button>
+                <button className="btn-ghost h-7 px-2 text-[12.5px]" onClick={() => setAside(t.id)}>Not today</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="mt-3"><AddTask lane={laneKey} onCreate={onCreate} /></div>
       {done.length > 0 && (
         <details className="mt-3">

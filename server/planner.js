@@ -4,6 +4,8 @@ import { getTokenSilent, scopes, getAccount } from './auth.js'
  * The card in Planner on the web (roadmap 146), from the plan and task IDs Graph gives. The tenant ID makes
  * the page open in the right organisation for an account that belongs to several.
  */
+/** Planner's priority (0 to 10) as Bench.'s: Urgent is P1, Important is P2; Medium and Low carry none (roadmap 155). */
+export const plannerPrio = p => (typeof p !== 'number' ? null : p <= 1 ? 1 : p <= 4 ? 2 : null)
 export const plannerUrl = (planId, taskId, tenantId = null) => planId && taskId
   ? `https://planner.cloud.microsoft/webui/plan/${encodeURIComponent(planId)}/view/board/task/${encodeURIComponent(taskId)}${tenantId ? `?tid=${encodeURIComponent(tenantId)}` : ''}`
   : null
@@ -73,7 +75,8 @@ export async function syncFromPlanner() {
         done: (t.percentComplete ?? 0) >= 100,
         planTitle: await planTitle(token, t.planId),
         bucketName: await bucketName(token, t.bucketId),
-        url: plannerUrl(t.planId, t.id, tenantId)
+        url: plannerUrl(t.planId, t.id, tenantId),
+        prio: plannerPrio(t.priority)
       })
     }
     const result = mergePlannerTasks(mapped)

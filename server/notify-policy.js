@@ -42,6 +42,7 @@ export const CATEGORIES = [
   { key: 'parts', label: 'Parts to chase', hint: 'An ordered part inside its lead time.', mode: 'desktop', cap: 3 },
   { key: 'nudge', label: 'Water and coffee', hint: 'Before a long meeting, after a long stretch.', mode: 'desktop', cap: 4 },
   { key: 'focus', label: 'Focus timer', hint: 'A focus session ran out.', mode: 'desktop', cap: null, busy: false },
+  { key: 'suggest', label: 'Suggestions for Today', hint: 'Room on Today and P2 tasks that could fill it, once in the morning; a P1 with no room.', mode: 'bell', cap: 2 },
   { key: 'arrivals', label: 'New work', hint: 'New from Planner and Issues since the last look.', mode: 'bell', cap: null },
   { key: 'sheet', label: 'The time sheet', hint: 'Monday: the sheet and Bench. disagree.', mode: 'bell', cap: null },
   { key: 'other', label: 'Everything else', hint: 'Whatever does not fit above.', mode: 'desktop', cap: null }

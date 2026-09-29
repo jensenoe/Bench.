@@ -43,6 +43,7 @@ const hero = await import('./hero.js')               // the briefing under the g
 const commute = await import('./commute.js')         // the drive home with live traffic (roadmap 120)
 const projects = await import('./projects.js')       // plans with phases and a deadline (roadmap 121)
 const nudges = await import('./nudges.js')           // water and coffee at the right moments (roadmap 139)
+const report = await import('./report.js')           // a project's progress as a shareable PDF (roadmap 158)
 const portfolio = await import('./portfolio.js')     // the innovation projects, from the I-coded Planner cards (roadmap 143)
 const aerials = await import('./aerials.js')         // aerial film for the moving hero, cached on demand (Themes 2.0)
 const alerts = await import('./alerts.js')           // meeting in five minutes, due and overdue, your own reminders, the clock (roadmap 150)
@@ -226,6 +227,7 @@ commute.registerRoutes(app)
 projects.registerRoutes(app)
 nudges.registerRoutes(app)
 portfolio.registerRoutes(app)
+report.registerRoutes(app)
 aerials.registerRoutes(app)                          // /api/aerials and /media/aerials/<id>.mp4|jpg
 updates.registerRoutes(app)                         // /api/updates and the background download (roadmap 76)
 

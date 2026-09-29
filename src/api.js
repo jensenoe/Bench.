@@ -12,6 +12,19 @@ export const signOut = () => fetch('/api/auth/signout', { method: 'POST' }).then
 export const openExternal = (url) => window.bench?.openExternal ? window.bench.openExternal(url) : window.open(url, '_blank', 'noopener')
 /** A logbook link: web addresses go to the browser, everything else (a share path, a drawing) to Windows. */
 export const openLink = (href) => /^https?:/i.test(href) ? openExternal(href) : (window.bench?.openPath ? window.bench.openPath(href) : Promise.resolve('Paths open only in the desktop app.'))
+/**
+ * A project report as a PDF (roadmap 158): the desktop app saves it through a Save dialog and opens it; a browser
+ * opens the report page and its print dialog, where "Save as PDF" does the same. Resolves to the saved path or null.
+ */
+export async function exportReport(route, name) {
+  if (window.bench?.savePdf) {
+    const r = await window.bench.savePdf(route, name)
+    if (r?.error) throw new Error(r.error)
+    return r?.path || null
+  }
+  window.open(`${route}?print=1`, '_blank', 'noopener')
+  return null
+}
 export const importSettings = (body) => fetch('/api/settings/import', { method: 'POST', headers: H, body: JSON.stringify(body) }).then(j)
 export const getTimeclock = () => fetch('/api/timeclock').then(j)
 export const punch = (kind) => fetch('/api/timeclock/punch', { method: 'POST', headers: H, body: JSON.stringify({ kind }) }).then(j)

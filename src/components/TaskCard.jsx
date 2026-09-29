@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Check, X, ArrowSquareOut, SlidersHorizontal, DotsSixVertical, ArrowsClockwise, Timer, LinkSimple, BellSimple } from '@phosphor-icons/react'
+import { Check, X, ArrowSquareOut, SlidersHorizontal, DotsSixVertical, DotsThree, ArrowsClockwise, Timer, LinkSimple, BellSimple } from '@phosphor-icons/react'
 import { remindLabel } from '../remind.js'
 import TaskEditor from './TaskEditor.jsx'
 import { openExternal, openLink } from '../api.js'
@@ -94,6 +94,16 @@ function Checklist({ task, onPatch }) {
  */
 export default function TaskCard({ task, onPatch, onDelete, draggable = true, focusMinutes: focusProp }) {
   const [editing, setEditing] = useState(false)
+  // The actions (Today, focus, size, lane, open, delete) open from the ⋯ button, never on hover over the text (roadmap 154).
+  const [menu, setMenu] = useState(false)
+  const menuRef = useRef(null)
+  useEffect(() => {
+    if (!menu) return
+    const down = e => { if (!menuRef.current?.contains(e.target)) setMenu(false) }
+    const key = e => { if (e.key === 'Escape') { e.stopPropagation(); setMenu(false) } }
+    addEventListener('pointerdown', down, true); addEventListener('keydown', key, true)
+    return () => { removeEventListener('pointerdown', down, true); removeEventListener('keydown', key, true) }
+  }, [menu])
   const [dragging, setDragging] = useState(false)
   const detailsBtn = useRef(null)
   // Closing the details (Close, Escape) hands focus back to the button that opened them, not to the page top.
@@ -184,7 +194,7 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true, fo
         <div className="min-w-0 flex-1">
           <p className="cursor-text pr-14 text-[14px] leading-snug" onClick={() => setEditing(v => !v)}
             style={{ textDecoration: task.done ? 'line-through' : 'none' }}>{task.title}</p>
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 empty:hidden">
+          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 empty:hidden">
             {task.remindAt && !task.done && (
               <button onClick={() => setEditing(true)} title="Reminder. Details to change or clear it" aria-label={`Reminder at ${remindLabel(task.remindAt)}. Open the details to change it`}
                 className="tag -my-[2px] inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-[12px] font-medium tracking-wide tnum"
@@ -205,9 +215,9 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true, fo
             {task.repeat && <Tag color={STATUS.muted} title="Completing it creates the next one"><span className="inline-flex items-center gap-1"><ArrowsClockwise size={10} weight="bold" />{task.repeat}</span></Tag>}
             {(task.tags || []).map(t => <Tag key={t} color={STATUS.muted}>{t}</Tag>)}
             {task.planTitle && task.source !== 'qms' && task.source !== 'issues' && <Tag color={STATUS.muted}>{task.planTitle}</Tag>}
-            {task.bucketName && <Tag color={STATUS.muted}>{task.bucketName}</Tag>}
+            {task.bucketName && <Tag color={STATUS.muted} title={task.bucketName}>{task.bucketName.replace(/\s*\([^)]*\)\s*$/, '')}</Tag>}
             {task.sourceStatus && !task.done && <Tag color={STATUS.muted}>{task.sourceStatus}</Tag>}
-            {task.meta?.prio && <Tag color={STATUS.caution}>P{task.meta.prio}</Tag>}
+            {task.meta?.prio && !task.priority && <Tag color={STATUS.caution} title={`P${task.meta.prio} in ${ORIGIN[task.source] || task.source}`}>P{task.meta.prio}</Tag>}
             {task.meta?.priority && /high/i.test(task.meta.priority) && <Tag color={STATUS.overdue}>high</Tag>}
             {over > 0 ? <Tag color={STATUS.overdue}>{over}d overdue</Tag>
               : task.dueDate && <Tag color={STATUS.muted}>{fmtDate(task.dueDate)}</Tag>}
@@ -235,19 +245,20 @@ export default function TaskCard({ task, onPatch, onDelete, draggable = true, fo
       </div>
 
       {/* Always there: details, and the grip while draggable. Top right, over the title's reserved right padding. */}
-      <div className="absolute right-3 top-2.5 flex items-center gap-0.5">
+      <div ref={menuRef} className="absolute right-3 top-2.5 flex items-center gap-0.5">
+        {!editing && <button onClick={() => setMenu(v => !v)} aria-label={`Actions for ${task.title}`} title="Actions" aria-expanded={menu} aria-haspopup="true"
+          className="grid h-6 w-6 place-items-center rounded-md" style={{ color: menu ? 'var(--ink)' : 'var(--ink-3)' }}><DotsThree size={15} weight="bold" /></button>}
+        {menu && !editing && (
+          <div role="group" aria-label={`Actions for ${task.title}`} className="row absolute right-0 top-8 z-20 flex w-max max-w-[min(560px,calc(100vw-48px))] flex-wrap items-center gap-1 px-1.5 py-1"
+            style={{ borderColor: 'var(--line-2)', boxShadow: 'var(--shadow-pop)' }}>
+            {actions}
+          </div>
+        )}
         <button ref={detailsBtn} onClick={() => setEditing(v => !v)} aria-label="Edit details" title="Details" aria-expanded={editing}
           className="grid h-6 w-6 place-items-center rounded-md transition-opacity" style={{ color: editing ? 'var(--ink)' : 'var(--ink-3)' }}><SlidersHorizontal size={13} weight="bold" /></button>
         {canDrag && <span aria-hidden="true" className="hidden opacity-0 transition-opacity group-hover:opacity-60 sm:block" style={{ color: 'var(--ink-3)' }}><DotsSixVertical size={13} weight="bold" /></span>}
       </div>
-      {/* On hover and on focus: the actions, as a small toolbar riding the card's top edge. While the details are open
-          the same actions sit inside them instead, so nothing floats over the title (roadmap 146). */}
-      {!editing && (
-        <div className="row absolute -top-4 right-10 z-10 hidden items-center gap-1 px-1.5 py-1 group-hover:flex group-focus-within:flex"
-          style={{ borderColor: 'var(--line-2)', boxShadow: 'var(--shadow-pop)' }}>
-          {actions}
-        </div>
-      )}
+      {/* While the details are open the same actions sit inside them (roadmap 146); otherwise they open from the ⋯ button (154). */}
 
       <AnimatePresence initial={false}>
         {editing && <TaskEditor key="ed" task={task} onPatch={onPatch} onClose={closeEditor} toolbar={actions} />}

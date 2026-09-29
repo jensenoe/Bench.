@@ -36,6 +36,11 @@ describe('the hero briefing', () => {
     const r = composeHero(base, at(11, 40))
     expect(r.lines[0]).toEqual({ kind: 'lunch', text: 'Lunch at twelve.' })
   })
+  it('lunch in the calendar is said once, not twice (roadmap 156)', () => {
+    const r = composeHero({ ...base, meetings: [{ subject: 'Lunch', start: '12:00', end: '13:00' }] }, at(11, 54))
+    expect(r.lines.filter(l => /lunch/i.test(l.text))).toHaveLength(1)
+    expect(r.lines[0].kind).toBe('meeting')
+  })
   it('the afternoon is progress and the week on the clock', () => {
     const r = composeHero(base, at(14, 30))
     expect(text(r)).toBe('One of three ticked. 21:10 on the clock this week.')

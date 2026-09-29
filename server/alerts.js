@@ -218,7 +218,34 @@ function save(s) { try { fs.mkdirSync(path.dirname(FILE()), { recursive: true })
 const workdayOf = now => { try { return !workdays.isOff(ymd(now)) } catch { return now.getDay() >= 1 && now.getDay() <= 5 } }
 const offFn = () => { try { const r = workdays.rules(); return d => workdays.isOff(d, r) } catch { return d => [0, 6].includes(noon(d).getDay()) } }
 
+/**
+ * Today's room (roadmap 155): between 08:00 and 11:30 on a working day, the free places on Today and the P2
+ * tasks that could take them (not waiting, not parked), and a P1 that found Today full. Pure.
+ */
+export function todaySuggestions(tasks, now = new Date(), workday = true) {
+  const h = now.getHours() + now.getMinutes() / 60
+  if (!workday || h < 8 || h >= 11.5) return null
+  const open = tasks.filter(t => !t.done)
+  const room = Math.max(0, store.TODAY_CAP - open.filter(t => t.lane === 'today').length)
+  const p2 = open.filter(t => store.effectivePriority(t) === 2 && !['today', 'waiting', 'parked'].includes(t.lane))
+    .sort((a, b) => String(a.dueDate || '9999').localeCompare(String(b.dueDate || '9999'))).slice(0, room)
+  // a P1 moved out of Today by hand (p1Placed) was a choice, not a lack of room
+  const p1 = open.filter(t => store.effectivePriority(t) === 1 && !t.p1Placed && !['today', 'waiting'].includes(t.lane))
+  return { room, p2, p1 }
+}
+export function suggestionMessages(s, now = new Date()) {
+  const out = [], day = ymd(now), list = xs => xs.slice(0, 3).map(t => t.title).join(', ')
+  if (s?.p1?.length) out.push({ title: 'P1 with no room.', body: `Today is full. Waiting for a place: ${list(s.p1)}.`, route: '#/board', category: 'suggest', key: `p1-${day}` })
+  if (s?.room && s.p2.length) out.push({ title: 'Room on Today.', body: `${s.room} free. P2 this week: ${list(s.p2)}.`, route: '#/board', category: 'suggest', key: `p2-${day}` })
+  return out
+}
+
 const jobs = [
+  ['suggest', (now) => {
+    let sent = 0
+    for (const m of suggestionMessages(todaySuggestions(store.allTasks(), now, workdayOf(now)), now)) if (notify(m, { now })) sent++
+    return sent
+  }],
   ['yours', (now) => fireReminders(now)],
   ['snoozed', (now) => fireSnoozed(now).length],
   ['meeting', async (now) => {

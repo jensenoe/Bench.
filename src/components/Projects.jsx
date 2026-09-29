@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Plus, Trash, ArrowsClockwise, PencilSimple, X } from '@phosphor-icons/react'
+import { ArrowLeft, Plus, Trash, ArrowsClockwise, PencilSimple, X, FilePdf } from '@phosphor-icons/react'
 import { getProjects, getProject, createProject, patchProject, removeProject, scheduleProject, assignPhase } from '../api/projects.js'
 import { getMachines } from '../api/machines.js'
 import { getPlaybooks } from '../api/playbooks.js'
@@ -8,7 +8,7 @@ import { PanelSkeleton } from './Skeleton.jsx'
 import LoadFailed from './LoadFailed.jsx'
 import { ask } from './Confirm.jsx'
 import { STATUS } from '../scenes.js'
-import { patchTask, saveSettings } from '../api.js'
+import { patchTask, saveSettings, exportReport } from '../api.js'
 import { InnovationList, InnovationDetail, codeFromHash } from './Innovation.jsx'
 
 /**
@@ -427,12 +427,17 @@ function ProjectDetail({ id, onBack }) {
     if (!(await ask(`Delete the project "${p.name}"? Its tasks stay on the board, only the plan goes.`))) return
     try { await removeProject(p.id); toast('Deleted.', p.name); onBack() } catch (err) { toast('That did not work.', err.message) }
   }
+  const exportIt = async () => {
+    try { const at = await exportReport(`/api/report/project/${encodeURIComponent(p.id)}`, `${p.name} - ${today}.pdf`); if (at) toast('Report saved.', at) }
+    catch (err) { toast('The report did not save.', err.message) }
+  }
   const openTasks = phases.reduce((s, ph) => s + ph.tasks.filter(t => !t.done).length, 0) + unassigned.filter(t => !t.done).length
   return (
     <main className="mx-auto col flex flex-col gap-4 px-6">
       <div className="flex flex-wrap items-center gap-3">
         <button onClick={onBack} className={ghost}><ArrowLeft size={13} weight="bold" /> All projects</button>
         <a href={`#/machines?m=${encodeURIComponent(p.machine.toLowerCase())}`} className="text-[13px] underline underline-offset-2" style={{ color: 'var(--ink-3)' }}>The machine page</a>
+        <button onClick={exportIt} className={quiet + ' ml-auto'} title="The plan, its room, tasks and parts to order on one page to share"><FilePdf size={13} weight="bold" /> Export PDF</button>
       </div>
 
       <section className="panel p-6 sm:p-7" aria-label="Project">

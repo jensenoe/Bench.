@@ -293,7 +293,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
             </Sec>
             <Sec title="Moving hero">
               <Toggle on={draft.aerials === true} onChange={() => saveNow({ aerials: draft.aerials !== true })} label="Aerial film on Home"
-                hint="Cities at night, coastlines, islands, following the time of day like the pictures. Clips download in the background and stay on this machine; until one is here, the photograph shows." />
+                hint="Cities at night, Iceland, lava, fjords and deserts, following the time of day like the pictures. Clips download in the background and stay on this machine; until one is here, the photograph shows." />
               {draft.aerials === true && <>
                 <div>
                   <Note>Collection</Note>

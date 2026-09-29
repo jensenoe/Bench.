@@ -151,7 +151,10 @@ h1, h2, h3 { text-wrap: balance; }
 .ledger th + th, .ledger td + td { border-left: 1px solid var(--line); }
 
 /* A chip stays on one line and trims; the whole text shows while its card is hovered or holds focus (roadmap 57). */
-.tag { display: inline-block; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+/* a chip: one line, cut with an ellipsis only when it is really long; a button chip (a link to the tool) stays a flex row */
+.tag { max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+span.tag { display: inline-block; }
+button.tag { display: inline-flex; }
 .group:is(:hover, :focus-within) .tag { max-width: none; }
 /* A plain fact (project, people, size, date) is a chip without the tint; the first one starts on the title's edge. */
 .tag-plain:first-child { padding-left: 0; }

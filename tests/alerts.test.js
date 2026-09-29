@@ -211,7 +211,7 @@ describe('your own reminders', () => {
 
   it('the tick runs every rule and never throws', async () => {
     const r = await alerts.tick(at(WED, 15, 30))
-    expect(Object.keys(r)).toEqual(['yours', 'snoozed', 'meeting', 'due', 'actions', 'project', 'arrivals', 'clock'])
+    expect(Object.keys(r)).toEqual(['suggest', 'yours', 'snoozed', 'meeting', 'due', 'actions', 'project', 'arrivals', 'clock'])
     expect(Object.values(r).every(v => v !== null)).toBe(true)
   })
 })

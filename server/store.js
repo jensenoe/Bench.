@@ -173,6 +173,20 @@ const now = () => new Date().toISOString()
  *   remindAt     an ISO date-time: a desktop reminder with the title goes out once then, and the field clears (roadmap 150)
  */
 export const OWN_FIELDS = ['assignedBy', 'lead', 'project', 'priority', 'effortHours', 'tags', 'checklist', 'repeat', 'supplier', 'poNumber', 'orderedOn', 'deliveredOn', 'links', 'phase', 'after', 'remindAt']
+/** A task's priority: its own, else the one its tool gives (1 to 3), else none. */
+export const effectivePriority = t => t.priority ?? (Number(t.meta?.prio) >= 1 && Number(t.meta?.prio) <= 3 ? Number(t.meta.prio) : null)
+/**
+ * P1 goes to Today (roadmap 155): once, when a task becomes P1 or arrives as P1, if there is room and it is not
+ * with someone else. p1Placed remembers it, so a P1 moved out of Today by hand stays out.
+ */
+function pullP1(db, t) {
+  if (effectivePriority(t) !== 1) { if (t.p1Placed) t.p1Placed = null; return false }
+  if (t.lane === 'today' && !t.p1Placed) t.p1Placed = now()   // already there: moving it out later is a choice
+  if (t.done || t.p1Placed || t.lane === 'today' || t.lane === 'waiting') return false
+  if (todayCount(db) >= TODAY_CAP) return false
+  t.lane = 'today'; t.p1Placed = now()
+  return true
+}
 const clampPrio = p => (p === null || p === undefined || p === '') ? null : Math.min(3, Math.max(1, Number(p) || 3))
 const normTags = t => Array.isArray(t) ? [...new Set(t.map(x => String(x).trim()).filter(Boolean))].slice(0, 12)
   : typeof t === 'string' ? normTags(t.split(/[,;]/)) : []
@@ -247,6 +261,8 @@ export function createTask(input) {
     completedAt: null,
     order: db.tasks.length
   }
+  // created as P1: Today when there is room; a lane given with it is a choice, kept (roadmap 155)
+  if (input.lane && effectivePriority(task) === 1) task.p1Placed = now(); else pullP1(db, task)
   db.tasks.push(task)
   save()
   history.record('created', null, task)
@@ -308,6 +324,7 @@ export function updateTask(id, patch) {
   const t = db.tasks.find(x => x.id === id)
   if (!t) return null
   const before = structuredClone(t)
+  const becameP1 = 'priority' in patch && clampPrio(patch.priority) === 1 && t.priority !== 1 && !patch.lane
 
   const lane = patch.lane && LANES.includes(patch.lane) ? patch.lane : t.lane
   const willBeOpen = patch.done === false || (patch.done !== true && !t.done)
@@ -331,6 +348,8 @@ export function updateTask(id, patch) {
   for (const k of allowed) if (k in patch) t[k] = patch[k]
   if ('lane' in patch) t.lane = lane
   if ('priority' in patch) t.priority = clampPrio(patch.priority)
+  if (becameP1) { t.p1Placed = null; pullP1(db, t) }
+  else if (patch.lane && effectivePriority(t) === 1) t.p1Placed = now()   // a P1 put somewhere by hand stays there
   if ('effortHours' in patch) t.effortHours = patch.effortHours === null || patch.effortHours === '' ? null : Math.max(0, Number(patch.effortHours) || 0)
   if ('tags' in patch) t.tags = normTags(patch.tags)
   if ('checklist' in patch) t.checklist = normChecklist(patch.checklist)
@@ -432,6 +451,12 @@ export function mergeSource(source, remote) {
       events.push({ before, after: t })
     }
   }
+  // P1 in its tool: to Today once, when there is room (roadmap 155)
+  for (const t of db.tasks) {
+    if (t.source !== source || t.done || t.p1Placed || effectivePriority(t) !== 1) { if (t.source === source) pullP1(db, t); continue }
+    const before = structuredClone(t)
+    if (pullP1(db, t)) events.push({ before, after: t })
+  }
   if (!db.meta.innovationLane) {
     for (const t of db.tasks) {
       if (t.done || t.lane === 'innovation' || !codeOf(t.title)) continue
@@ -461,7 +486,7 @@ export function noteSourceError(source, error) {
 
 /** Kept for the existing Planner path. */
 export const mergePlannerTasks = (remote) =>
-  mergeSource('planner', remote.map(r => ({ sourceId: r.plannerId, title: r.title, dueDate: r.dueDate, done: r.done, group: r.planTitle, subgroup: r.bucketName, status: r.done ? 'done' : 'open', url: r.url ?? null })))
+  mergeSource('planner', remote.map(r => ({ sourceId: r.plannerId, title: r.title, dueDate: r.dueDate, done: r.done, group: r.planTitle, subgroup: r.bucketName, status: r.done ? 'done' : 'open', url: r.url ?? null, meta: r.prio ? { prio: r.prio } : {} })))
 
 function inferLane(r) {
   if (codeOf(r.title)) return 'innovation'   // an innovation project's card (roadmap 145)

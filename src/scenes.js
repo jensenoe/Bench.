@@ -16,8 +16,8 @@ import library from './library.json'
  */
 const SCENES = {
   dawn:  { label: 'Dawn',  start: 5,  glow: '#3A2C4A', accent: '#F0A483', accentInk: '#2A1810', filter: 'saturate(.9) contrast(1.04) sepia(.1)',            grade: '240,164,131', light: { glow: '#F1DCD2', accent: '#B85A34', accentInk: '#FFF7F2' } },
-  day:   { label: 'Day',   start: 9,  glow: '#1B2A3C', accent: '#8CC4F5', accentInk: '#0A1C2E', filter: 'saturate(.86) contrast(1.05)',                     grade: '140,180,230', light: { glow: '#D9E6F2', accent: '#2E6CA8', accentInk: '#F3F8FD' } },
-  dusk:  { label: 'Dusk',  start: 17, glow: '#3A2038', accent: '#F09468', accentInk: '#2A140A', filter: 'saturate(.92) contrast(1.05) sepia(.12)',          grade: '236,140,104', light: { glow: '#F1D9D0', accent: '#B9501F', accentInk: '#FFF6F1' } },
+  day:   { label: 'Day',   start: 10, glow: '#1B2A3C', accent: '#8CC4F5', accentInk: '#0A1C2E', filter: 'saturate(.86) contrast(1.05)',                     grade: '140,180,230', light: { glow: '#D9E6F2', accent: '#2E6CA8', accentInk: '#F3F8FD' } },
+  dusk:  { label: 'Dusk',  start: 16, glow: '#3A2038', accent: '#F09468', accentInk: '#2A140A', filter: 'saturate(.92) contrast(1.05) sepia(.12)',          grade: '236,140,104', light: { glow: '#F1D9D0', accent: '#B9501F', accentInk: '#FFF6F1' } },
   night: { label: 'Night', start: 21, glow: '#0E1526', accent: '#9DB9E6', accentInk: '#0A1428', filter: 'saturate(.8) contrast(1.06) brightness(.94)',      grade: '96,116,168',  light: { glow: '#D7DEEC', accent: '#3A5B96', accentInk: '#F4F6FB' } }
 }
 /** Functional colours as tokens (index.css defines them per theme). Keys kept for the components. */
@@ -61,18 +61,20 @@ export function sunTimes(d = new Date()) {
 export const isDark = (d = new Date()) => { const { sunrise, sunset } = sunTimes(d); return d < sunrise || d > sunset }
 
 /**
- * Dawn runs from forty minutes before sunrise to an hour after it; dusk from an hour before sunset
- * to forty minutes after. Night is the rest. A bare hour still works for the settings previews.
+ * Morning runs from forty minutes before sunrise until 10:00, day until 16:00, dusk from 16:00 until forty minutes
+ * after sunset (roadmap 157). Night is the rest. Where the sun keeps later hours, morning lasts at least an hour past
+ * sunrise and dusk starts at least an hour before sunset. A bare hour still works for the settings previews.
  */
 export function keyFor(x) {
-  if (typeof x === 'number') return x < 5 || x >= 21 ? 'night' : x < 9 ? 'dawn' : x < 17 ? 'day' : 'dusk'
+  if (typeof x === 'number') return x < 5 || x >= 21 ? 'night' : x < 10 ? 'dawn' : x < 16 ? 'day' : 'dusk'
   const d = x instanceof Date ? x : new Date()
   const { sunrise, sunset } = sunTimes(d)
   const m = 60000, t = d.getTime()
   if (t < sunrise.getTime() - 40 * m) return 'night'
-  if (t < sunrise.getTime() + 60 * m) return 'dawn'
-  if (t < sunset.getTime() - 60 * m) return 'day'
-  if (t < sunset.getTime() + 40 * m) return 'dusk'
+  const at = h => new Date(d.getFullYear(), d.getMonth(), d.getDate(), h).getTime()
+  if (t < Math.max(at(10), sunrise.getTime() + 60 * m)) return 'dawn'
+  if (t < Math.min(at(16), sunset.getTime() - 60 * m)) return 'day'
+  if (t < Math.max(at(16), sunset.getTime() + 40 * m)) return 'dusk'
   return 'night'
 }
 const dayOfYear = (d) => Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000)

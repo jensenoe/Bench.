@@ -183,6 +183,12 @@ export default function App() {
         const next = r?.task?.spawned
         showToast({ ...c, tool, by: next ? `Next one is on the board for ${next.dueDate || 'later'}.` : c.by, undo: async () => { await api.patchTask(id, { done: false }); await refresh() } })
       }
+      // P1 goes to Today when there is room (roadmap 155); say where it went, or why it did not
+      if (patch.priority === 1 && before && before.priority !== 1 && !before.done && before.lane !== 'today') {
+        const lane = r?.task?.lane ?? r?.lane
+        if (lane === 'today') showToast({ text: 'Moved to Today.', by: before.title, plain: true, undo: async () => { await api.patchTask(id, { lane: before.lane }); await refresh() } })
+        else if (before.lane !== 'waiting') showToast({ text: 'Today is full.', by: 'It stays where it is. Finish or move one and it has a place.', plain: true })
+      }
       await refresh()
     } catch (e) { fail(e) }
   }, [state, settings.nudges, refresh, showToast, fail])

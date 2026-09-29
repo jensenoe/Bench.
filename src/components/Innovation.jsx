@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ArrowLeft, FolderOpen } from '@phosphor-icons/react'
+import { ArrowLeft, FolderOpen, FilePdf } from '@phosphor-icons/react'
 import { getPortfolio, getInnovation } from '../api/portfolio.js'
 import { createProject } from '../api/projects.js'
-import { openLink } from '../api.js'
+import { openLink, exportReport } from '../api.js'
 import { PanelSkeleton } from './Skeleton.jsx'
 import LoadFailed from './LoadFailed.jsx'
 import { STATUS } from '../scenes.js'
@@ -108,6 +108,10 @@ export function InnovationDetail({ code, onBack }) {
   if (!d) return <main className="mx-auto col px-6"><PanelSkeleton /></main>
   const { project: p, stages, tasks, entries, actions, maps, plan } = d
   const open = tasks.filter(t => !t.done)
+  const exportIt = async () => {
+    try { const at = await exportReport(`/api/report/innovation/${encodeURIComponent(p.code)}`, `${p.code} ${p.name} - ${new Date().toISOString().slice(0, 10)}.pdf`); if (at) toast('Report saved.', at) }
+    catch (e) { toast('The report did not save.', e.message) }
+  }
   const openFolder = async () => { const r = await openLink(p.folder); if (typeof r === 'string' && r) toast('The folder did not open.', r) }
   const planIt = async () => {
     setBusy(true)
@@ -118,6 +122,7 @@ export function InnovationDetail({ code, onBack }) {
     <main className="mx-auto col flex flex-col gap-4 px-6">
       <div className="flex flex-wrap items-center gap-3">
         <button onClick={onBack} className={btn + ' btn-ghost'}><ArrowLeft size={13} weight="bold" /> All projects</button>
+        <button onClick={exportIt} className={quiet + ' ml-auto'} title="Stage, plan, tasks, open actions and decisions on one page to share"><FilePdf size={13} weight="bold" /> Export PDF</button>
       </div>
 
       <section className="panel p-6 sm:p-7" aria-label="Project">

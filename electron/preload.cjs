@@ -26,5 +26,7 @@ contextBridge.exposeInMainWorld('bench', {
   installUpdate: (p) => ipcRenderer.invoke('bench:install-update', p),
   installUpdateNow: (p) => ipcRenderer.invoke('bench:install-update-now', p),
   /** versions, folders and the log tail for a bug report */
-  diagnostics: () => ipcRenderer.invoke('bench:diagnostics')
+  diagnostics: () => ipcRenderer.invoke('bench:diagnostics'),
+  /** a project report (/api/report/...) saved as a PDF; resolves to { path }, { canceled } or { error } */
+  savePdf: (route, name) => ipcRenderer.invoke('bench:save-pdf', { route, name })
 })

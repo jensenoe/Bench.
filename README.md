@@ -12,7 +12,7 @@
 Installing over an older Bench. keeps your board, hours and settings. `Bench-portable-…exe` on the
 same page is the no-install version: keep it in any folder and run it from there.
 
-**0.12, second beta (0.12.0-beta.2).** Everything here works on my machine and on the mocks; the
+**0.12, third beta (0.12.0-beta.3).** Everything here works on my machine and on the mocks; the
 Microsoft paths (Planner, the hours workbook, the issue list, the calendar) still want a
 first real run in the tom.fit tenant, and the issue list and calendar need a one-time admin
 approval, see below.
@@ -54,7 +54,7 @@ Administrator; `build-exe.bat plain` skips the icon stamping instead, and `build
 Bump `version` in `package.json`, commit, then tag and push:
 
 ```bash
-git tag v0.12.0-beta.2 && git push --tags
+git tag v0.12.0-beta.3 && git push --tags
 ```
 
 The *Release* workflow in `.github/workflows/release.yml` builds both exes on a Windows
@@ -91,9 +91,16 @@ without publishing and leaves the exes as a workflow artifact.
   Teams), tasks still due at 15:00, Logbook actions due, innovation projects coming due, clock in and out,
   and your own "Remind me" on any task. Nothing on the desktop during a meeting or a focus session, none in
   the quiet hours; Snooze in the Bell.
-- **A moving hero.** Settings > Look > Moving hero plays aerial clips on Home (night cities, coastlines,
-  islands, Australia), following the time of day and crossfading from one clip into the next. Clips download
-  in the background into a 1.5 GB cache and only cached clips play; offline the photograph stays.
+- **A moving hero.** Settings > Look > Moving hero plays aerial clips on Home (night cities, Iceland, lava,
+  Vietnam and Bali, Pripyat, fjords and mountains, deserts, coastlines), following the time of day and
+  crossfading from one clip into the next, with a light film grade. Clips download in the background into a
+  cache of about 1 GB and only cached clips play; offline the photograph stays. Morning lasts until 10:00, dusk
+  starts at 16:00.
+- **P1 goes to Today.** A task set to P1, created as P1 or arriving as P1 (Urgent in Planner) moves to Today
+  when there is room, once: move it out by hand and it stays out. With room left, Today suggests up to two
+  P2 tasks (Important in Planner) with Add to Today and Not today, and the Bell says so once in the morning.
+- **Project reports.** Export PDF on a project's page puts its stage, plan and room, tasks, open actions and
+  decisions on one A4 page to share; the desktop app asks where to save it and opens it.
 - **Innovation projects.** Every Planner card whose title starts with an I-code (I-1050 Handgrip strength)
   is a project on `#/projects`, with its stage from the card's bucket (Concept, Development, Procurement,
   Testing, Production) and its due date. Its page gathers what names the code: your tasks, Logbook entries

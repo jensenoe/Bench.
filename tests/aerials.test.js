@@ -35,6 +35,18 @@ describe('catalogue', () => {
       expect(typeof x.by).toBe('string')
     }
   })
+  it('keeps every collection a saved setting may name, and has the wonders', () => {
+    // Settings stores aerialCollection by key: a key that disappears leaves that hero with nothing to play.
+    const keys = catalogue.collections.map(c => c.key)
+    for (const k of ['cities', 'coast', 'islands', 'australia', 'iceland', 'volcanoes', 'asia', 'lost', 'mountains', 'deserts']) expect(keys).toContain(k)
+    expect(new Set(keys).size).toBe(keys.length)
+  })
+  it('streams a 1080p or 1440p rendition, never the 4K file', () => {
+    for (const x of CLIPS) expect(x.file).toMatch(/[_-](1920_1080|2560_1440)_\d+fps\.mp4$/)
+  })
+  it('has lava or aurora for the night outside the cities', () => {
+    expect(CLIPS.filter(x => x.scene === 'night' && x.collection !== 'cities').length).toBeGreaterThanOrEqual(3)
+  })
   it('has no clip twice and several clips for every time of day', () => {
     expect(new Set(CLIPS.map(x => x.id)).size).toBe(CLIPS.length)
     for (const s of SCENES) expect(CLIPS.filter(x => x.scene === s).length).toBeGreaterThanOrEqual(3)

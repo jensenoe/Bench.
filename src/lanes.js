@@ -23,6 +23,18 @@ export const LANES = {
 export const LANE_ORDER = ['today', 'innovation', 'waiting', 'active', 'parked']
 
 export const DAY = 86400000
+/** A task's priority: its own, else its tool's (1 to 3), else none. Same rule as the server's effectivePriority. */
+export const priorityOf = t => t.priority ?? (Number(t.meta?.prio) >= 1 && Number(t.meta?.prio) <= 3 ? Number(t.meta.prio) : null)
+/**
+ * P2 tasks that could fill Today's free places (roadmap 155): open, from Innovation or Active, not set aside today,
+ * soonest due first, at most two and never more than the room. Pure.
+ */
+export function p2Suggestions(candidates, room, notToday = []) {
+  if (room <= 0) return []
+  return candidates.filter(t => !t.done && priorityOf(t) === 2 && !notToday.includes(t.id))
+    .sort((a, b) => String(a.dueDate || '9999').localeCompare(String(b.dueDate || '9999')))
+    .slice(0, Math.min(2, room))
+}
 export const daysSince = (iso) => iso ? Math.floor((Date.now() - new Date(iso)) / DAY) : null
 export const daysUntil = (iso) => {
   if (!iso) return null

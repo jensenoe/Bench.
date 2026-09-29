@@ -99,7 +99,7 @@ export function Routes({
             <PeopleFilter tasks={state.tasks} value={peopleFilter} onChange={setPeopleFilter} name={settings.name} />
             <Inbox tasks={state.tasks} />
             <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
-              <Lane laneKey="today" wide tasks={byLane('today')} onPatch={onPatch} onDelete={onDelete} onCreate={onCreate} />
+              <Lane laneKey="today" wide tasks={byLane('today')} candidates={[...byLane('innovation'), ...byLane('active')]} onPatch={onPatch} onDelete={onDelete} onCreate={onCreate} />
               {['innovation', 'waiting', 'active', 'parked'].map(k => <Lane key={k} laneKey={k} tasks={byLane(k)} onPatch={onPatch} onDelete={onDelete} onCreate={onCreate} />)}
             </div>
             <div className="mt-4"><Changes /></div>

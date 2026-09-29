@@ -7,6 +7,11 @@ const EASE = [0.16, 1, 0.3, 1]
 const FADE = 1.5            // seconds: the next clip starts this long before the current one ends and fades in over it
 const POLL = 30_000         // how often the hero asks which clips are cached, while the window shows
 const HAVE_FUTURE_DATA = 3  // the next clip can start without a stall
+// A light film treatment on the clips only, never on the photograph: a touch more contrast on the video (the
+// .photo filter on the box still applies on top), and a soft vignette in the veil colour that deepens the
+// corners so the copy keeps its ground. The vignette fades in with the first clip and out with it.
+const FILM = { filter: 'contrast(1.06) saturate(1.04)' }
+const VIGNETTE = { zIndex: 3, background: 'radial-gradient(ellipse 120% 100% at 50% 45%, transparent 55%, rgba(var(--veil), .42) 100%)' }
 
 // Everything the video callbacks touch lives in one mutable object (`s`), so play, pause and the swap never
 // wait on a render. These helpers work on it and sit at module scope.
@@ -42,7 +47,7 @@ function start(s) {
   load(s, s.front, clip)
   v.style.zIndex = '2'
   if (s.vids[1 - s.front]) s.vids[1 - s.front].style.zIndex = '1'
-  v.play().then(() => fadeIn(v)).catch(() => { s.started = false })
+  v.play().then(() => { fadeIn(v); if (s.vig) fadeIn(s.vig) }).catch(() => { s.started = false })
   prepare(s)
 }
 /**
@@ -92,7 +97,7 @@ function onError(s, i) {
   if (s.fading) return
   // The clip on screen failed: the next one if it is ready, otherwise back to the photograph and try again.
   if (s.ids[1 - i] && s.vids[1 - i]?.readyState >= HAVE_FUTURE_DATA) return crossfade(s)
-  hide(s.vids[i]); s.ids[i] = null; s.started = false
+  hide(s.vids[i]); if (s.vig) hide(s.vig); s.ids[i] = null; s.started = false
   start(s)
 }
 /** Plays what should be playing and nothing else. */
@@ -120,8 +125,9 @@ export default function AerialHero({ scene = 'day', collection = 'all', style, c
   const reduce = useReducedMotion()
   const [status, setStatus] = useState(null)
   const [still, setStill] = useState(null)
-  const live = useRef({ vids: [null, null], front: 0, ids: [null, null], fading: false, started: false, recent: [], bad: new Set(), ready: new Set(), scene, collection, visible: true, onScreen: true })
+  const live = useRef({ vids: [null, null], vig: null, front: 0, ids: [null, null], fading: false, started: false, recent: [], bad: new Set(), ready: new Set(), scene, collection, visible: true, onScreen: true })
   const setVid = useCallback((i, n) => { live.current.vids[i] = n }, [])
+  const setVig = useCallback((n) => { live.current.vig = n }, [])
 
   // The scene and collection steer the next pick; the clip already loaded behind is swapped for one that fits.
   useEffect(() => {
@@ -178,14 +184,17 @@ export default function AerialHero({ scene = 'day', collection = 'all', style, c
   const video = (i) => (
     <video ref={n => setVid(i, n)} muted playsInline preload="auto" disablePictureInPicture tabIndex={-1}
       onTimeUpdate={() => onTime(live.current, i)} onEnded={() => onEnded(live.current, i)} onError={() => onError(live.current, i)}
-      className="absolute inset-0 h-full w-full object-cover object-center opacity-0" />
+      style={FILM} className="absolute inset-0 h-full w-full object-cover object-center opacity-0" />
   )
   return (
     <motion.div ref={box} aria-hidden="true" style={style} className={`photo pointer-events-none ${className}`}>
       {reduce
-        ? still && <motion.img key={still} src={posterUrl(still)} alt="" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: FADE, ease: EASE }}
-                      className="absolute inset-0 h-full w-full object-cover object-center" />
-        : <>{video(0)}{video(1)}</>}
+        ? still && <>
+            <motion.img key={still} src={posterUrl(still)} alt="" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: FADE, ease: EASE }}
+              style={FILM} className="absolute inset-0 h-full w-full object-cover object-center" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: FADE, ease: EASE }} style={VIGNETTE} className="absolute inset-0" />
+          </>
+        : <>{video(0)}{video(1)}<div ref={setVig} style={VIGNETTE} className="absolute inset-0 opacity-0" /></>}
     </motion.div>
   )
 }

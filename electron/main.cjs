@@ -525,6 +525,26 @@ ipcMain.handle('bench:install-update-now', (_e, p) => {
   return { ok: true, path: pendingInstaller }
 })
 /** Everything a bug report needs, in one object (roadmap 78). */
+/**
+ * A project report as a PDF (roadmap 158): the server's report page, printed in a hidden window to A4, saved where
+ * the user says (Documents by default) and opened. Only /api/report/ pages on the local server; resolves to
+ * { path } when saved, { canceled: true }, or { error }.
+ */
+ipcMain.handle('bench:save-pdf', async (e, { route, name } = {}) => {
+  if (typeof route !== 'string' || !route.startsWith('/api/report/') || !serverPort) return { error: 'not a report' }
+  const safe = String(name || 'Report.pdf').replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'Report.pdf'
+  const win = new BrowserWindow({ show: false, webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, javascript: false } })
+  try {
+    await win.loadURL(`http://127.0.0.1:${serverPort}${route}`)
+    const pdf = await win.webContents.printToPDF({ pageSize: 'A4', printBackground: true, margins: { marginType: 'custom', top: 0, bottom: 0, left: 0, right: 0 }, preferCSSPageSize: true })
+    const parent = BrowserWindow.fromWebContents(e.sender)
+    const r = await dialog.showSaveDialog(parent, { title: 'Save the report', defaultPath: path.join(app.getPath('documents'), safe.endsWith('.pdf') ? safe : safe + '.pdf'), filters: [{ name: 'PDF', extensions: ['pdf'] }] })
+    if (r.canceled || !r.filePath) return { canceled: true }
+    fs.writeFileSync(r.filePath, pdf)
+    shell.openPath(r.filePath)
+    return { path: r.filePath }
+  } catch (err) { return { error: err.message } } finally { win.destroy() }
+})
 ipcMain.handle('bench:diagnostics', () => {
   let logTail = []
   try { logTail = fs.readFileSync(LOG_FILE, 'utf8').split(/\r?\n/).filter(Boolean).slice(-60) } catch { /* no log yet */ }
