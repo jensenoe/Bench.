@@ -24,6 +24,7 @@ import * as store from './store.js'
 import * as notes from './notes.js'
 import * as timeclock from './timeclock.js'
 import * as calendar from './calendar.js'
+import { busyMinutes } from './calendar.js'
 import * as settings from './settings.js'
 import { notify, setMeetings } from './notify.js'
 import * as reminders from './reminders.js'
@@ -100,12 +101,7 @@ export const pickOrders = (tasks, now = new Date()) => tasks.filter(t => !t.done
 export function capacity({ workdayHours = 8.4, meetings = [], clockedMs = 0, tasks = [], now = null } = {}) {
   // Only what is still ahead counts as a meeting; a meeting already sat through is inside the clocked hours.
   const nowMin = now ? now.getHours() * 60 + now.getMinutes() : null
-  const meetingMinutes = meetings.filter(m => !m.allDay).reduce((s, m) => {
-    const a = minutes(m.start), b = minutes(m.end)
-    if (a === null || b === null) return s
-    const from = nowMin === null ? a : Math.max(a, nowMin)
-    return s + Math.max(0, b - from)
-  }, 0)
+  const meetingMinutes = busyMinutes(meetings, { from: nowMin })   // overlaps count once (roadmap 166)
   const meetingHours = round1(meetingMinutes / 60)
   const clockedHours = round1(clockedMs / 3600000)
   const freeHours = Math.max(0, round1(workdayHours - meetingHours - clockedHours))

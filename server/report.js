@@ -17,6 +17,7 @@ import * as store from './store.js'
 import { isOff } from './workdays.js'
 import { meetingsCached } from './day.js'
 import { codeOf } from './codes.js'
+import { busyMinutes } from './calendar.js'
 import * as history from './history.js'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -186,8 +187,15 @@ const SOURCE = { planner: 'Planner', issues: 'Issues', qms: 'QMS', bom: 'BOM' }
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const hrs = h => `${Math.round(h * 10) / 10} h`
 const dayOf = iso => String(iso || '').slice(0, 10)
-/** What a task belongs to: its project field, else its I-code, else its Planner plan. */
-const partOf = t => t.project || codeOf(t.title) || t.planTitle || ''
+/**
+ * What a task belongs to: its project field, else its Planner plan. An innovation card already carries its code in
+ * the title, so its stage says more ("Innovation, Development").
+ */
+const partOf = t => {
+  if (t.project) return t.project
+  if (t.source === 'planner' && codeOf(t.title)) { const i = portfolio.stageOf(t.bucketName); return i >= 0 ? `Innovation, ${portfolio.STAGES[i].name}` : 'Innovation' }
+  return t.planTitle || ''
+}
 const progress = t => { const c = t.checklist || []; return c.length ? `${c.filter(x => x.done).length} of ${plural(c.length, 'step')}` : '' }
 
 /** The working day before `today` (weekends, holidays and days off skipped), as yyyy-mm-dd. */
@@ -210,17 +218,17 @@ export function todayReport(d, { today, author = '', workdayHours = 8.4, print =
   const onToday = tasks.filter(t => t.lane === 'today' && (!t.done || dayOf(t.completedAt) === today))
   const open = onToday.filter(t => !t.done), doneToday = onToday.filter(t => t.done)
   const byPrio = (a, b) => (a.done - b.done) || ((a.priority || 9) - (b.priority || 9)) || String(a.dueDate || '9999').localeCompare(String(b.dueDate || '9999'))
-  const sized = open.filter(t => Number(t.effortHours) > 0)
-  const planned = open.reduce((s, t) => s + (Number(t.effortHours) > 0 ? Number(t.effortHours) : 1), 0)
   const meetings = (d.meetings || []).filter(m => !m.allDay && m.start).sort((a, b) => a.start.localeCompare(b.start))
-  const minutes = hm => { const [h, m] = String(hm || '').split(':').map(Number); return h * 60 + (m || 0) }
-  const inMeetings = meetings.reduce((s, m) => s + Math.max(0, (minutes(m.end) - minutes(m.start)) / 60), 0)
+  // time in meetings with overlaps merged, and what is left of the workday (roadmap 166); a task's size is its
+  // whole remaining effort, not today's share, so sizes are shown per task and never summed against the day
+  const inMeetings = busyMinutes(meetings) / 60
+  const free = Math.max(0, workdayHours - inMeetings)
   const waiting = tasks.filter(t => !t.done && t.lane === 'waiting')
   const finished = !d.yesterday ? [] : tasks.filter(t => t.done && (d.doneIds ? d.doneIds.has(t.id) : dayOf(t.completedAt) === d.yesterday))
 
   const figs = `<div class="figs">
 ${fig(`${open.length}`, open.length === 1 ? 'task on today' : 'tasks on today')}
-${fig(hrs(planned), `planned${open.length > sized.length ? `, ${open.length - sized.length} unsized at 1 h` : ''}`)}
+${fig(hrs(free), meetings.length ? 'free after meetings' : 'free, no meetings')}
 ${fig(meetings.length ? hrs(inMeetings) : 'none', meetings.length ? `in ${plural(meetings.length, 'meeting')}` : 'meetings')}
 ${fig(`${finished.length}`, d.yesterday ? `done on ${DAYS[new Date(`${d.yesterday}T12:00:00`).getDay()]}` : 'done last workday')}
 </div>`
@@ -232,8 +240,8 @@ ${fig(`${finished.length}`, d.yesterday ? `done on ${DAYS[new Date(`${d.yesterda
   const doneRows = finished.map(t => `<tr><td>${esc(t.title)}</td><td>${esc(partOf(t))}</td></tr>`)
   const dayName = DAYS[new Date(`${today}T12:00:00`).getDay()]
   const body = `${figs}
-<h2>On today</h2>${table(['Task', 'Project', 'From', { t: 'Priority', n: true }, { t: 'Due', n: true }, ...(anySize ? [{ t: 'Size', n: true }] : []), { t: 'Progress', n: true }], rows, 'Nothing on Today yet.')}
-<p class="note">${esc(`${hrs(planned)} planned against a ${hrs(workdayHours)} workday${meetings.length ? `, ${hrs(inMeetings)} of it in meetings` : ''}.`)}</p>
+<h2>On today</h2>${table(['Task', 'Project', 'From', { t: 'Priority', n: true }, { t: 'Due', n: true }, ...(anySize ? [{ t: 'Effort', n: true }] : []), { t: 'Progress', n: true }], rows, 'Nothing on Today yet.')}
+<p class="note">${esc(`${hrs(free)} free in a ${hrs(workdayHours)} workday${meetings.length ? ` after ${hrs(inMeetings)} of meetings (overlaps counted once)` : ''}.${anySize ? ' Effort is the whole task, not today\'s share.' : ''}`)}</p>
 <h2>Meetings</h2>${table(['Time', 'Meeting'], meetingRows, 'No meetings on the calendar today.')}
 ${waitRows.length ? `<h2>Waiting on others</h2>${table(['Task', 'With', { t: 'Since', n: true }], waitRows, '')}` : ''}
 <h2>Done ${d.yesterday ? `on ${esc(DAYS[new Date(`${d.yesterday}T12:00:00`).getDay()])}, ${esc(fmt(d.yesterday))}` : 'on the last workday'}</h2>${table(['Task', 'Project'], doneRows, 'Nothing ticked off that day.')}`

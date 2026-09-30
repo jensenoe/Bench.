@@ -9,6 +9,24 @@ import { getTokenSilent, getAccount } from './auth.js'
  * German or Swiss German ("Lunch", "Lunch break", "Mittagspause", "Zmittag"); "Lunch & Learn: CAD" stays a meeting.
  */
 const LUNCH = new Set(['lunch', 'lunch break', 'lunchbreak', 'lunch time', 'lunchtime', 'mittag', 'mittagessen', 'mittagspause', 'mittagszeit', 'zmittag', 'zmittag esse', 'zmittagesse'])
+const hhmm = (t) => { const m = /^(\d{1,2}):(\d{2})/.exec(String(t || '')); return m ? Number(m[1]) * 60 + Number(m[2]) : null }
+/**
+ * Minutes spent in meetings (roadmap 166): timed events only, overlapping ones merged, so a 13:00 to 17:00 block
+ * with a 14:00 call inside it is four hours, not four and a half. `from` (minutes after midnight) counts only
+ * what is still ahead. Lunch blocks are not meetings.
+ */
+export function busyMinutes(meetings = [], { from = null } = {}) {
+  const spans = (meetings || []).filter(m => m && !m.allDay && !notAMeeting(m.subject))
+    .map(m => [hhmm(m.start), hhmm(m.end)]).filter(([a, b]) => a !== null && b !== null && b > a)
+    .map(([a, b]) => [from === null ? a : Math.max(a, from), b]).filter(([a, b]) => b > a)
+    .sort((x, y) => x[0] - y[0])
+  let total = 0, cur = null
+  for (const [a, b] of spans) {
+    if (cur && a <= cur[1]) cur[1] = Math.max(cur[1], b)
+    else { if (cur) total += cur[1] - cur[0]; cur = [a, b] }
+  }
+  return cur ? total + cur[1] - cur[0] : total
+}
 export const notAMeeting = (subject) => LUNCH.has(String(subject || '').toLowerCase().normalize('NFKD').replace(/[^a-z ]+/g, ' ').replace(/\s+/g, ' ').trim())
 
 export async function todaysMeetings(date = new Date()) {

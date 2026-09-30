@@ -12,7 +12,7 @@
 Installing over an older Bench. keeps your board, hours and settings. `Bench-portable-…exe` on the
 same page is the no-install version: keep it in any folder and run it from there.
 
-**0.12, seventh beta (0.12.0-beta.7).** Everything here works on my machine and on the mocks; the
+**0.12, eighth beta (0.12.0-beta.8).** Everything here works on my machine and on the mocks; the
 Microsoft paths (Planner, the hours workbook, the issue list, the calendar) still want a
 first real run in the tom.fit tenant, and the issue list and calendar need a one-time admin
 approval, see below.
@@ -54,7 +54,7 @@ Administrator; `build-exe.bat plain` skips the icon stamping instead, and `build
 Bump `version` in `package.json`, commit, then tag and push:
 
 ```bash
-git tag v0.12.0-beta.7 && git push --tags
+git tag v0.12.0-beta.8 && git push --tags
 ```
 
 The *Release* workflow in `.github/workflows/release.yml` builds both exes on a Windows
@@ -105,7 +105,7 @@ without publishing and leaves the exes as a workflow artifact.
   you disagree with, Plan it., and Undo in the toast puts the lanes back. The morning brief says when a plan
   is ready.
 - **Today as a report.** Export on the Today header saves one A4 page for your manager: what is on Today
-  (project, source, priority, due, size, steps done), hours planned against the workday, today's meetings,
+  (project, source, priority, due, effort, steps done), the hours free after meetings, today's meetings,
   what waits on others, and what was finished on the last working day. No notes or links.
 - **Project reports.** Export PDF on a project's page puts its stage, plan and room, tasks, open actions and
   decisions on one A4 page to share; the desktop app asks where to save it and opens it.

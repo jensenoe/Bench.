@@ -39,8 +39,9 @@ describe('Today as a report (roadmap 164)', () => {
     expect(html.indexOf('Torque test')).toBeLessThan(html.indexOf('I-1050 grip'))   // P1 first
   })
   it('counts hours, meetings, waiting and yesterday', () => {
-    expect(html).toContain('3 h')                    // 2 h sized plus one unsized at 1 h
-    expect(html).toContain('1 unsized at 1 h')
+    expect(html).toContain('6.9 h')                  // free: 8.4 h less 1.5 h of meetings; sizes are never summed (roadmap 166)
+    expect(html).toContain('free after meetings')
+    expect(html).toContain('>Effort<')
     expect(html).toContain('1.5 h')                  // two timed meetings; the all-day one is not a meeting hour
     expect(html).toContain('10:00 to 11:00')
     expect(html).not.toContain('Holiday')

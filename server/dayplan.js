@@ -18,6 +18,7 @@ import * as workdays from './workdays.js'
 import * as store from './store.js'
 import * as settings from './settings.js'
 import { meetingsCached, dayKey } from './day.js'
+import { busyMinutes } from './calendar.js'
 
 const DAY = 86400000
 export const DEFAULT_CAP = 5
@@ -42,7 +43,6 @@ const dayOf = v => { if (!v) return null; const s = String(v); if (/^\d{4}-\d{2}
 const between = (a, b) => Math.round((noon(b) - noon(a)) / DAY)
 const shortDate = s => { const d = noon(s); return `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}` }
 const round1 = n => Math.round(n * 10) / 10
-const hhmm = s => { const m = /^(\d{1,2}):(\d{2})$/.exec(String(s || '')); return m ? Number(m[1]) * 60 + Number(m[2]) : null }
 const prio = t => t.priority ?? (Number(t.meta?.prio) >= 1 && Number(t.meta?.prio) <= 3 ? Number(t.meta.prio) : null)
 const sized = t => t.effortHours !== null && t.effortHours !== undefined && t.effortHours !== '' && !Number.isNaN(Number(t.effortHours))
 /** A task's hours for the plan: its size, or one hour when it has none. */
@@ -62,11 +62,7 @@ export function workdaysBetween(from, to, isOff = workdays.isOff) {
 }
 /** Hours of timed meetings on the day; all-day events are not meetings. */
 export function meetingHours(meetings = []) {
-  const min = (meetings || []).filter(m => m && !m.allDay).reduce((s, m) => {
-    const a = hhmm(m.start), b = hhmm(m.end)
-    return a === null || b === null ? s : s + Math.max(0, b - a)
-  }, 0)
-  return round1(min / 60)
+  return round1(busyMinutes(meetings) / 60)   // overlapping meetings count once (roadmap 166)
 }
 
 /**
