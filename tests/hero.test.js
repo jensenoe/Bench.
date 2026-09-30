@@ -36,10 +36,10 @@ describe('the hero briefing', () => {
     const r = composeHero(base, at(11, 40))
     expect(r.lines[0]).toEqual({ kind: 'lunch', text: 'Lunch at twelve.' })
   })
-  it('lunch in the calendar is said once, not twice (roadmap 156)', () => {
+  it('lunch in the calendar is not a meeting: Bench. says lunch once, its own way (roadmap 156, 165)', () => {
     const r = composeHero({ ...base, meetings: [{ subject: 'Lunch', start: '12:00', end: '13:00' }] }, at(11, 54))
     expect(r.lines.filter(l => /lunch/i.test(l.text))).toHaveLength(1)
-    expect(r.lines[0].kind).toBe('meeting')
+    expect(r.lines[0]).toEqual({ kind: 'lunch', text: 'Lunch at twelve.' })
   })
   it('the afternoon is progress and the week on the clock', () => {
     const r = composeHero(base, at(14, 30))

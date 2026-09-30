@@ -4,6 +4,13 @@
  */
 import { getTokenSilent, getAccount } from './auth.js'
 
+/**
+ * A calendar block that is not a meeting (roadmap 165): lunch. Only a title that is nothing but lunch counts, in English,
+ * German or Swiss German ("Lunch", "Lunch break", "Mittagspause", "Zmittag"); "Lunch & Learn: CAD" stays a meeting.
+ */
+const LUNCH = new Set(['lunch', 'lunch break', 'lunchbreak', 'lunch time', 'lunchtime', 'mittag', 'mittagessen', 'mittagspause', 'mittagszeit', 'zmittag', 'zmittag esse', 'zmittagesse'])
+export const notAMeeting = (subject) => LUNCH.has(String(subject || '').toLowerCase().normalize('NFKD').replace(/[^a-z ]+/g, ' ').replace(/\s+/g, ' ').trim())
+
 export async function todaysMeetings(date = new Date()) {
   const token = await getTokenSilent('extra')
   if (!token) return { ok: false, reason: (await getAccount()) ? 'needs-admin-consent' : 'needs-signin', events: [] }
@@ -16,7 +23,7 @@ export async function todaysMeetings(date = new Date()) {
   const { value = [] } = await res.json()
   return {
     ok: true,
-    events: value.filter(e => !e.isCancelled).map(e => ({
+    events: value.filter(e => !e.isCancelled && !notAMeeting(e.subject)).map(e => ({
       id: e.id, subject: e.subject || 'Meeting', allDay: !!e.isAllDay,
       start: e.start?.dateTime?.slice(11, 16) || '', end: e.end?.dateTime?.slice(11, 16) || '',
       location: e.location?.displayName || null,

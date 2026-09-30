@@ -16,6 +16,7 @@ import * as weather from './weather.js'
 import { meetingsCached, dayKey, hm, shortDate } from './day.js'
 import * as commute from './commute.js'
 import * as projects from './projects.js'
+import { notAMeeting } from './calendar.js'
 
 const wrap = fn => (req, res) => Promise.resolve().then(() => fn(req, res)).catch(err => res.status(err.status || 500).json({ error: err.message }))
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -54,10 +55,9 @@ export function composeHero(f, now = new Date()) {
   }
   if ((dow === 0 || dow === 6) && !working) { push('weekend', `${DAYS[dow]}. The bench can wait.`); return done('weekend') }
 
-  const next = nextMeeting(f.meetings, now)
+  // lunch in the calendar is not a meeting (roadmap 165): Bench.'s own lunch line says it instead
+  const next = nextMeeting((f.meetings || []).filter(m => !notAMeeting(m.subject)), now)
   if (next) push('meeting', `${next.subject} ${next.inMin === 0 ? 'now' : next.inMin === 1 ? 'in a minute' : `in ${next.inMin} minutes`}${next.location ? `, ${next.location}` : ''}.`)
-  // a calendar event called lunch already says it: no second lunch line (roadmap 156)
-  const lunchInCalendar = !!next && /lunch|mittag/i.test(next.subject || '')
   // the drive, with live traffic, when it is that time of day (roadmap 120)
   if (f.commute?.ok && f.commute.text) push('commute', f.commute.text)
   const d = (f.deliveries || [])[0]
@@ -74,7 +74,7 @@ export function composeHero(f, now = new Date()) {
       const n = f.meetings.length
       push('meetings', `${cap(words(n))} meeting${n === 1 ? '' : 's'} today${timed.length ? `, the first at ${timed[0].start}` : ''}.`)
     }
-  } else if (working && f.lunchAt && !lunchInCalendar && (minutesOf(f.lunchAt) - (hour * 60 + now.getMinutes())) > 0 && (minutesOf(f.lunchAt) - (hour * 60 + now.getMinutes())) <= 30) {
+  } else if (working && f.lunchAt && (minutesOf(f.lunchAt) - (hour * 60 + now.getMinutes())) > 0 && (minutesOf(f.lunchAt) - (hour * 60 + now.getMinutes())) <= 30) {
     push('lunch', `Lunch at ${clockWords(f.lunchAt)}.`)
   } else if (hour < 17) {
     const total = (f.todayOpen || 0) + (f.todayDone || 0)
