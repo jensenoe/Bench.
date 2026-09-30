@@ -5,6 +5,25 @@ import TaskCard, { DRAG_TYPE } from './TaskCard.jsx'
 import AddTask from './AddTask.jsx'
 import Capacity from './Capacity.jsx'
 import PlanDay from './DayPlan.jsx'   // Plan my day (roadmap 161)
+import { FilePdf } from '@phosphor-icons/react'
+import { exportReport } from '../api.js'
+
+/** Today as a one-page PDF for a manager: the plan, the meetings, what waits, what was done (roadmap 164). */
+function ExportToday() {
+  const go = async () => {
+    const day = new Date(); const iso = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`
+    try {
+      const at = await exportReport('/api/report/today', `Today - ${iso}.pdf`)
+      if (at) window.dispatchEvent(new CustomEvent('bench:toast', { detail: { text: 'Today saved.', by: at, plain: true } }))
+    } catch (e) { window.dispatchEvent(new CustomEvent('bench:toast', { detail: { text: 'The report did not save.', by: e.message, plain: true } })) }
+  }
+  return (
+    <button type="button" onClick={go} title="Today as a PDF to send on: the plan, meetings, what waits and what was done"
+      className="pill btn-quiet inline-flex h-7 shrink-0 items-center gap-1.5 px-3 text-[13px] font-medium">
+      <FilePdf size={13} weight="bold" aria-hidden="true" /> Export
+    </button>
+  )
+}
 import { LANES } from '../copy.js'
 import { STATUS } from '../scenes.js'
 import { daysSince, p2Suggestions } from '../lanes.js'
@@ -53,6 +72,7 @@ export default function Lane({ laneKey, tasks, candidates = [], onPatch, onDelet
         <h2 className={`display font-semibold leading-none ${wide ? 'text-[30px]' : 'text-[22px]'}`}>{lane.label}.</h2>
         <span className="flex items-center gap-3">
           {laneKey === 'today' && <PlanDay />}
+          {laneKey === 'today' && <ExportToday />}
           <span className="tnum text-[13.5px]" style={{ color: overCap ? STATUS.overdue : 'var(--ink-3)' }}>
             {open.length}{lane.cap ? ` of ${lane.cap}` : ''}
           </span>
