@@ -19,6 +19,7 @@ import { meetingsCached } from './day.js'
 import { codeOf } from './codes.js'
 import { busyMinutes } from './calendar.js'
 import * as history from './history.js'
+import * as raidd from './raidd.js'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const LANE = { today: 'Today', active: 'Active', waiting: 'Waiting', innovation: 'Innovation', parked: 'Parked' }
@@ -89,7 +90,7 @@ function phaseRows(phases, today) {
   })
 }
 
-export function innovationReport(d, { today, author = '', plan = null, print = false } = {}) {
+export function innovationReport(d, { today, author = '', plan = null, print = false, extra = '' } = {}) {
   const { project: p, stages, tasks, entries, actions } = d
   const open = tasks.filter(t => !t.done)
   const track = `<div class="track" style="grid-template-columns: repeat(${stages.length}, 1fr)">${stages.map((s, i) =>
@@ -107,14 +108,15 @@ ${table(['Phase', 'Start', 'End', { t: 'Tasks', n: true }], phaseRows(plan.phase
   const actionRows = actions.map(a => `<tr><td>${esc(a.text)}</td><td>${esc(a.owner || '')}</td><td class="n">${esc(fmt(a.due))}</td></tr>`)
   const decided = entries.filter(e => e.decisions?.length)
   const decisionRows = decided.flatMap(e => e.decisions.map(x => `<tr><td class="n" style="text-align:left">${esc(fmt(e.date))}</td><td>${esc(x)}</td><td>${esc(e.title)}</td></tr>`))
-  const body = `${track}${figs}${planPart}
+  let body = `${track}${figs}${planPart}
 <h2>Tasks</h2>${table(['Task', 'Status', { t: 'Due', n: true }], taskRows, `No task names ${p.code} yet.`)}
 <h2>Open actions</h2>${table(['Action', 'Owner', { t: 'Due', n: true }], actionRows, 'None open.')}
 <h2>Decisions</h2>${table(['Date', 'Decision', 'Meeting'], decisionRows, 'None recorded in the Logbook.')}`
+  body += extra   // the project's RAIDD log and RACI matrix (roadmap 168, 169)
   return page({ title: `${p.code} ${p.name}`, kicker: 'Innovation project', meta: [p.plan ? `${p.plan} in Planner` : null, author ? `Prepared by ${author}` : null, fmt(today)].filter(Boolean).join(' · '), body, today, print })
 }
 
-export function planReport(d, { today, author = '', print = false } = {}) {
+export function planReport(d, { today, author = '', print = false, extra = '' } = {}) {
   const { project: p, phases, unassigned = [], orders = [], slack, forecast } = d
   const all = [...phases.flatMap(ph => ph.tasks || []), ...unassigned]
   const done = all.filter(t => t.done).length
@@ -132,12 +134,13 @@ ${fig(`${done} of ${all.length}`, 'tasks done')}
     .map(([ph, t]) => `<tr${t.done ? ' class="done"' : ''}><td>${esc(t.title)}</td><td>${esc(ph)}</td><td>${esc(t.done ? 'done' : t.waitingOn ? `with ${t.waitingOn}` : LANE[t.lane] || t.lane)}</td><td class="n">${esc(fmt(t.dueDate))}</td></tr>`)
   const orderRows = orders.map(o => `<tr><td>${esc(o.title)}</td><td>${esc(o.supplier)}</td><td class="n">${esc(fmt(o.orderBy))}</td><td class="n">${esc(fmt(o.needBy))}</td></tr>`)
   const lateRows = (slack?.late || []).map(t => `<tr><td>${esc(t.title)}</td><td>${esc(phaseName(t.phase))}</td><td class="n late">${esc(fmt(t.dueDate))}</td></tr>`)
-  const body = `${figs}
+  let body = `${figs}
 ${p.goal ? `<h2>Goal</h2><p>${esc(p.goal)}</p>` : ''}
 <h2>Plan</h2>${table(['Phase', 'Start', 'End', { t: 'Tasks', n: true }], phaseRows(phases, today), 'No phases yet.')}
 ${lateRows.length ? `<h2>Running late</h2>${table(['Task', 'Phase', { t: 'Due', n: true }], lateRows, '')}` : ''}
 <h2>Tasks</h2>${table(['Task', 'Phase', 'Status', { t: 'Due', n: true }], taskRows, 'No tasks on this project yet.')}
 ${orderRows.length ? `<h2>Parts to order</h2>${table(['Part', 'Supplier', { t: 'Order by', n: true }, { t: 'Needed by', n: true }], orderRows, '')}` : ''}`
+  body += extra   // the project's RAIDD log and RACI matrix (roadmap 168, 169)
   return page({ title: p.name, kicker: 'Project plan', meta: [p.machine && p.machine !== p.name ? p.machine : null, author ? `Prepared by ${author}` : null, fmt(today)].filter(Boolean).join(' · '), body, today, print })
 }
 
@@ -261,6 +264,13 @@ export function finishedOn(day, entries = history.list(history.CAP)) {
   return ids
 }
 
+/** The RAIDD log and RACI matrix of one project as report sections (roadmap 168, 169); empty when there is nothing. */
+function projectExtras(key, today) {
+  let out = ''
+  try { const { entries } = raidd.listFor(key, { today }); if (entries.length) out += raidd.raiddReportHtml(entries, { today, esc, fmt }) } catch { /* no log for this key */ }
+  return out
+}
+
 const todayIso = () => projects.isoOf(new Date())
 const author = () => { try { return String(settings.get().name || '').trim() } catch { return '' } }
 const send = (res, html) => res.set('Cache-Control', 'no-store').type('html').send(html)
@@ -282,11 +292,11 @@ export function registerRoutes(app) {
     const today = todayIso(), d = portfolio.detail(req.params.code, today)
     if (!d) return res.status(404).json({ error: 'not found' })
     const plan = d.plan ? projects.detail(d.plan.id, today) : null
-    send(res, innovationReport(d, { today, author: author(), plan, print: req.query.print === '1' }))
+    send(res, innovationReport(d, { today, author: author(), plan, print: req.query.print === '1', extra: projectExtras(d.project.code, today) }))
   }))
   app.get('/api/report/project/:id', wrap((req, res) => {
     const today = todayIso(), d = projects.detail(req.params.id, today)
     if (!d) return res.status(404).json({ error: 'not found' })
-    send(res, planReport(d, { today, author: author(), print: req.query.print === '1' }))
+    send(res, planReport(d, { today, author: author(), print: req.query.print === '1', extra: projectExtras(`plan:${d.project.id}`, today) }))
   }))
 }
