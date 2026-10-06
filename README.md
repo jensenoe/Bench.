@@ -12,7 +12,7 @@
 Installing over an older Bench. keeps your board, hours and settings. `Bench-portable-…exe` on the
 same page is the no-install version: keep it in any folder and run it from there.
 
-**0.12, tenth beta (0.12.0-beta.10).** Everything here works on my machine and on the mocks; the
+**0.12, eleventh beta (0.12.0-beta.11).** Everything here works on my machine and on the mocks; the
 Microsoft paths (Planner, the hours workbook, the issue list, the calendar) still want a
 first real run in the tom.fit tenant, and the issue list and calendar need a one-time admin
 approval, see below.
@@ -54,7 +54,7 @@ Administrator; `build-exe.bat plain` skips the icon stamping instead, and `build
 Bump `version` in `package.json`, commit, then tag and push:
 
 ```bash
-git tag v0.12.0-beta.10 && git push --tags
+git tag v0.12.0-beta.11 && git push --tags
 ```
 
 The *Release* workflow in `.github/workflows/release.yml` builds both exes on a Windows
@@ -104,6 +104,15 @@ without publishing and leaves the exes as a workflow artifact.
   Active, each with its reason, inside the five places and the hours the calendar leaves free. Untick what
   you disagree with, Plan it., and Undo in the toast puts the lanes back. The morning brief says when a plan
   is ready.
+- **Paket and E2E.** A plan can be a Paket (Roman owns result and date) or an E2E job (Montage, Verkabelung,
+  Service, yours end to end). Each has its flow on a stage track and gates: result and date clear before you
+  start (with an Ask Roman mail draft), Rüsten complete before Bauen, a scope question when a task would widen a
+  Paket, an escalation banner and notification while there is still time, and Report done only when the done
+  checklist is complete, with a done report and mail draft.
+- **Rüsten per machine number.** A plan's Rüsten tab holds the kit as a template applied to every machine number:
+  cables, connections, screws, parts, parts list, schematic, each ticked kitted, checked and stock updated, filled
+  from the Structured BOM where the desktop session allows. It checks that one machine from Bundle 1 to 5 and one
+  from Bundle 6 were presented, feeds the E2E gate, and exports the handover PDF for Service.
 - **RAIDD log and RACI per project.** Every project page (innovation and plans) has three tabs: Overview,
   RAIDD log and RACI. The RAIDD log keeps risks (likelihood by impact, with a heat map), assumptions, issues,
   dependencies and decisions, each with an owner, a status and a date; decisions from the Logbook appear by
