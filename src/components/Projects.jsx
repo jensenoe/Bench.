@@ -11,6 +11,8 @@ import { ask } from './Confirm.jsx'
 import { STATUS } from '../scenes.js'
 import { patchTask, saveSettings, exportReport } from '../api.js'
 import { InnovationList, InnovationDetail, codeFromHash } from './Innovation.jsx'
+import { FlowPanels, KindFields, KindChip, AddToPaket } from './Workflow.jsx'   // Paket and E2E (roadmap 170)
+import { resultLines } from '../../server/workflow-rules.js'
 
 /**
  * Projects (roadmap 121 to 125): one page that plans a machine. A project is a goal, a machine, the one date
@@ -68,7 +70,8 @@ function ProjectCard({ p }) {
           ? <span><span style={{ color: 'var(--ink-3)' }}>{p.deadlineLabel} </span><span className="tnum font-medium">{fmtLong(p.deadline)}</span>{p.daysLeft !== null && <span className="tnum" style={{ color: 'var(--ink-3)' }}>, {p.daysLeft < 0 ? `${-p.daysLeft} working days ago` : `in ${plural(p.daysLeft, 'working day')}`}</span>}</span>
           : <span style={{ color: 'var(--ink-3)' }}>No deadline yet.</span>}
         <span style={{ color: roomTone(p.slack) }}>{roomText(p.slack)}{p.late ? `, ${plural(p.late, 'task')} late` : ''}</span>
-        {p.current && <span style={{ color: 'var(--ink-3)' }}>now: {p.current}</span>}
+        {p.current && (!p.kind || p.kind === 'plan') && <span style={{ color: 'var(--ink-3)' }}>now: {p.current}</span>}
+        <KindChip kind={p.kind} step={p.step} />
       </div>
       {phases.length > 0 && phases[0].start && (
         <div className="mt-4 flex h-1.5 w-full gap-px overflow-hidden rounded-full" aria-hidden="true">
@@ -81,32 +84,39 @@ function ProjectCard({ p }) {
 
 function NewProject({ machines, onCreated }) {
   const [open, setOpen] = useState(false)
-  const [f, setF] = useState({ name: '', machine: '', goal: '', deadline: '', deadlineLabel: 'FAT', playbookId: '' })
+  const BLANK = { name: '', machine: '', goal: '', deadline: '', deadlineLabel: 'FAT', playbookId: '', kind: 'plan', owner: '', ownerMail: '', result: '' }
+  const [f, setF] = useState(BLANK)
+  const [errs, setErrs] = useState({})   // a Paket starts with its owner, its result and its date: the intake
   const [busy, setBusy] = useState(false)
   const [books, setBooks] = useState([])
   const [noName, setNoName] = useState(false)
   const nameRef = useRef(null)
   const back = useRef(false)   // the New project button takes focus when Cancel or Escape brings it back
   useEffect(() => { if (open) getPlaybooks().then(b => setBooks(Array.isArray(b) ? b : [])).catch(() => {}) }, [open])
-  const set = (k, v) => { setF(s => ({ ...s, [k]: v })); if (k === 'name') setNoName(false) }
+  const set = (k, v) => { setF(s => ({ ...s, [k]: v })); if (k === 'name') setNoName(false); setErrs(e => e[k] ? { ...e, [k]: null } : e) }
   const book = books.find(b => b.id === f.playbookId)
   const cancel = () => { setOpen(false); setNoName(false); back.current = true }
   const submit = async (e) => {
     e.preventDefault()
     if (busy) return
     if (!f.name.trim()) { setNoName(true); nameRef.current?.focus(); return }
+    if (f.kind === 'paket') {
+      const e = { owner: f.owner.trim() ? null : 'Who owns the result and the date?', result: resultLines(f.result).length ? null : 'Write the agreed result down, one line per item.', deadline: f.deadline ? null : 'A Paket has a fixed date. Pick it, or ask first.' }
+      if (e.owner || e.result || e.deadline) { setErrs(e); return }
+    }
     setBusy(true)
     try {
       const { playbookId, ...rest } = f
       const p = await createProject({ ...rest, machine: f.machine.trim() || f.name.trim(), ...(playbookId ? { playbookId } : {}) })
       const fb = p.fromPlaybook
       toast('Planned from the deadline.', fb ? `${p.name}: ${plural(fb.created, 'task')} from ${fb.name}, ${fb.placed === fb.created ? 'each in its phase' : `${fb.placed} in their phases`}.` : p.name)
-      setOpen(false); setF({ name: '', machine: '', goal: '', deadline: '', deadlineLabel: 'FAT', playbookId: '' }); onCreated(p); refresh()
+      setOpen(false); setF(BLANK); setErrs({}); onCreated(p); refresh()
     } catch (err) { toast('That did not work.', err.message) } finally { setBusy(false) }
   }
   if (!open) return <button ref={el => { if (el && back.current) { back.current = false; el.focus({ preventScroll: true }) } }} onClick={() => setOpen(true)} className={primary}><Plus size={13} weight="bold" /> New project</button>
   return (
     <form onSubmit={submit} onKeyDown={e => { if (e.key === 'Escape') { e.preventDefault(); cancel() } }} className="panel grid gap-3 p-6 sm:grid-cols-2" aria-label="New project">
+      <KindFields f={f} set={set} errors={errs} part="kind" />
       <label className="block"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Name</span>
         <input ref={nameRef} autoFocus value={f.name} onChange={e => set('name', e.target.value)} placeholder="Leg press 7" aria-invalid={noName || undefined} aria-describedby={noName ? 'new-project-name-msg' : undefined} className={INP + ' mt-1'} />
         {noName && <span id="new-project-name-msg" role="alert" className="mt-1 block text-[12.5px]" style={{ color: 'var(--caution)' }}>Give the project a name first; the machine takes it when left empty.</span>}</label>
@@ -114,9 +124,11 @@ function NewProject({ machines, onCreated }) {
         <input list="project-machines" autoComplete="off" value={f.machine} onChange={e => set('machine', e.target.value)} placeholder="same as the name when empty" className={INP + ' mt-1'} />
         <datalist id="project-machines">{machines.map(m => <option key={m} value={m} />)}</datalist></label>
       <div className="block"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>The date that matters</span>
-        <DateField className="mt-1" value={f.deadline} onChange={v => set('deadline', v || '')} placeholder="pick the day" /></div>
+        <DateField className="mt-1" value={f.deadline} onChange={v => set('deadline', v || '')} placeholder="pick the day" />
+        {errs.deadline && <span role="alert" className="mt-1 block text-[12.5px]" style={{ color: 'var(--caution)' }}>{errs.deadline}</span>}</div>
       <label className="block"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>What that date is</span>
         <select value={f.deadlineLabel} onChange={e => set('deadlineLabel', e.target.value)} className={INP + ' mt-1 cursor-pointer'}>{LABELS.map(l => <option key={l}>{l}</option>)}</select></label>
+      <KindFields f={f} set={set} errors={errs} part="details" />
       <label className="block sm:col-span-2"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Start from</span>
         <select value={f.playbookId} onChange={e => set('playbookId', e.target.value)} className={INP + ' mt-1 cursor-pointer'}>
           <option value="">Seven standard phases, no tasks</option>
@@ -437,7 +449,7 @@ function ProjectDetail({ id, onBack }) {
     <main className="mx-auto col flex flex-col gap-4 px-6">
       <div className="flex flex-wrap items-center gap-3">
         <button onClick={onBack} className={ghost}><ArrowLeft size={13} weight="bold" /> All projects</button>
-        <a href={`#/machines?m=${encodeURIComponent(p.machine.toLowerCase())}`} className="text-[13px] underline underline-offset-2" style={{ color: 'var(--ink-3)' }}>The machine page</a>
+        <a href={`#/machines?m=${encodeURIComponent(p.machine.toLowerCase())}`} className="-my-[3px] inline-block py-[3px] text-[13px] underline underline-offset-2" style={{ color: 'var(--ink-3)' }}>The machine page</a>
         <button onClick={exportIt} className={quiet + ' ml-auto'} title="The plan, its room, tasks and parts to order on one page to share"><FilePdf size={13} weight="bold" /> Export PDF</button>
       </div>
 
@@ -450,6 +462,7 @@ function ProjectDetail({ id, onBack }) {
             <div className="block"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>The date that matters</span><DateField className="mt-1" value={head.deadline || ''} onChange={v => setHead(h => ({ ...h, deadline: v || null }))} /></div>
             <label className="block"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>What that date is</span><select value={head.deadlineLabel} onChange={e => setHead(h => ({ ...h, deadlineLabel: e.target.value }))} className={INP + ' mt-1 cursor-pointer'}>{LABELS.map(l => <option key={l}>{l}</option>)}</select></label>
             <label className="block sm:col-span-2"><span className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>Goal</span><input value={head.goal} onChange={e => setHead(h => ({ ...h, goal: e.target.value }))} className={INP + ' mt-1'} /></label>
+            <KindFields f={head} set={(k, v) => setHead(h => ({ ...h, [k]: v }))} />
             <div className="flex flex-wrap gap-3 sm:col-span-2">
               <button onClick={saveHead} disabled={headBusy} aria-busy={headBusy || undefined} className={primary}>Save</button>
               <button onClick={cancelHead} className={ghost}>Cancel</button>
@@ -460,7 +473,7 @@ function ProjectDetail({ id, onBack }) {
           <>
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
               <h1 className="display text-[32px] font-semibold leading-none sm:text-[40px]">{p.name}.</h1>
-              <button onClick={() => { setHead({ name: p.name, machine: p.machine, goal: p.goal, deadline: p.deadline, deadlineLabel: p.deadlineLabel }); setEditHead(true) }} className={quiet}><PencilSimple size={13} weight="bold" /> Edit</button>
+              <button onClick={() => { setHead({ name: p.name, machine: p.machine, goal: p.goal, deadline: p.deadline, deadlineLabel: p.deadlineLabel, kind: p.kind || 'plan', owner: p.owner || '', ownerMail: p.ownerMail || '', result: p.result || '' }); setEditHead(true) }} className={quiet}><PencilSimple size={13} weight="bold" /> Edit</button>
             </div>
             {p.goal && <p className="mt-3 max-w-[70ch] text-[15px] leading-relaxed" style={{ color: 'var(--ink-2)' }}>{p.goal}</p>}
             <div className="mt-5 grid grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-4" data-volatile>
@@ -472,6 +485,8 @@ function ProjectDetail({ id, onBack }) {
           </>
         )}
       </section>
+
+      {p.kind && p.kind !== 'plan' && <FlowPanels planId={p.id} version={p.updatedAt} onChanged={load} />}
 
       <ProjectTabs projectKey={`plan:${p.id}`}>
       <section className="panel p-6 sm:p-7" aria-label="Timeline">
@@ -490,6 +505,7 @@ function ProjectDetail({ id, onBack }) {
           <h2 className="display text-[22px] font-semibold leading-none">The work, by phase.</h2>
           <span className="text-[13.5px]" style={{ color: 'var(--ink-3)' }}>Every task whose project reads "{p.machine}". Give each a phase, and say what it waits for; new tasks join through Quick add with that project.</span>
         </div>
+        {p.kind === 'paket' && <AddToPaket planId={p.id} machine={p.machine} owner={p.owner} onChanged={load} />}
         {phases.map(ph => (
           <div key={ph.id} className="mt-5">
             <h3 className="text-[13px] font-medium" style={{ color: 'var(--ink-3)' }}>{ph.name}{ph.start ? <span className="tnum ml-2" data-volatile>{fmt(ph.start)} to {fmt(ph.end)}</span> : null}</h3>

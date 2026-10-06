@@ -44,6 +44,18 @@ export const dataDir = () => process.env.BENCH_DATA_DIR || path.join(__dirname, 
 export const wanted = () => { const w = String(process.env.BENCH_STORAGE || 'json').trim().toLowerCase(); return ENGINES.includes(w) ? w : 'json' }
 
 // ── the json engine: the files as they were ───────────────────────────
+/**
+ * Windows refuses a rename onto a file that a virus scanner or the indexer has open for a moment (EPERM,
+ * EBUSY, EACCES), right after the last write. A few short waits get past it instead of losing the save.
+ */
+function renameRetrying(from, to, tries = 6) {
+  for (let i = 1; ; i++) {
+    try { return fs.renameSync(from, to) } catch (err) {
+      if (i >= tries || !['EPERM', 'EBUSY', 'EACCES'].includes(err.code)) throw err
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 15 * i)
+    }
+  }
+}
 export function jsonEngine(dir) {
   return {
     engine: 'json', path: dir, dir,
@@ -58,7 +70,7 @@ export function jsonEngine(dir) {
         write(doc) {
           fs.mkdirSync(dir, { recursive: true })
           fs.writeFileSync(p + '.tmp', JSON.stringify(doc, null, 2), 'utf8')
-          fs.renameSync(p + '.tmp', p)
+          renameRetrying(p + '.tmp', p)
         },
         mtime: () => { try { return fs.statSync(p).mtimeMs } catch { return 0 } },
         // Change detection for a shared folder: time and size together. Two writes inside one kernel

@@ -20,6 +20,7 @@ import { suggest as suggestLead } from './leadtimes.js'
 import { isOff, rules, offBetween } from './workdays.js'
 import * as playbooks from './playbooks.js'
 import { codeOf, mentions } from './codes.js'
+import { cleanWorkflow, resultLines } from './workflow-rules.js'   // Paket and E2E (roadmap 170)
 
 const wrap = fn => (req, res) => Promise.resolve().then(() => fn(req, res)).catch(err => res.status(err.status || 500).json({ error: err.message }))
 const col = db.collection('projects')
@@ -84,7 +85,7 @@ export function scheduleBackwards(phases, deadline) {
  * machine field, roadmap 143) takes every task that names the code in its title or project, except its own
  * Planner card, which is the project itself.
  */
-const belongs = (t, project) => {
+export const belongs = (t, project) => {
   const code = codeOf(project.machine)
   if (code) return !(t.source === 'planner' && codeOf(t.title) === code) && (mentions(t.title, code) || mentions(t.project, code))
   return (t.project || '').trim().toLowerCase() === (project.machine || '').trim().toLowerCase()
@@ -149,7 +150,7 @@ export function fitOf(project, phases, tasks, { workdayHours = 8.4, share = PLAN
 let cache = null
 const load = () => { if (cache) return cache; try { cache = col.exists() ? col.read() : { items: [] } } catch { cache = { items: [] } } if (!Array.isArray(cache.items)) cache.items = []; return cache }
 const save = () => col.write(cache)
-const clean = (p, input = {}) => {
+const clean = (p, input = {}, opts = {}) => {
   const phasesIn = Array.isArray(input.phases) ? input.phases : p.phases
   const phases = (phasesIn || STARTER_PHASES).map((x, i) => ({ id: x.id || crypto.randomUUID(), name: String(x.name || `Phase ${i + 1}`).trim().slice(0, 60), days: Math.max(1, Math.min(200, Math.round(Number(x.days) || 1))), start: x.start || null, end: x.end || null })).slice(0, 20)
   const out = {
@@ -161,6 +162,7 @@ const clean = (p, input = {}) => {
     deadlineLabel: LABELS.includes(input.deadlineLabel ?? p.deadlineLabel) ? (input.deadlineLabel ?? p.deadlineLabel) : 'FAT',
     phases,
     archived: Boolean(input.archived ?? p.archived ?? false),
+    ...cleanWorkflow(p, input, opts),   // kind, owner, result, step and its gates; steps move only through workflow.js
     updatedAt: now()
   }
   return out
@@ -172,12 +174,13 @@ export function create(input = {}) {
   const starter = codeOf(input.machine) || codeOf(input.name) ? INNOVATION_PHASES : STARTER_PHASES
   const p = clean({ id: crypto.randomUUID(), createdAt: now(), phases: null }, { ...input, phases: input.phases || starter })
   if (p.deadline) p.phases = scheduleBackwards(p.phases, p.deadline)
+  if (p.kind === 'paket' && p.deadline && resultLines(p.result).length) p.step = 'klaeren'   // the form with result and date was the intake
   db.items.push(p); save(); return p
 }
-export function update(id, patch = {}) {
+export function update(id, patch = {}, opts = {}) {
   const db = load(); const i = db.items.findIndex(x => x.id === id); if (i < 0) return null
   const before = db.items[i]
-  const p = clean(before, patch)
+  const p = clean(before, patch, opts)
   // a new deadline or new phase lengths re-plan; dates typed by hand are kept when nothing else changed
   if (p.deadline && (patch.deadline !== undefined || patch.phases !== undefined)) p.phases = scheduleBackwards(p.phases, p.deadline)
   db.items[i] = p; save(); return p
@@ -216,7 +219,7 @@ export function summaries(today = isoOf(new Date())) {
     const f = forecastOf(p, p.phases, tasks, today, { workdayHours: Number(settings.get().workdayHours) || 8.4 })
     if (f.slack !== null && (s.slack === null || f.slack < s.slack)) s.slack = f.slack   // a chain that runs late is the plan running late
     const current = p.phases.find(ph => ph.start && ph.end && ph.start <= today && today <= ph.end) || p.phases.find(ph => ph.start && ph.start > today) || null
-    return { id: p.id, name: p.name, machine: p.machine, goal: p.goal, deadline: p.deadline, deadlineLabel: p.deadlineLabel, phases: p.phases, open: mine.filter(t => !t.done).length, done: mine.filter(t => t.done).length, slack: s.slack, late: s.late.length, current: current ? current.name : null, daysLeft: p.deadline ? gap(today, p.deadline) : null }
+    return { id: p.id, name: p.name, kind: p.kind || 'plan', step: p.step || null, owner: p.owner || '', machine: p.machine, goal: p.goal, deadline: p.deadline, deadlineLabel: p.deadlineLabel, phases: p.phases, open: mine.filter(t => !t.done).length, done: mine.filter(t => t.done).length, slack: s.slack, late: s.late.length, current: current ? current.name : null, daysLeft: p.deadline ? gap(today, p.deadline) : null }
   })
 }
 
@@ -336,6 +339,9 @@ export function registerRoutes(app) {
   app.post('/api/projects/:id/assign', wrap((req, res) => {
     const p = list().find(x => x.id === req.params.id); if (!p) return res.status(404).json({ error: 'not found' })
     const phase = req.body?.phase && p.phases.some(x => x.id === req.body.phase) ? req.body.phase : null
+    // a task that joins a Paket widens it: that goes through the scope check (workflow.js), not through here
+    const task = store.allTasks().find(x => x.id === String(req.body?.taskId || ''))
+    if (p.kind === 'paket' && task && !belongs(task, p)) return res.status(409).json({ error: 'This widens the Paket. Add it through the scope check on the plan page.', scope: true })
     const t = store.updateTask(String(req.body?.taskId || ''), { phase, project: p.machine })
     t ? res.json({ task: t }) : res.status(404).json({ error: 'no such task' })
   }))

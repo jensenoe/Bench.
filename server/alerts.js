@@ -14,6 +14,8 @@
  *   actions    working days, 09:00 to 17:00: open Logbook actions due today or overdue, one summary a day
  *   project    working days, 08:00 to 18:00: an innovation project (portfolio.js) due within three working
  *              days, or overdue; once per project per day
+ *   escalate   working days, 08:00 to 18:00: a Paket or E2E plan with reasons to escalate now (workflow.js,
+ *              roadmap 170); once per plan per day
  *   arrivals   new open work from Planner or Issues since the last look (Bell only by default)
  *   clock      working days, 09:30 to 12:00: not clocked in yet; any day from 18:30: still clocked in.
  *              timeclock.js sends lunch (12:00), back from lunch and the morning digest; nothing here repeats those.
@@ -33,6 +35,7 @@ import { codeOf } from './codes.js'
 import { meetingsCached } from './day.js'
 import { notify, holdFor, fireSnoozed } from './notify.js'
 import { prepRoute } from './meetprep-live.js'
+import { escalations } from './workflow.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const FILE = () => path.join(process.env.BENCH_USER_DIR || process.env.BENCH_SECRETS_DIR || process.env.BENCH_DATA_DIR || path.join(__dirname, '..', 'data'), 'alerts.json')
@@ -151,6 +154,13 @@ export function projectMessage(p) {
   const what = `${p.code}${p.name && p.name !== p.code ? ' ' + clip(p.name, 36) : ''}`
   const when = p.left < 0 ? `${plural(-p.left, 'day')} overdue, due ${fmtDay(p.due)}` : p.left === 0 ? 'due today' : `due ${fmtDay(p.due)}, in ${plural(p.left, 'working day')}`
   return { title: p.left < 0 ? 'Project overdue.' : 'Project due soon.', body: `${what}: ${when}.`, route: `#/projects?i=${encodeURIComponent(p.code)}`, category: 'project', key: p.code }
+}
+
+// ── escalate now (roadmap 170) ────────────────────────────────────────
+/** One plan's reasons as a notification; the key is the plan, so it goes out once a day. */
+export function escalateMessage(e) {
+  const first = String(e.owner || '').trim().split(' ')[0] || 'the owner'
+  return { title: `Escalate to ${first} now.`, body: `${clip(e.name, 40)}: ${e.reasons.map(r => r.text).join('; ')}.`, route: `#/projects?p=${encodeURIComponent(e.id)}`, category: 'escalate', key: e.id }
 }
 
 // ── new work ──────────────────────────────────────────────────────────
@@ -272,6 +282,13 @@ const jobs = [
     const list = projectsDue(portfolio(tasks, { today: ymd(now), entries }), now, { workday: workdayOf(now), isOff: offFn() })
     let sent = 0
     for (const p of list) if (notify(projectMessage(p), { now })) sent++
+    return sent
+  }],
+  ['escalate', (now) => {
+    const n = nowMin(now)
+    if (!workdayOf(now) || n < 8 * 60 || n >= 18 * 60) return 0
+    let sent = 0
+    for (const e of escalations(ymd(now))) if (notify(escalateMessage(e), { now })) sent++
     return sent
   }],
   ['arrivals', (now) => {
