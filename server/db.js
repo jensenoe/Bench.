@@ -34,7 +34,8 @@ export const COLLECTIONS = {
   napkin: { file: 'napkin.json', key: 'items', meta: false },
   projects: { file: 'projects.json', key: 'items', meta: false },   // plans with phases and a deadline (roadmap 121)
   raidd: { file: 'raidd.json', key: 'items', meta: false },          // risks, assumptions, issues, dependencies, decisions per project (roadmap 168)
-  raci: { file: 'raci.json', key: 'items', meta: false }   // one RACI matrix per project, by project key (roadmap 169)
+  raci: { file: 'raci.json', key: 'items', meta: false },   // one RACI matrix per project, by project key (roadmap 169)
+  kitting: { file: 'kitting.json', key: 'items', meta: false }   // the kit per machine number of a plan, and its template (roadmap 171)
 }
 const wrap = fn => (req, res) => Promise.resolve().then(() => fn(req, res)).catch(err => res.status(err.status || 500).json({ error: err.message }))
 

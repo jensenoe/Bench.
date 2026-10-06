@@ -371,6 +371,30 @@ try {
   }
   const innoReport = await fetch(`${BASE}/api/report/innovation/I-1050`).then(r => r.text())
   check('the project report carries the RAIDD log', /RAIDD log/.test(innoReport) && /Load cell arrives late/.test(innoReport))
+  check('an innovation project has no Rüsten tab', await page.getByRole('tab', { name: 'Rüsten' }).count() === 0)
+
+  // Rüsten on a plan (roadmap 171): the tab opens from a link, a machine opens, Space ticks, axe is clean, the handover renders
+  const kitPlan = (await api('POST', '/api/projects', { name: 'Remote Coach rüsten' })).body
+  await api('PUT', `/api/kitting?project=plan:${kitPlan.id}`, { template: [{ name: 'Remote Coach unit' }, { name: 'USB-C cable 2 m', kind: 'kabel' }], machines: [{ number: '000 030', bundle: 2, items: [{ name: 'Remote Coach unit', kitted: true }, { name: 'USB-C cable 2 m', kind: 'kabel' }] }, { number: '000 052', bundle: 6 }] })
+  await page.goto(`${BASE}/#/projects?p=${kitPlan.id}&t=kit`); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(900)
+  check('the Rüsten tab opens from a link on a plan', await page.getByRole('heading', { name: 'Rüsten.', exact: true }).count() === 1 && await page.getByRole('tab', { selected: true }).textContent().then(x => x.trim()) === 'Rüsten')
+  await page.getByRole('button', { name: /^000 030/ }).click(); await page.waitForTimeout(300)
+  const kitTick = page.getByRole('checkbox', { name: 'Checked: Remote Coach unit' })
+  await kitTick.focus(); await page.keyboard.press('Space'); await page.waitForTimeout(200)
+  check('Space ticks the focused box on a machine', await kitTick.getAttribute('aria-checked') === 'true')
+  await page.waitForTimeout(900)
+  const kitSaved = (await api('GET', `/api/kitting?project=plan:${kitPlan.id}`)).body
+  check('the tick is saved', kitSaved.doc?.machines?.[0]?.items?.[0]?.checked === true)
+  await page.waitForFunction(() => document.getAnimations().every(a => a.playState !== 'running'), null, { timeout: 4000 }).catch(() => {})
+  const kitAxe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze()
+  check('axe on the Rüsten tab: no accessibility violations', kitAxe.violations.length === 0, violations(kitAxe))
+  // inside the tab panel: the plan page around it is checked on its own
+  const kitSmall = await page.locator('[role=tabpanel]').evaluate(panel => [...panel.querySelectorAll('button, a, [role=button], [role=checkbox], [role=radio], [role=switch]')]
+    .map(el => ({ el, r: el.getBoundingClientRect() })).filter(({ r }) => r.width > 0 && r.height > 0 && (r.width < 24 || r.height < 24))
+    .map(({ el, r }) => `${el.tagName.toLowerCase()} "${(el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 28)}" ${Math.round(r.width)}x${Math.round(r.height)}`))
+  check('the Rüsten tab has no button or link under 24 px', kitSmall.length === 0, kitSmall.slice(0, 4).join(' | '))
+  const handover = await fetch(`${BASE}/api/report/handover/${encodeURIComponent(`plan:${kitPlan.id}`)}`).then(async r => ({ status: r.status, text: await r.text() }))
+  check('GET /api/report/handover answers with the handover for Service', handover.status === 200 && /Übergabe an den Service: Remote Coach rüsten/.test(handover.text) && /Machine 000 052/.test(handover.text), String(handover.status))
 
   check('no console errors across the run', errors.length === 0, [...errors.slice(0, 3), ...failedUrls.slice(0, 4)].join(' | '))
 } catch (err) {
