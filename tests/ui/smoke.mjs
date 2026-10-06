@@ -359,6 +359,19 @@ try {
   const pfReport = await fetch(`${BASE}/api/report/portfolio`).then(async r => ({ status: r.status, text: await r.text() }))
   check('GET /api/report/portfolio answers with the portfolio report', pfReport.status === 200 && /Innovation portfolio/.test(pfReport.text) && /I-1050/.test(pfReport.text) && /Needs attention/.test(pfReport.text), String(pfReport.status))
 
+  // the project tabs (roadmap 168, 169): RAIDD log and RACI open from a link, pass axe, and land in the report
+  await fetch(`${BASE}/api/raidd`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ project: 'I-1050', type: 'risk', title: 'Load cell arrives late', owner: 'Anna', likelihood: 4, impact: 5 }) })
+  for (const [t, heading] of [['raidd', 'RAIDD log.'], ['raci', 'Who does what.']]) {
+    await page.goto(`${BASE}/#/projects?i=I-1050&t=${t}`); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(900)
+    check(`the ${t} tab opens from a link`, await page.getByRole('heading', { name: heading }).count() === 1 && await page.getByRole('tab', { selected: true }).textContent().then(x => x.trim()) === (t === 'raidd' ? 'RAIDD log' : 'RACI'))
+    await page.waitForFunction(() => document.getAnimations().every(a => a.playState !== 'running'), null, { timeout: 4000 }).catch(() => {})
+    const ax = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze()
+    check(`axe on the ${t} tab: no accessibility violations`, ax.violations.length === 0, violations(ax))
+    check(`the ${t} tab has no button or link under 24 px`, (await page.evaluate(smallTargets)).length === 0, (await page.evaluate(smallTargets)).slice(0, 4).join(' | '))
+  }
+  const innoReport = await fetch(`${BASE}/api/report/innovation/I-1050`).then(r => r.text())
+  check('the project report carries the RAIDD log', /RAIDD log/.test(innoReport) && /Load cell arrives late/.test(innoReport))
+
   check('no console errors across the run', errors.length === 0, [...errors.slice(0, 3), ...failedUrls.slice(0, 4)].join(' | '))
 } catch (err) {
   failures.push('exception'); console.error(err)

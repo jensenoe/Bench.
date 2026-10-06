@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import ProjectTabs from './ProjectTabs.jsx'   // Overview, RAIDD log, RACI (roadmap 168, 169)
 import { ArrowLeft, Plus, Trash, ArrowsClockwise, PencilSimple, X, FilePdf } from '@phosphor-icons/react'
 import { getProjects, getProject, createProject, patchProject, removeProject, scheduleProject, assignPhase } from '../api/projects.js'
 import { getMachines } from '../api/machines.js'
@@ -472,6 +473,7 @@ function ProjectDetail({ id, onBack }) {
         )}
       </section>
 
+      <ProjectTabs projectKey={`plan:${p.id}`}>
       <section className="panel p-6 sm:p-7" aria-label="Timeline">
         <h2 className="display text-[22px] font-semibold leading-none">The timeline.</h2>
         <p className="mt-1 text-[13px]" style={{ color: 'var(--ink-3)' }}>Phases as bands, due dates as dots, dashed runs are lead times from order-by to need-by. Thin bars are the forecast for tasks that wait for others; shaded days are holidays and days off.</p>
@@ -501,6 +503,7 @@ function ProjectDetail({ id, onBack }) {
             : <p className="mt-1 text-[13px]" style={{ color: 'var(--ink-3)', borderTop: '1px solid var(--line)', paddingTop: 8 }}>Every task on {p.machine} sits in a phase.</p>}
         </div>
       </section>
+      </ProjectTabs>
     </main>
   )
 }

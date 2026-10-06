@@ -20,6 +20,7 @@ import { codeOf } from './codes.js'
 import { busyMinutes } from './calendar.js'
 import * as history from './history.js'
 import * as raidd from './raidd.js'
+import * as raci from './raci.js'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const LANE = { today: 'Today', active: 'Active', waiting: 'Waiting', innovation: 'Innovation', parked: 'Parked' }
@@ -268,6 +269,8 @@ export function finishedOn(day, entries = history.list(history.CAP)) {
 function projectExtras(key, today) {
   let out = ''
   try { const { entries } = raidd.listFor(key, { today }); if (entries.length) out += raidd.raiddReportHtml(entries, { today, esc, fmt }) } catch { /* no log for this key */ }
+  // the matrix only once somebody is on it; the starting rows alone say nothing to a reader
+  try { const { matrix } = raci.matrixFor(key); if (matrix?.people?.length) out += raci.raciReportHtml(matrix, { esc }) } catch { /* no matrix for this key */ }
   return out
 }
 

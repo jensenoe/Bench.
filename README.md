@@ -12,7 +12,7 @@
 Installing over an older Bench. keeps your board, hours and settings. `Bench-portable-…exe` on the
 same page is the no-install version: keep it in any folder and run it from there.
 
-**0.12, ninth beta (0.12.0-beta.9).** Everything here works on my machine and on the mocks; the
+**0.12, tenth beta (0.12.0-beta.10).** Everything here works on my machine and on the mocks; the
 Microsoft paths (Planner, the hours workbook, the issue list, the calendar) still want a
 first real run in the tom.fit tenant, and the issue list and calendar need a one-time admin
 approval, see below.
@@ -54,7 +54,7 @@ Administrator; `build-exe.bat plain` skips the icon stamping instead, and `build
 Bump `version` in `package.json`, commit, then tag and push:
 
 ```bash
-git tag v0.12.0-beta.9 && git push --tags
+git tag v0.12.0-beta.10 && git push --tags
 ```
 
 The *Release* workflow in `.github/workflows/release.yml` builds both exes on a Windows
@@ -104,6 +104,11 @@ without publishing and leaves the exes as a workflow artifact.
   Active, each with its reason, inside the five places and the hours the calendar leaves free. Untick what
   you disagree with, Plan it., and Undo in the toast puts the lanes back. The morning brief says when a plan
   is ready.
+- **RAIDD log and RACI per project.** Every project page (innovation and plans) has three tabs: Overview,
+  RAIDD log and RACI. The RAIDD log keeps risks (likelihood by impact, with a heat map), assumptions, issues,
+  dependencies and decisions, each with an owner, a status and a date; decisions from the Logbook appear by
+  themselves. The RACI matrix says who does what per stage or phase and flags a row without one A or without an R.
+  Both live in the shared board folder and print with Export PDF.
 - **Today as a report.** Export on the Today header saves one A4 page for your manager: what is on Today
   (project, source, priority, due, effort, steps done), the hours free after meetings, today's meetings,
   what waits on others, and what was finished on the last working day. No notes or links.

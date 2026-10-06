@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import ProjectTabs from './ProjectTabs.jsx'   // Overview, RAIDD log, RACI (roadmap 168, 169)
 import { ArrowLeft, FolderOpen, FilePdf } from '@phosphor-icons/react'
 import { getPortfolio, getInnovation } from '../api/portfolio.js'
 import { createProject } from '../api/projects.js'
@@ -173,6 +174,7 @@ export function InnovationDetail({ code, onBack }) {
         <p className="mt-3 max-w-[70ch] text-[13px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>The stage and the due date come from the card in Planner; move the card there and Bench. follows at the next sync. Anything that names {p.code} joins this page: a task's title or project, a Logbook entry, a Napkin map.</p>
       </section>
 
+      <ProjectTabs projectKey={p.code}>
       <section className="panel p-6 sm:p-7" aria-label="Your tasks">
         <h2 className="display text-[22px] font-semibold leading-none">Your tasks.</h2>
         {tasks.length ? (
@@ -223,6 +225,7 @@ export function InnovationDetail({ code, onBack }) {
           <ul className="mt-4 flex flex-col">{maps.map(m => <li key={m.id} className="rule py-2 text-[14px]"><a href="#/napkin" className="underline-offset-2 hover:underline">{m.title}</a></li>)}</ul>
         </section>
       )}
+      </ProjectTabs>
     </main>
   )
 }
