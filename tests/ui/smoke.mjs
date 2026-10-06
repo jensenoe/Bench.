@@ -372,6 +372,25 @@ try {
   const innoReport = await fetch(`${BASE}/api/report/innovation/I-1050`).then(r => r.text())
   check('the project report carries the RAIDD log', /RAIDD log/.test(innoReport) && /Load cell arrives late/.test(innoReport))
 
+  // Paket and E2E (roadmap 170): a Paket due today shows its flow, the escalation and the intake gate, passes axe,
+  // moves on once result and date are ticked, and has a done report
+  const zurichToday = new Date().toLocaleDateString('sv-SE', { timeZone: TZ })
+  const pk = await api('POST', '/api/projects', { name: 'UI Paket', machine: 'UI rig', kind: 'paket', result: 'Drawing\nParts list', deadline: zurichToday })
+  await page.goto(`${BASE}/#/projects?p=${pk.body.id}`); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(1000)
+  const nextBtn = page.getByRole('button', { name: /^Next: Liefern/ })
+  check('a Paket shows its step and holds Next at the intake gate', await page.getByRole('heading', { name: 'Now: Klären.' }).count() === 1 && await nextBtn.isDisabled().catch(() => false))
+  check('a Paket due today asks to escalate to its owner', await page.getByText('Escalate to Roman now:').count() === 1 && await page.getByRole('link', { name: 'Draft the note' }).getAttribute('href').then(h => /^mailto:/.test(h || '')).catch(() => false))
+  await page.waitForFunction(() => document.getAnimations().every(a => a.playState !== 'running'), null, { timeout: 4000 }).catch(() => {})
+  const pkAxe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze()
+  check('axe on a Paket: no accessibility violations', pkAxe.violations.length === 0, violations(pkAxe))
+  check('a Paket has no button or link under 24 px', (await page.evaluate(smallTargets)).length === 0, (await page.evaluate(smallTargets)).slice(0, 4).join(' | '))
+  await page.getByRole('checkbox', { name: 'Tick Result clear' }).click(); await page.waitForTimeout(400)
+  await page.getByRole('checkbox', { name: 'Tick Date clear' }).click(); await page.waitForTimeout(400)
+  await nextBtn.click(); await page.waitForTimeout(600)
+  check('ticking result and date opens the gate to Liefern', await page.getByRole('heading', { name: 'Now: Liefern.' }).count() === 1)
+  const doneReport = await fetch(`${BASE}/api/report/done/${pk.body.id}`).then(async r => ({ status: r.status, text: await r.text() }))
+  check('GET /api/report/done answers with the done report', doneReport.status === 200 && /UI Paket/.test(doneReport.text) && /Agreed result/.test(doneReport.text), String(doneReport.status))
+
   check('no console errors across the run', errors.length === 0, [...errors.slice(0, 3), ...failedUrls.slice(0, 4)].join(' | '))
 } catch (err) {
   failures.push('exception'); console.error(err)

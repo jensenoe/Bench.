@@ -8,7 +8,9 @@
  *   planReport(d, { today, author })         pure: HTML from GET /api/projects/:id
  *   portfolioReport(list, { today, author, moves, decisions })   pure: the innovation portfolio (roadmap 162)
  *   todayReport(d, { today, author, workdayHours })   pure: the day's plan for a manager (roadmap 164)
+ *   doneReport(d, { today, author, open, raciHtml })  pure: a Paket or E2E reported done (roadmap 170)
  *   GET /api/report/innovation/:code   GET /api/report/project/:id   GET /api/report/portfolio   GET /api/report/today
+ *   GET /api/report/done/:id
  */
 import * as portfolio from './portfolio.js'
 import * as projects from './projects.js'
@@ -21,6 +23,7 @@ import { busyMinutes } from './calendar.js'
 import * as history from './history.js'
 import * as raidd from './raidd.js'
 import * as raci from './raci.js'
+import * as W from './workflow-rules.js'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const LANE = { today: 'Today', active: 'Active', waiting: 'Waiting', innovation: 'Innovation', parked: 'Parked' }
@@ -274,6 +277,40 @@ function projectExtras(key, today) {
   return out
 }
 
+// ── Done, reported (roadmap 170) ───────────────────────────────────────
+const RAIDD_TYPE = { risk: 'Risk', assumption: 'Assumption', issue: 'Issue', dependency: 'Dependency', decision: 'Decision' }
+/**
+ * The done report of a Paket or an E2E: the agreed result or the definition of done with each box, what was
+ * delivered (the tasks done), the RAIDD items still open (there should be none), the RACI, and the day.
+ * `d` is projects.detail(); `open` the open RAIDD entries; `raciHtml` the RACI section or ''. Pure.
+ */
+export function doneReport(d, { today, author = '', print = false, open = [], raciHtml = '' } = {}) {
+  const { project: p, phases = [], unassigned = [] } = d
+  const kind = W.kindOf(p), kindName = kind === 'paket' ? 'Paket' : kind === 'e2e' ? 'E2E' : 'Plan'
+  const items = W.checklist(p).filter(c => c.needed)
+  const ticked = items.filter(c => c.done).length
+  const delivered = [...phases.flatMap(ph => (ph.tasks || []).map(t => [ph.name, t])), ...unassigned.map(t => ['No phase', t])].filter(([, t]) => t.done)
+  const on = p.doneAt || null
+  const figs = `<div class="figs">
+${fig(on ? fmt(on) : 'not yet', on ? 'reported done' : 'not reported done', on ? '' : 'late')}
+${fig(`${ticked} of ${items.length}`, kind === 'paket' ? 'result items ticked' : 'boxes ticked', ticked < items.length ? 'late' : '')}
+${fig(delivered.length, delivered.length === 1 ? 'task delivered' : 'tasks delivered')}
+${fig(open.length, open.length === 1 ? 'RAIDD item open' : 'RAIDD items open', open.length ? 'late' : '')}
+</div>`
+  const itemRows = items.map(c => `<tr${c.done ? '' : ' class="late"'}><td>${esc(c.label)}</td><td class="n">${c.done ? esc(`ticked ${fmt(c.at)}`) : 'not ticked'}</td></tr>`)
+  const taskRows = delivered.map(([ph, t]) => `<tr><td>${esc(t.title)}</td><td>${esc(ph)}</td><td class="n">${esc(fmt(t.completedAt))}</td></tr>`)
+  const openRows = open.map(e => `<tr><td>${esc(RAIDD_TYPE[e.type] || e.type)}</td><td>${esc(e.title)}</td><td>${esc(e.owner || '')}</td><td>${esc(e.status)}</td></tr>`)
+  const body = `${figs}
+${p.goal ? `<h2>Goal</h2><p>${esc(p.goal)}</p>` : ''}
+<h2>${kind === 'paket' ? 'Agreed result' : 'Definition of done'}</h2>${table(['Item', { t: 'Status', n: true }], itemRows, kind === 'paket' ? 'No result was written down.' : 'No boxes.')}
+${kind === 'e2e' && p.presentNeeded === false ? '<p class="note">No presentation was needed for this one.</p>' : ''}
+<h2>Delivered</h2>${table(['Task', 'Phase', { t: 'Done', n: true }], taskRows, 'No task on this plan is ticked.')}
+<h2>Open in the RAIDD log</h2>${table(['Type', 'Item', 'Owner', 'Status'], openRows, 'None. Everything in the log is closed.')}
+${raciHtml}`
+  const meta = [p.owner ? `${kind === 'paket' ? 'Paket from' : 'Result and date from'} ${p.owner}` : null, author ? `Delivered by ${author}` : null, fmt(on || today)].filter(Boolean).join(' · ')
+  return page({ title: p.name, kicker: `${kindName}, done`, meta, body, today, print })
+}
+
 const todayIso = () => projects.isoOf(new Date())
 const author = () => { try { return String(settings.get().name || '').trim() } catch { return '' } }
 const send = (res, html) => res.set('Cache-Control', 'no-store').type('html').send(html)
@@ -296,6 +333,15 @@ export function registerRoutes(app) {
     if (!d) return res.status(404).json({ error: 'not found' })
     const plan = d.plan ? projects.detail(d.plan.id, today) : null
     send(res, innovationReport(d, { today, author: author(), plan, print: req.query.print === '1', extra: projectExtras(d.project.code, today) }))
+  }))
+  app.get('/api/report/done/:id', wrap((req, res) => {
+    const today = todayIso(), d = projects.detail(req.params.id, today)
+    if (!d) return res.status(404).json({ error: 'not found' })
+    const key = `plan:${d.project.id}`
+    let open = [], raciHtml = ''
+    try { open = raidd.listFor(key, { today }).entries.filter(raidd.isOpen) } catch { /* no log */ }
+    try { const { matrix } = raci.matrixFor(key); if (matrix?.people?.length) raciHtml = raci.raciReportHtml(matrix, { esc }) } catch { /* no matrix */ }
+    send(res, doneReport(d, { today, author: author(), print: req.query.print === '1', open, raciHtml }))
   }))
   app.get('/api/report/project/:id', wrap((req, res) => {
     const today = todayIso(), d = projects.detail(req.params.id, today)
