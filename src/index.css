@@ -59,7 +59,7 @@
   /* Functional colours: the same four meanings everywhere. Late (a date is past, something failed),
      caution (waiting, not written yet, needs a look), ok (written, delivered, done), held (ordered,
      on its way, parked). Components never carry raw hex; they use these or the scene accent. */
-  --late:     #F0776B;
+  --late:     #F27E72;
   --caution:  #E8B85A;
   --ok:       #8CD3A2;
   --held:     #7CC8DA;
@@ -120,7 +120,7 @@
 
 /* Everything laid over a photograph: night tokens in both themes. */
 .on-photo {
-  --late: #F0776B; --caution: #E8B85A; --ok: #8CD3A2; --held: #7CC8DA; --late-ink: #2A0A08;
+  --late: #F27E72; --caution: #E8B85A; --ok: #8CD3A2; --held: #7CC8DA; --late-ink: #2A0A08;
   --bg: #15161C; --veil: 21,22,28;
   --ink: #F3F3F1; --ink-rgb: 243,243,241;
   --ink-2: rgba(243,243,241,.74); --ink-3: rgba(243,243,241,.62);

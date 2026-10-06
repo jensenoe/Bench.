@@ -4,7 +4,7 @@ import { bridge } from '../bridge.js'
 import { getAccount } from '../auth.js'
 import { fetchQms, ORIGIN as QMS } from './qms.js'
 import { fetchBom, ORIGIN as BOM } from './bom.js'
-import { fetchIssues, ORIGIN as ISSUES } from './issues.js'
+import { fetchIssues, ORIGIN as ISSUES, PROBE as ISSUES_PROBE } from './issues.js'
 import { fetchInnovation, ORIGIN as INNOVATION, PROBE as INNOVATION_PROBE } from './innovation.js'
 
 /** Evaluated inside the sign-in window: true once the tool is usable on this session. */
@@ -16,7 +16,8 @@ const PROBES = {
 
 export const SOURCES = {
   planner: { label: 'Phase Gate (Planner)', origin: 'https://innovation.tom.fit', kind: 'graph' },
-  issues:  { label: 'Issue tickets',        origin: ISSUES, kind: 'graph' },
+  // read from the tool's own page in the signed-in window (roadmap 167); the SharePoint list is the fallback
+  issues:  { label: 'Issue tickets',        origin: ISSUES, kind: 'site', probe: ISSUES_PROBE },
   qms:     { label: 'QMS',                  origin: QMS,    kind: 'site', probe: PROBES.qms },
   bom:     { label: 'Structured BOM',       origin: BOM,    kind: 'site', probe: PROBES.bom },
   // the dashboard page on the same origin as Phase Gate; shape discovered on the first sync (roadmap 117)

@@ -231,6 +231,8 @@ try {
   check('More lists the other pages and the TomFit tools', ['Procurement', 'Machines', 'Hours', 'Review', 'Napkin', 'Tools', 'Playbooks', 'Cockpit'].every(t => menuLinks.some(m => m.startsWith(t))), menuLinks.join(' | '))
   const moreSmall = await page.evaluate(() => [...document.querySelectorAll('nav[aria-label="Pages"] [id] a')].filter(a => a.getBoundingClientRect().height < 24).length)
   check('every link in More is at least 24 px', moreSmall === 0, String(moreSmall))
+  // a toast fading in measures as low contrast mid-animation: let animations settle first
+  await page.waitForFunction(() => document.getAnimations().every(a => a.playState !== 'running'), null, { timeout: 4000 }).catch(() => {})
   const moreAxe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze()
   check('axe with More open: no accessibility violations', moreAxe.violations.length === 0, violations(moreAxe))
   await page.keyboard.press('Escape'); await page.waitForTimeout(300)
