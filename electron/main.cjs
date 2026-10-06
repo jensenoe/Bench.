@@ -445,8 +445,8 @@ async function start() {
     }, 400)
   }
   for (const ev of ['resize', 'move', 'maximize', 'unmaximize']) mainWin.on(ev, rememberBounds)
-  mainWin.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' } })
-  mainWin.webContents.on('will-navigate', (e, url) => { if (!url.startsWith(`http://127.0.0.1:${port}`)) { e.preventDefault(); shell.openExternal(url) } })
+  mainWin.webContents.setWindowOpenHandler(({ url }) => { if (external(url)) shell.openExternal(url); return { action: 'deny' } })
+  mainWin.webContents.on('will-navigate', (e, url) => { if (!url.startsWith(`http://127.0.0.1:${port}`)) { e.preventDefault(); if (external(url)) shell.openExternal(url) } })
   // A dead renderer is a black window. Log it and bring the page back instead of leaving it there.
   mainWin.webContents.on('render-process-gone', (_e, details) => {
     log('[renderer] gone', details)
@@ -473,7 +473,9 @@ app.on('before-quit', () => { quitting = true; runPendingInstaller() })
 app.on('will-quit', () => { try { globalShortcut.unregisterAll() } catch { /* already gone */ } })
 
 ipcMain.handle('bench:info', () => ({ dataDir: DATA_DIR, secretsDir: SECRETS_DIR, logFile: LOG_FILE, version: app.getVersion(), portable: PORTABLE, machineCfg: MACHINE_CFG, chooseFolder: true }))
-ipcMain.handle('bench:open-external', (_e, url) => { if (/^https?:/.test(url)) shell.openExternal(url) })
+// Only web pages and mail drafts leave the app: a file:, javascript: or custom-protocol link from page content does not
+const external = (url) => /^(https?:|mailto:)/i.test(String(url || ''))
+ipcMain.handle('bench:open-external', (_e, url) => { if (external(url)) shell.openExternal(url) })
 /** A file or folder from a logbook link: the share, a drawing, a PDF. Returns '' on success or the OS's reason. */
 ipcMain.handle('bench:open-path', (_e, p) => (typeof p === 'string' && p.trim() && !/^https?:/i.test(p)) ? shell.openPath(p.trim()) : 'not a path')
 ipcMain.handle('bench:open-data-folder', () => shell.openPath(DATA_DIR))
