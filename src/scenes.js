@@ -149,19 +149,6 @@ export const ALL_SCENES = Object.keys(SCENES).map(k => { const d = new Date(); d
 /** A given scene's picture for this moment; shift moves along the pool so two headers never share one picture. */
 export function sceneAt(key, d = new Date(), shift = 0) { return build(key, d, shift) }
 
-/** Lunch: a village at dusk, lights coming on. Changes with the day, not the hour. */
-const LUNCH = { key: 'lunch', label: 'Lunch', glow: '#2E1E33', accent: '#F5B26B', accentInk: '#2A1606', filter: 'saturate(.92) contrast(1.04) sepia(.1)', grade: '245,178,107', light: { glow: '#F3E2D0', accent: '#B0662A', accentInk: '#FFF8F0' } }
-export function lunchScene(d = new Date()) {
-  const imgs = (library.lunch.images || []).map(src)
-  return { ...LUNCH, terrain: imgs.length ? imgs[dayOfYear(d) % imgs.length] : '/terrain/dusk.jpg', fallback: '/terrain/dusk.jpg' }
-}
-
-/** Cover for the Cockpit door: an office, a bench. Rotates weekly. */
-export function cockpitCover(d = new Date()) {
-  const imgs = (library.cockpit.images || []).map(src)
-  return { src: imgs.length ? imgs[Math.floor(dayOfYear(d) / 7) % imgs.length] : '/terrain/night.jpg', fallback: '/terrain/night.jpg' }
-}
-
 /** Who took the picture on screen and which library it is from, for the quiet line under the greeting. */
 export function photoCredit(terrain) {
   const file = String(terrain || '').split('/').pop()

@@ -43,8 +43,9 @@ const check = (name, ok, detail = '') => {
 }
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']
 const violations = res => res.violations.map(v => { const d = v.nodes[0]?.any?.[0]?.data; return `${v.id} x${v.nodes.length} (${v.nodes[0]?.target?.[0]})${d?.contrastRatio ? ` ${d.fgColor} on ${d.bgColor} at ${d.contrastRatio}` : ''}` }).join(', ')
-// Every page but the wall has a nav; the wall has no controls at all, so its check is the other way round.
-const PAGES = ['', 'board', 'procurement', 'tools', 'logbook', 'napkin', 'hours', 'review', 'machines', 'projects', 'meeting', 'wall']
+const PAGES = ['', 'board', 'tools', 'logbook', 'hours', 'review', 'machines', 'projects', 'meeting']
+// Pages cut in roadmap 173 and where their old links land (src/pages.js GONE); none may crash or show the lost page.
+const GONE = { procurement: '#/board', napkin: '#/board', wall: '#/board', lunch: '#/' }
 const smallTargets = () => [...document.querySelectorAll('button, a, [role=button], [role=checkbox], [role=radio], [role=switch], [role=tab]')].map(el => ({ el, r: el.getBoundingClientRect() }))
   .filter(({ r }) => r.width > 0 && r.height > 0 && (r.width < 24 || r.height < 24))
   .map(({ el, r }) => `${el.tagName.toLowerCase()} "${(el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 28)}" ${Math.round(r.width)}x${Math.round(r.height)}`)
@@ -58,7 +59,6 @@ try {
   await api('POST', '/api/tasks', { title: 'Parked one', lane: 'parked' })
   await api('POST', '/api/tasks', { title: 'Order the rails', lane: 'active', orderBy: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10) })
   await api('POST', '/api/logbook', { title: 'Weekly', attendees: ['A', 'B'] })
-  await api('POST', '/api/napkin', { title: 'Map' })
   check('the seeded leftover is on the board', (await api('GET', '/api/state')).body.tasks.some(t => t.id === LEFTOVER.id && t.lane === 'today'))
 
   browser = await chromium.launch()
@@ -70,7 +70,7 @@ try {
   const failedUrls = []
   page.on('response', res => { if (res.status() >= 400) failedUrls.push(`${res.status()} ${res.url().replace(BASE, '')}`) })
 
-  for (const r of [...PAGES, 'lunch']) {
+  for (const r of PAGES) {
     await page.goto(`${BASE}/#/${r}`, { waitUntil: 'networkidle' }); await page.waitForTimeout(600)
     const hscroll = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
     check(`page ${r || 'home'} renders without horizontal scroll`, !hscroll)
@@ -90,17 +90,6 @@ try {
   // Target size (WCAG 2.5.8): every visible button and link at least 24 px each way, on every page.
   for (const r of PAGES) {
     await page.goto(`${BASE}/#/${r}`, { waitUntil: 'networkidle' }); await page.waitForTimeout(500)
-    if (r === 'wall') {
-      // the wall is read only: no control at all, and nothing under 16 px (DESIGN.md, wall mode)
-      const wall = await page.evaluate(() => {
-        const controls = document.querySelectorAll('button, a, input, select, textarea, [role=button], nav').length
-        const small = [...document.querySelectorAll('body *')].filter(el => el.children.length === 0 && el.textContent.trim() && getComputedStyle(el).display !== 'none')
-          .map(el => ({ px: parseFloat(getComputedStyle(el).fontSize), text: el.textContent.trim().slice(0, 24) })).filter(x => x.px < 16)
-        return { controls, small: small.slice(0, 4), h1: document.querySelectorAll('h1').length }
-      })
-      check('wall: no controls, no nav, nothing under 16 px, one heading', wall.controls === 0 && wall.small.length === 0 && wall.h1 === 1, JSON.stringify(wall))
-      continue
-    }
     const small = await page.evaluate(smallTargets)
     check(`${r || 'home'}: every button and link is at least 24 px`, small.length === 0, [...new Set(small)].slice(0, 4).join(' | '))
   }
@@ -228,7 +217,11 @@ try {
   const more = page.getByRole('button', { name: 'More' })
   await more.click(); await page.waitForTimeout(350)
   const menuLinks = await page.evaluate(() => [...document.querySelectorAll('nav[aria-label="Pages"] [id] a')].map(a => a.textContent.trim()))
-  check('More lists the other pages and the TomFit tools', ['Procurement', 'Machines', 'Hours', 'Review', 'Napkin', 'Tools', 'Playbooks', 'Cockpit'].every(t => menuLinks.some(m => m.startsWith(t))), menuLinks.join(' | '))
+  check('More lists the other pages and the TomFit tools', ['Machines', 'Playbooks', 'Hours', 'Review', 'Tools', 'Cockpit'].every(t => menuLinks.some(m => m.startsWith(t))), menuLinks.join(' | '))
+  check('More lists none of the cut pages', !menuLinks.some(m => /^(Procurement|Napkin|Wall)/.test(m)), menuLinks.join(' | '))
+  const moreGroups = await page.evaluate(() => [...document.querySelectorAll('nav[aria-label="Pages"] [id] section')].map(g => ({ title: g.getAttribute('aria-label'), n: g.querySelectorAll('a').length })))
+  check('every More group holds more than one entry', moreGroups.length >= 2 && moreGroups.every(g => g.n > 1), JSON.stringify(moreGroups))
+  const moreHrefs = await page.evaluate(() => [...document.querySelectorAll('nav[aria-label="Pages"] [id] a[href^="#/"]')].map(a => ({ href: a.getAttribute('href'), title: a.querySelector('span span')?.textContent.trim() })))
   const moreSmall = await page.evaluate(() => [...document.querySelectorAll('nav[aria-label="Pages"] [id] a')].filter(a => a.getBoundingClientRect().height < 24).length)
   check('every link in More is at least 24 px', moreSmall === 0, String(moreSmall))
   // a toast fading in measures as low contrast mid-animation: let animations settle first
@@ -244,6 +237,13 @@ try {
   check('changing page moves focus to the page heading', focused.tag === 'H1' && /Hours/.test(focused.text || ''), JSON.stringify(focused))
   check('hours page uses the mono register and the one-pixel grid', (await page.locator('table.ledger.mono').count()) === 1)
   check('on Hours the More button reads Hours', await page.locator('nav[aria-label="Pages"] button[aria-expanded]').first().textContent().then(t => t.trim()) === 'Hours')
+
+  // no dead entries in More (roadmap 173): every page link lands on a page whose heading is its name
+  for (const { href, title } of moreHrefs) {
+    await page.goto(`${BASE}/${href}`, { waitUntil: 'networkidle' }); await page.waitForTimeout(700)
+    const h1 = (await page.locator('h1').first().textContent().catch(() => '')).trim()
+    check(`More: ${title} opens its page`, h1 === `${title}.`, `${href} -> ${h1}`)
+  }
 
   // chips stay on one line
   await page.goto(`${BASE}/#/board`, { waitUntil: 'networkidle' }); await page.waitForTimeout(500)
@@ -307,11 +307,42 @@ try {
   check('the clock is out after the close', (await api('GET', '/api/timeclock')).body.status === 'out')
   await api('PUT', '/api/settings', { eveningClose: false })
 
-  // machines and the wall render their content
+  // machines renders its content
   await page.goto(`${BASE}/#/machines`, { waitUntil: 'networkidle' }); await page.waitForTimeout(700)
   check('machines page renders its heading', /Machines/.test(await page.locator('h1').first().textContent().catch(() => '')))
-  await page.goto(`${BASE}/#/wall`, { waitUntil: 'networkidle' }); await page.waitForTimeout(900)
-  check('wall mode shows Today and no nav', /Today/.test(await page.locator('body').textContent()) && (await page.locator('nav').count()) === 0)
+
+  // old links to the cut pages (roadmap 173) land on a page that exists, never on the lost page, never a crash
+  for (const [from, to] of Object.entries(GONE)) {
+    const before = errors.length
+    await page.goto(`${BASE}/#/${from}`, { waitUntil: 'networkidle' }); await page.waitForTimeout(900)
+    const landed = await page.evaluate(() => ({ hash: location.hash, lost: /No such page/.test(document.body.textContent), nav: document.querySelectorAll('nav[aria-label="Pages"]').length }))
+    check(`#/${from} lands on ${to}`, (landed.hash || '#/') === to && !landed.lost && landed.nav === 1 && errors.length === before, JSON.stringify(landed))
+  }
+  // the sentence comes both ways: a link followed inside the window, and a window that opens on an old link
+  await page.goto(`${BASE}/#/board`, { waitUntil: 'networkidle' }); await page.waitForTimeout(400)
+  await page.evaluate(() => { location.hash = '#/napkin' }); await page.waitForTimeout(700)
+  check('an old Napkin link says in one line where the maps are', await page.getByText(/Your maps are still in napkin.json/).isVisible().catch(() => false))
+  await page.goto('about:blank'); await page.goto(`${BASE}/#/procurement`, { waitUntil: 'networkidle' }); await page.waitForTimeout(1200)
+  check('a window opened on #/procurement says where the order dates went', await page.getByText(/Order-by dates live on the task cards/).isVisible().catch(() => false))
+  await page.goto(`${BASE}/#/nowhere`, { waitUntil: 'networkidle' }); await page.waitForTimeout(700)
+  check('an unknown route still shows the lost page', await page.getByRole('heading', { name: 'No such page.' }).isVisible().catch(() => false))
+
+  // the slim work-page header (roadmap 173): the first panel sits near the top, the introduction floats beside the
+  // work instead of pushing it down, and once closed it stays closed, also in a window whose local storage is empty
+  // (the desktop app serves every start from a new port, so localStorage never carried it across a restart)
+  await api('PUT', '/api/settings', { coachDone: [] })
+  await page.goto(`${BASE}/#/board`, { waitUntil: 'networkidle' }); await page.evaluate(() => localStorage.clear()); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(2000)
+  const firstTop = await page.evaluate(() => Math.round(document.querySelector('main .panel')?.getBoundingClientRect().top ?? 9999))
+  check('the first panel on the Board starts within 230 px of the top at 1440 by 900', firstTop <= 230, `${firstTop} px`)
+  const coachCard = page.getByRole('complementary', { name: 'Introduction' })
+  const coachPos = await coachCard.evaluate(el => getComputedStyle(el).position).catch(() => null)
+  check('the Board introduction shows once, floating out of the flow', coachPos === 'fixed', String(coachPos))
+  await coachCard.getByRole('button', { name: 'Close the introduction' }).click().catch(() => {})
+  let done = []
+  for (let i = 0; i < 20 && !done.includes('board'); i++) { done = (await api('GET', '/api/settings')).body.coachDone || []; if (!done.includes('board')) await page.waitForTimeout(150) }
+  check('closing it writes board to coachDone in the per-user settings', done.includes('board'), JSON.stringify(done))
+  await page.evaluate(() => localStorage.clear()); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(2000)
+  check('a closed introduction does not come back, even with empty local storage', !(await coachCard.isVisible().catch(() => false)))
   await page.goto(`${BASE}/#/board`, { waitUntil: 'networkidle' }); await page.waitForTimeout(400)
 
   // the tray's light endpoint (roadmap 102)

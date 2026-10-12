@@ -10,7 +10,7 @@ import useFocusTrap from '../hooks/useFocusTrap.js'
 const GROUPS = [
   { title: 'Anywhere', keys: [
     ['n', 'New task'],
-    ['/ or Ctrl K', 'Search tasks, notes, maps and pages'],
+    ['/ or Ctrl K', 'Search tasks, notes and pages'],
     ['1 to 9', KEY_ORDER],
     ['> in search', 'Actions: clock in, theme, new task and more'],
     ['Ctrl Alt B', 'Quick add from anywhere in Windows'],
@@ -27,15 +27,6 @@ const GROUPS = [
   { title: 'Quick add', keys: [
     ['Alt 1 to 5', 'Pick the lane: Today, Innovation, Waiting, Active, Parked'],
     ['Enter', 'Add it']
-  ] },
-  { title: 'Napkin, with a node selected', keys: [
-    ['Tab', 'A child node'],
-    ['Enter', 'A sibling'],
-    ['F2', 'Rename'],
-    ['Space', 'Tick it'],
-    ['Del', 'Remove it'],
-    ['c', 'Next colour'],
-    ['t', 'Send it to the board']
   ] }
 ]
 

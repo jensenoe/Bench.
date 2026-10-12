@@ -289,12 +289,12 @@ function Entry({ entry, save, remove, template, onRefresh, setEntries }) {
 
       <div className="mt-6 grid gap-6 md:grid-cols-2">
         <div>
-          <h3 className="display text-[18px] font-semibold leading-none">Decisions.</h3>
+          <h2 className="display text-[18px] font-semibold leading-none">Decisions.</h2>
           <textarea value={f.decisions} onChange={e => set('decisions', e.target.value)} onBlur={() => commit('decisions')} rows={4} placeholder="One per line."
             className={INP + ' mt-3 resize-y leading-relaxed'} />
         </div>
         <div>
-          <div className="flex items-baseline justify-between"><h3 className="display text-[18px] font-semibold leading-none">Actions.</h3>
+          <div className="flex items-baseline justify-between"><h2 className="display text-[18px] font-semibold leading-none">Actions.</h2>
             <span className="tnum text-[13px]" style={{ color: 'var(--ink-3)' }}>{actions.filter(a => a.done).length}/{actions.length}</span></div>
           <ul className="mt-3 flex flex-col">
             {actions.map(a => (
@@ -349,7 +349,7 @@ function Links({ entry, save, setEntries }) {
   }
   return (
     <div className="mt-6">
-      <h3 className="display text-[18px] font-semibold leading-none">Files and links.</h3>
+      <h2 className="display text-[18px] font-semibold leading-none">Files and links.</h2>
       <ul className="mt-3 flex flex-col empty:hidden">
         {links.map(l => (
           <li key={l.id} className="rule flex items-center gap-3 py-2.5">

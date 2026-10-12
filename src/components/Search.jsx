@@ -3,24 +3,25 @@ import { motion, AnimatePresence } from 'motion/react'
 import { MagnifyingGlass, ArrowElbowDownLeft } from '@phosphor-icons/react'
 import * as api from '../api.js'
 import useFocusTrap from '../hooks/useFocusTrap.js'
+import { PAGES as ALL_PAGES } from '../pages.js'
 
 /**
- * Ctrl-K. One box over everything: tasks, logbook entries, napkin nodes, pages, and actions (roadmap 86).
- * Arrow keys move, Enter opens or runs, Escape closes. Logbook and napkin content is fetched
- * when the box opens, so the board stays light the rest of the time.
+ * Ctrl-K. One box over everything: tasks, logbook entries, pages, and actions (roadmap 86).
+ * Arrow keys move, Enter opens or runs, Escape closes. Logbook content is fetched when the box opens,
+ * so the board stays light the rest of the time. The pages come from pages.js, so a cut page cannot linger here.
  * Actions come in as [{ label, hint, run }]: a query that matches a label shows them in a group above the
  * rest; a query that starts with ">" shows actions only.
  * The field is a combobox over a listbox of options, so a screen reader hears the highlighted hit as the
  * arrows move it; the highlighted hit scrolls into view, Tab stays inside, and focus goes back on close.
  */
-const KINDS = { action: 'Action', task: 'Task', entry: 'Logbook', node: 'Napkin', page: 'Page' }
-const PAGES = [['', 'Home'], ['board', 'Board'], ['procurement', 'Procurement'], ['tools', 'Tools'], ['logbook', 'Logbook'], ['napkin', 'Napkin'], ['hours', 'Hours'], ['review', 'Review'], ['machines', 'Machines'], ['playbooks', 'Playbooks'], ['projects', 'Projects'], ['wall', 'Wall mode']]
+const KINDS = { action: 'Action', task: 'Task', entry: 'Logbook', page: 'Page' }
+const PAGES = ALL_PAGES.filter(p => !p.hidden).map(p => [p.id, p.title])
 const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
 export default function Search({ open, onClose, tasks = [], actions = [] }) {
   const [q, setQ] = useState('')
   const [i, setI] = useState(0)
-  const [extra, setExtra] = useState({ entries: [], maps: [] })
+  const [extra, setExtra] = useState({ entries: [] })
   const input = useRef(null)
   const box = useRef(null)
   useFocusTrap(box, open)
@@ -29,7 +30,7 @@ export default function Search({ open, onClose, tasks = [], actions = [] }) {
     if (!open) return
     setQ(''); setI(0)
     setTimeout(() => input.current?.focus(), 30)
-    Promise.all([api.getLogbook().catch(() => []), api.getMaps().catch(() => [])]).then(([entries, maps]) => setExtra({ entries, maps }))
+    api.getLogbook().catch(() => []).then(entries => setExtra({ entries }))
   }, [open])
 
   const commands = q.trimStart().startsWith('>')
@@ -48,8 +49,6 @@ export default function Search({ open, onClose, tasks = [], actions = [] }) {
       out.push({ kind: 'task', title: x.title, sub: [x.done ? 'done' : x.lane, x.project, x.source && x.source !== 'local' ? x.source : null].filter(Boolean).join(', '), hash: `#/board?task=${x.id}`, id: x.id })
     for (const e of extra.entries) if (hit([e.title, e.project, e.notes, (e.attendees || []).join(' '), (e.decisions || []).join(' '), (e.actions || []).map(a => a.text).join(' ')].join(' ')))
       out.push({ kind: 'entry', title: e.title, sub: [e.date, e.project].filter(Boolean).join(', '), hash: `#/logbook?entry=${e.id}` })
-    for (const m of extra.maps) for (const n of Object.values(m.nodes || {})) if (n.text && hit(n.text))
-      out.push({ kind: 'node', title: n.text, sub: m.title, hash: `#/napkin?map=${m.id}` })
     return out.slice(0, 40)
   }, [q, commands, tasks, extra, actions])
   const actionCount = results.filter(r => r.kind === 'action').length
@@ -98,7 +97,7 @@ export default function Search({ open, onClose, tasks = [], actions = [] }) {
               <span className="tnum hidden text-[12.5px] sm:inline" style={{ color: 'var(--ink-3)' }}>esc</span>
             </div>
             <div className="max-h-[52vh] overflow-y-auto p-2">
-              {!q.trim() && <p className="px-3 py-6 text-center text-[13.5px]" style={{ color: 'var(--ink-3)' }}>Type a word. Tasks, logbook entries, napkin nodes and pages{actions.length ? ', or > for an action' : ''}.</p>}
+              {!q.trim() && <p className="px-3 py-6 text-center text-[13.5px]" style={{ color: 'var(--ink-3)' }}>Type a word. Tasks, logbook entries and pages{actions.length ? ', or > for an action' : ''}.</p>}
               {q.trim() && !results.length && <p className="px-3 py-6 text-center text-[13.5px]" style={{ color: 'var(--ink-3)' }}>{commands ? 'No action by that name.' : 'Nothing matches.'}</p>}
               {results.length > 0 && (
                 <div role="listbox" id="search-results" aria-label="Results">

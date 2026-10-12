@@ -426,20 +426,6 @@
         "Five lanes, one cap: Today takes five, and the rest waits its turn until there is room."
       ]
     },
-    "procurement": {
-      "lines": [
-        "Order it before it is late.",
-        "Lead times, worked backwards.",
-        "What you are waiting on, and who is holding it.",
-        "Parts arrive on their schedule, not yours."
-      ],
-      "bodies": [
-        "Every item gets an order-by date worked back from its lead time, so the deadline you see is the one that matters.",
-        "A list of parts and requests, each with the day you must order it and the person it is currently waiting on.",
-        "Lead time in, order-by date out, with a separate view of everything sitting with a supplier or a colleague.",
-        "Procurement tracks what needs ordering, when it becomes too late, and which items are blocked on other people."
-      ]
-    },
     "tools": {
       "lines": [
         "Four tools. One sign-in each.",
@@ -454,20 +440,6 @@
         "Each tool keeps its own login, you sign in once, and from then on your items appear here without copying."
       ]
     },
-    "cockpit": {
-      "lines": [
-        "The company view, one window over.",
-        "Zoom out when you need to.",
-        "TomFit at a glance.",
-        "The overview, kept signed in."
-      ],
-      "bodies": [
-        "The TomFit Cockpit is the company overview dashboard, opened in its own window so it does not crowd the bench.",
-        "Cockpit shows the wider TomFit picture and keeps your sign-in, so it is one click away rather than one login away.",
-        "A separate window for the company dashboard, with your session kept so you can glance at it and come back.",
-        "Cockpit is the TomFit overview; Bench. opens it beside the board and remembers you are signed in."
-      ]
-    },
     "logbook": {
       "lines": [
         "What was said, kept.",
@@ -480,20 +452,6 @@
         "Notes from the room, in the order they happened. Decisions on one side, actions on the other, and a search that finds the sentence you half remember.",
         "A place for meeting notes that does not become a second task list: the actions leave for the board, the context stays.",
         "Dated entries, attendees, decisions, actions. Nothing more, and it is enough."
-      ]
-    },
-    "napkin": {
-      "lines": [
-        "Ideas, before they are tasks.",
-        "Sketch first. Sort later.",
-        "The back of the napkin, kept.",
-        "Branches, not bullet points."
-      ],
-      "bodies": [
-        "Mind maps that lay themselves out. One idea in the middle, branches on both sides, Tab for a child, Enter for the next thought.",
-        "For the part of the work that is not a list yet. Draw the shape of a problem, fold what is settled, come back when it is time to decide.",
-        "A small canvas for thinking out loud. You edit every branch in place and the map keeps itself tidy.",
-        "Where a wiring concept, a supplier question or a test plan starts, before any of it is a task."
       ]
     }
   },

@@ -5,7 +5,7 @@
  *   node scripts/check-tokens.mjs        (runs as part of `npm run lint`)
  *
  * Where the tokens are defined (index.css, scenes.js, library.json) is skipped. A line that has to stay
- * literal, such as the Napkin palette that is baked into SVG exports, says so with "tokens-ok" in a comment.
+ * literal, such as a palette baked into an exported picture, says so with "tokens-ok" in a comment.
  * Adapted from the design-system skill's validate-tokens script, cut down to what matters here.
  */
 import fs from 'node:fs'

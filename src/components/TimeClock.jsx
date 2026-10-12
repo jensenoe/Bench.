@@ -21,7 +21,7 @@ export default function TimeClock({ clock, punch, now }) {
   }, [open])
   if (!clock) return null
 
-  const go = async (kind) => { setBusy(true); try { if (await punch(kind) && kind === 'lunchOut') location.hash = '#/lunch' } finally { setBusy(false); setOpen(false) } }
+  const go = async (kind) => { setBusy(true); try { await punch(kind) } finally { setBusy(false); setOpen(false) } }
   const last = k => clock.events.filter(e => e.kind === k).at(-1)
   const noonish = now.getHours() >= 11 && now.getHours() < 14 && !last('lunchOut')
   const worked = workedMs(clock, now)
@@ -72,7 +72,6 @@ export default function TimeClock({ clock, punch, now }) {
             <div className="mt-4 flex flex-wrap items-center gap-3">
               {secondary && <button disabled={busy} onClick={() => go(secondary.kind)} className="pill px-3.5 py-1.5 text-[13px]" style={ghost}>{secondary.label}</button>}
               <a href="#/hours" onClick={() => setOpen(false)} className="text-[13px] underline-offset-2 hover:underline" style={{ color: 'var(--ink-3)' }}>This month</a>
-              <a href="#/lunch" onClick={() => setOpen(false)} className="ml-auto text-[13px] underline-offset-2 hover:underline" style={{ color: 'var(--ink-3)' }}>Lunch screen</a>
             </div>
           </motion.div>
         )}

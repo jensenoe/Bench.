@@ -3,8 +3,8 @@ setlocal
 cd /d "%~dp0public\terrain"
 title Fetch photographs
 echo.
-echo   Fetching 334 photographs (Pexels and Unsplash, free licences).
-echo   Twelve libraries from the Alps to Edinburgh, plus Lunch and Cockpit covers.
+echo   Fetching 325 photographs (Pexels and Unsplash, free licences).
+echo   Twelve libraries from the Alps to Edinburgh.
 echo   Existing files are skipped, so rerunning is cheap. Pictures no longer in the
 echo   library are removed at the end.
 echo.
@@ -337,15 +337,6 @@ echo redwoods-night-27774115.jpg
 echo redwoods-night-1252872.jpg
 echo redwoods-night-27774111.jpg
 echo redwoods-night-13444721.jpg
-echo lunch-6344695.jpg
-echo lunch-2583495.jpg
-echo lunch-28441558.jpg
-echo lunch-34420128.jpg
-echo cockpit-36363143.jpg
-echo cockpit-1714202.jpg
-echo cockpit-13564604.jpg
-echo cockpit-18471414.jpg
-echo cockpit-7858258.jpg
 echo dawn.jpg
 echo day.jpg
 echo dusk.jpg
@@ -677,15 +668,6 @@ call :get redwoods-night-27774115 "https://images.pexels.com/photos/27774115/pex
 call :get redwoods-night-1252872 "https://images.pexels.com/photos/1252872/pexels-photo-1252872.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Hristo Fidanov"
 call :get redwoods-night-27774111 "https://images.pexels.com/photos/27774111/pexels-photo-27774111.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Troy Olson"
 call :get redwoods-night-13444721 "https://images.pexels.com/photos/13444721/pexels-photo-13444721.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Nicolas Outin"
-call :get lunch-6344695 "https://images.pexels.com/photos/6344695/pexels-photo-6344695.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Christian Buergi"
-call :get lunch-2583495 "https://images.pexels.com/photos/2583495/pexels-photo-2583495.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Guillaume Hankenne"
-call :get lunch-28441558 "https://images.pexels.com/photos/28441558/pexels-photo-28441558.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "K"
-call :get lunch-34420128 "https://images.pexels.com/photos/34420128/pexels-photo-34420128.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Patrik Fassler"
-call :get cockpit-36363143 "https://images.pexels.com/photos/36363143/pexels-photo-36363143.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Josh Sorenson"
-call :get cockpit-1714202 "https://images.pexels.com/photos/1714202/pexels-photo-1714202.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Josh Sorenson"
-call :get cockpit-13564604 "https://images.pexels.com/photos/13564604/pexels-photo-13564604.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Pramod Tiwari"
-call :get cockpit-18471414 "https://images.pexels.com/photos/18471414/pexels-photo-18471414.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "Ludovic Delot"
-call :get cockpit-7858258 "https://images.pexels.com/photos/7858258/pexels-photo-7858258.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop" "cottonbro studio"
 echo.
 echo   Removing pictures that left the library...
 for %%f in (*.jpg) do ( findstr /x /i /c:"%%f" "%MANIFEST%" >nul || ( echo   - %%f & del "%%f" ) )

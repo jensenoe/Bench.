@@ -38,10 +38,11 @@ export function LedgerSkeleton({ rows = 10 }) {
 export default function PageSkeleton({ message }) {
   return (
     <div aria-busy="true" aria-live="polite">
-      <div className="relative h-[58vh] min-h-[460px] max-h-[760px]" style={{ background: 'linear-gradient(to bottom, var(--bg-2), var(--bg))', marginBottom: -120 }}>
-        <div className="mx-auto flex h-full col flex-col justify-end px-6" style={{ paddingBottom: 148 }}>
-          <div className="panel w-[min(560px,100%)] px-7 py-5" style={{ background: 'var(--panel)' }}>
-            <Bar w={200} h={38} /><Bar w="70%" h={12} className="mt-4" />
+      {/* the slim band of a work page header (TerrainHeader.jsx), so the page does not jump when it arrives */}
+      <div className="relative" style={{ background: 'linear-gradient(to bottom, var(--bg-2), var(--bg))' }}>
+        <div className="mx-auto col px-6 pb-4 pt-[88px] 2xl:pt-[92px]">
+          <div className="panel flex w-[min(560px,100%)] items-center gap-4 px-5 py-3" style={{ background: 'var(--panel)' }}>
+            <Bar w={140} h={30} /><Bar w="50%" h={12} />
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { sunTimes, keyFor, isDark, setCadence, getCadence, nextChange, setCollections, getCollections, libraryFor, imageFor, sceneFor, sceneAt, lunchScene, cockpitCover, credits, COLLECTIONS, DEFAULT_COLLECTIONS, setPictureMode, setLibraryShift, nextLibrary } from '../src/scenes.js'
+import library from '../src/library.json'
+import { sunTimes, keyFor, isDark, setCadence, getCadence, nextChange, setCollections, getCollections, libraryFor, imageFor, sceneFor, sceneAt, credits, COLLECTIONS, DEFAULT_COLLECTIONS, setPictureMode, setLibraryShift, nextLibrary } from '../src/scenes.js'
 
 // vitest.config.js pins TZ to Europe/Zurich; these are local wall-clock times in Oetwil am See.
 const local = (y, m, d, h = 12, min = 0) => new Date(y, m - 1, d, h, min, 0, 0)
@@ -125,15 +126,15 @@ describe('slots', () => {
     expect(libs.size).toBeGreaterThan(1)
     setPictureMode('daily')
   })
-  it('the hero and the five Home doors never share a picture, in any library and scene', () => {
-    const HOME_SLOTS = [0, 5, 2, 3, 4, 1]   // hero, board, procurement, tools, logbook, napkin (routes.jsx)
+  it('the hero and the three Home doors never share a picture, in any library and scene', () => {
+    const HOME_SLOTS = [0, 5, 3, 4]   // hero, board, tools, logbook (routes.jsx; Procurement and Napkin left in roadmap 173)
     for (const c of COLLECTIONS) {
       setCollections([c.key])
       for (const scene of ['dawn', 'day', 'dusk', 'night']) {
         for (const hour of [7, 12, 18, 22]) {
           const d = local(2026, 9, 22, hour, 0)
           const pics = HOME_SLOTS.map(s => imageFor(scene, d, s))
-          expect(new Set(pics).size, `${c.key} ${scene} ${hour}h`).toBe(6)
+          expect(new Set(pics).size, `${c.key} ${scene} ${hour}h`).toBe(HOME_SLOTS.length)
         }
       }
     }
@@ -156,14 +157,10 @@ describe('slots', () => {
 })
 
 describe('covers', () => {
-  it('lunch changes with the day, cockpit with the week', () => {
-    expect(lunchScene(local(2026, 9, 22)).terrain).toMatch(/^\/terrain\/lunch-\d+\.jpg$/)
-    expect(lunchScene(local(2026, 9, 22)).terrain).toBe(lunchScene(local(2026, 9, 22, 18)).terrain)
-    expect(cockpitCover(local(2026, 9, 22)).src).toMatch(/^\/terrain\/cockpit-\d+\.jpg$/)
-    expect(cockpitCover(local(2026, 9, 22, 8)).src).toBe(cockpitCover(local(2026, 9, 22, 18)).src)
-    // seven-day buckets from 1 January: a run of seven days touches at most two covers
-    const week = new Set(Array.from({ length: 7 }, (_, i) => cockpitCover(local(2026, 9, 20 + i)).src))
-    expect(week.size).toBeLessThanOrEqual(2)
+  it('the Lunch screen and Cockpit door covers left with their pages (roadmap 173)', () => {
+    expect(Object.keys(library)).not.toContain('lunch')
+    expect(Object.keys(library)).not.toContain('cockpit')
+    expect(Object.values(library).some(l => l && l.images)).toBe(false)
   })
   it('credits name people, not the stock site', () => {
     const c = credits()

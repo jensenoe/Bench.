@@ -31,8 +31,8 @@ const HAS = fs.existsSync(BASELINE) && fs.readdirSync(BASELINE).some(f => f.ends
 const UPDATE = process.env.UPDATE_BASELINE === '1' || !HAS
 if (!HAS) console.log(`no baselines for ${process.platform} in ${path.relative(root, BASELINE)}: recording them this run`)
 fs.mkdirSync(BASELINE, { recursive: true })
-// [name, hash route]. The wall has no nav and its heading is not a page title, so it waits for its board instead.
-const PAGES = [['home', ''], ['board', 'board'], ['procurement', 'procurement'], ['tools', 'tools'], ['logbook', 'logbook'], ['napkin', 'napkin'], ['hours', 'hours'], ['review', 'review'], ['machines', 'machines'], ['projects', 'projects'], ['wall', 'wall']]
+// [name, hash route]. Procurement, Napkin and the wall left in roadmap 173; their baselines go when the integrator re-records.
+const PAGES = [['home', ''], ['board', 'board'], ['tools', 'tools'], ['logbook', 'logbook'], ['hours', 'hours'], ['review', 'review'], ['machines', 'machines'], ['projects', 'projects']]
 const DIALOGS = ['brief', 'settings-machine']   // at 1440 only, both themes
 const VIEWPORTS = [[1440, 900], [2560, 1440]]
 const THEMES = ['dark', 'light']
@@ -86,12 +86,11 @@ let browser
 try {
   // the same seed as the smoke test, plus a pinned scene so the picture set (masked anyway) never moves
   // the morning brief and the evening close are dialogs over the page; the pages themselves are what is compared
-  await api('PUT', '/api/settings', { name: 'Test Person', email: 'test@example.com', setupDone: true, sceneOverride: 'day', pictureMinutes: 20, morningBrief: false, eveningClose: false })
+  await api('PUT', '/api/settings', { name: 'Test Person', email: 'test@example.com', setupDone: true, sceneOverride: 'day', pictureMinutes: 20, morningBrief: false, eveningClose: false, coachDone: ['board', 'logbook', 'machines', 'projects'] })   // the introductions float in after a delay; keep them out of the pictures
   for (let i = 0; i < 5; i++) await api('POST', '/api/tasks', { title: `Today ${i + 1}`, lane: 'today' })
   await api('POST', '/api/tasks', { title: 'Parked one', lane: 'parked' })
   await api('POST', '/api/tasks', { title: 'Order the rails', lane: 'active', orderBy: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10) })
   await api('POST', '/api/logbook', { title: 'Weekly', attendees: ['A', 'B'] })
-  await api('POST', '/api/napkin', { title: 'Map' })
 
   browser = await chromium.launch()
   const judge = await (await browser.newContext()).newPage()   // where the comparison runs
@@ -123,8 +122,7 @@ try {
   const open = async (page, r) => {
     await page.goto('about:blank')
     await page.goto(`${BASE}/#/${r}`, { waitUntil: 'networkidle' })
-    if (r === 'wall') await page.waitForSelector('main[aria-label="Board"] h2', { timeout: 15000 }).catch(() => {})
-    else await page.waitForSelector('main h1, header h1, h1', { timeout: 15000 }).catch(() => {})
+    await page.waitForSelector('main h1, header h1, h1', { timeout: 15000 }).catch(() => {})
     await page.waitForFunction(() => !document.querySelector('.skel'), null, { timeout: 15000 }).catch(() => {})
   }
 

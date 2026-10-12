@@ -77,7 +77,7 @@ const lines = [
   'title Fetch photographs',
   'echo.',
   `echo   Fetching ${entries.length} photographs (Pexels and Unsplash, free licences).`,
-  `echo   ${cap(word(sceneLibraries.length))} libraries from the Alps to Edinburgh, plus ${covers.map(k => library[k].label).join(' and ')} covers.`,
+  `echo   ${cap(word(sceneLibraries.length))} libraries from the Alps to Edinburgh${covers.length ? `, plus ${covers.map(k => library[k].label).join(' and ')} covers` : ''}.`,
   'echo   Existing files are skipped, so rerunning is cheap. Pictures no longer in the',
   'echo   library are removed at the end.',
   'echo.',
@@ -121,6 +121,6 @@ if (perLibrary.lunch) readme = readme.replace(/\b\w+ alpine villages at dusk/, `
 if (perLibrary.cockpit) readme = readme.replace(/\b\w+ offices and benches/, `${word(perLibrary.cockpit)} offices and benches`)
 if (readme !== before) fs.writeFileSync(README, readme)
 
-console.log(`fetch-photos.bat: ${entries.length} photographs in ${sceneLibraries.length} libraries plus ${covers.length} covers`)
+console.log(`fetch-photos.bat: ${entries.length} photographs in ${sceneLibraries.length} libraries${covers.length ? ` plus ${covers.length} covers` : ''}`)
 for (const [k, n] of Object.entries(perLibrary)) console.log(`  ${k.padEnd(10)} ${n}`)
 console.log(readme !== before ? 'README.md counts updated' : 'README.md already current')

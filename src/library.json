@@ -1756,61 +1756,6 @@
       }
     ]
   },
-  "lunch": {
-    "label": "Lunch",
-    "images": [
-      {
-        "file": "lunch-6344695.jpg",
-        "url": "https://images.pexels.com/photos/6344695/pexels-photo-6344695.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
-        "by": "Christian Buergi"
-      },
-      {
-        "file": "lunch-2583495.jpg",
-        "url": "https://images.pexels.com/photos/2583495/pexels-photo-2583495.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
-        "by": "Guillaume Hankenne"
-      },
-      {
-        "file": "lunch-28441558.jpg",
-        "url": "https://images.pexels.com/photos/28441558/pexels-photo-28441558.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
-        "by": "K"
-      },
-      {
-        "file": "lunch-34420128.jpg",
-        "url": "https://images.pexels.com/photos/34420128/pexels-photo-34420128.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
-        "by": "Patrik Fässler"
-      }
-    ]
-  },
-  "cockpit": {
-    "label": "Cockpit",
-    "images": [
-      {
-        "file": "cockpit-36363143.jpg",
-        "url": "https://images.pexels.com/photos/36363143/pexels-photo-36363143.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
-        "by": "Josh Sorenson"
-      },
-      {
-        "file": "cockpit-1714202.jpg",
-        "url": "https://images.pexels.com/photos/1714202/pexels-photo-1714202.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
-        "by": "Josh Sorenson"
-      },
-      {
-        "file": "cockpit-13564604.jpg",
-        "url": "https://images.pexels.com/photos/13564604/pexels-photo-13564604.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
-        "by": "Pramod Tiwari"
-      },
-      {
-        "file": "cockpit-18471414.jpg",
-        "url": "https://images.pexels.com/photos/18471414/pexels-photo-18471414.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
-        "by": "Ludovic Delot"
-      },
-      {
-        "file": "cockpit-7858258.jpg",
-        "url": "https://images.pexels.com/photos/7858258/pexels-photo-7858258.jpeg?auto=compress&cs=tinysrgb&w=3200&h=1800&fit=crop",
-        "by": "cottonbro studio"
-      }
-    ]
-  },
   "_sky": {
     "dawn": {
       "skyTop": "#3B3F6E",

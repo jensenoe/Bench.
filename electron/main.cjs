@@ -270,7 +270,6 @@ function buildTrayMenu() {
     ...punches,
     { type: 'separator' },
     { label: 'Open Bench.', click: showMain },
-    { label: 'Lunch screen', click: () => { showMain(); mainWin?.webContents.send('bench:route', '#/lunch') } },
     { type: 'separator' },
     { label: 'Quit Bench.', click: () => { quitting = true; app.quit() } }
   ])

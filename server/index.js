@@ -104,7 +104,6 @@ app.get('/api/state', wrap(async (_req, res) => {
     settings: publicSettings(),
     background,
     logbookCount: notes.listEntries().length,
-    napkinCount: notes.listMaps().length,
     version: JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8')).version,
     auth: {
       configured: auth.isConfigured(),
@@ -179,21 +178,9 @@ app.post('/api/logbook/:id/duplicate', wrap((req, res) => {
 
 app.get('/api/calendar/today', wrap(async (_req, res) => res.json(await calendar.todaysMeetings())))
 
-// Napkin
+// Napkin: the page went in roadmap 173; napkin.json stays on disk as it is. Read only, for the MCP search
+// (scripts/mcp.mjs), the machine pages and the project pages. Nothing writes to it any more.
 app.get('/api/napkin', wrap((_req, res) => res.json(notes.listMaps())))
-app.post('/api/napkin', wrap((req, res) => res.json(notes.createMap(req.body || {}))))
-app.patch('/api/napkin/:id', wrap((req, res) => { const m = notes.updateMap(req.params.id, req.body || {}); m ? res.json(m) : res.status(404).json({ error: 'not found' }) }))
-app.delete('/api/napkin/:id', wrap((req, res) => res.json({ deleted: notes.deleteMap(req.params.id) })))
-/** A napkin node becomes a task on the board (Active lane) and remembers which map it came from. */
-app.post('/api/napkin/:id/nodes/:nid/to-board', wrap((req, res) => {
-  const m = notes.listMaps().find(x => x.id === req.params.id); if (!m) return res.status(404).json({ error: 'not found' })
-  const n = m.nodes?.[req.params.nid]; if (!n) return res.status(404).json({ error: 'no such node' })
-  if (n.taskId && store.allTasks().some(t => t.id === n.taskId)) return res.json({ task: store.allTasks().find(t => t.id === n.taskId), map: m })
-  const parent = n.parent ? m.nodes[n.parent]?.text : null
-  const t = store.createTask({ title: n.text || 'Idea', lane: 'active', project: req.body?.project || null, tags: ['napkin'], notes: `From the napkin: ${m.title}${parent ? ', under ' + parent : ''}` })
-  const nodes = { ...m.nodes, [n.id]: { ...n, taskId: t.id } }
-  res.json({ task: t, map: notes.updateMap(m.id, { nodes, root: m.root }) })
-}))
 
 /** Last seven days: hours, completions, logbook entries. The week strip on Home. */
 app.get('/api/week', wrap((_req, res) => {

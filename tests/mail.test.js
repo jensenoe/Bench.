@@ -51,7 +51,8 @@ describe('classify', () => {
 
 describe('changeMessage', () => {
   it('says it the agreed way', () => {
-    expect(mail.changeMessage({ field: 'orderedOn', supplier: 'Bosch', poNumber: '4711' })).toEqual({ title: 'Order confirmed.', body: 'Bosch confirmed PO 4711.', route: '#/procurement' })
+    expect(mail.changeMessage({ field: 'orderedOn', supplier: 'Bosch', poNumber: '4711', taskId: 't1' })).toEqual({ title: 'Order confirmed.', body: 'Bosch confirmed PO 4711.', route: '#/board?task=t1' })
+    expect(mail.changeMessage({ field: 'orderedOn', supplier: 'Bosch', poNumber: '4711' }).route).toBe('#/board')
     expect(mail.changeMessage({ field: 'deliveredOn', supplier: 'Igus', poNumber: '9' }).body).toBe('Igus delivered PO 9.')
   })
 })
