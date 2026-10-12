@@ -8,7 +8,7 @@
  *    folder is read by whoever opens it. Credentials (MSAL cache, cookies) live in
  *    per-user storage and never enter that folder.
  */
-const { app, BrowserWindow, screen, session, shell, ipcMain, Notification, dialog, Tray, Menu, nativeImage, globalShortcut } = require('electron')
+const { app, BrowserWindow, screen, session, shell, ipcMain, Notification, dialog, Tray, Menu, nativeImage, globalShortcut, powerMonitor } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 const os = require('node:os')
@@ -453,6 +453,12 @@ async function start() {
     if (details.reason !== 'clean-exit' && !mainWin.isDestroyed()) setTimeout(() => { try { mainWin.webContents.reload() } catch (err) { log('[renderer] reload', err) } }, 800)
   })
   mainWin.webContents.on('unresponsive', () => log('[renderer] unresponsive'))
+  // Back from hidden, minimised, a locked screen or sleep: repaint everything. Chromium sometimes keeps only some of
+  // its raster tiles then, and a photo shows in bands with a dark gap until something forces a redraw (roadmap 172).
+  let lastRepaint = 0
+  const repaint = () => { const t = Date.now(); if (t - lastRepaint < 2000 || mainWin.isDestroyed()) return; lastRepaint = t; mainWin.webContents.invalidate() }
+  for (const ev of ['show', 'restore', 'focus']) mainWin.on(ev, repaint)
+  powerMonitor.on('resume', repaint); powerMonitor.on('unlock-screen', repaint)
   mainWin.webContents.on('responsive', () => log('[renderer] responsive again'))
   // Electron 35+ puts the details on the event and makes level a string; the positional arguments are gone for good soon.
   mainWin.webContents.on('console-message', (e) => { if (e.level === 'error') log('[renderer] error', `${e.message} (${e.sourceId}:${e.lineNumber})`) })
