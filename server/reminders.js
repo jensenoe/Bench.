@@ -74,13 +74,13 @@ export function chaseList(tasks, stats = [], today = new Date()) {
   }
   return out.sort((a, b) => a.daysLeft - b.daysLeft || a.title.localeCompare(b.title))
 }
-/** The current list, for the Procurement page. */
+/** The current list (GET /api/reminders/chase). */
 export const chase = () => chaseList(store.allTasks(), leadtimes.stats())
 
 export const chaseMessage = (c) => ({
   title: 'Chase it.',
   body: `${c.title}: ${c.supplier || 'the supplier'}, PO ${c.poNumber || 'none'}, needed ${fmtDate(c.dueDate)}.`,
-  route: '#/procurement'
+  route: c.id ? `#/board?task=${c.id}` : '#/board'
 })
 
 function chaseTick(today) {

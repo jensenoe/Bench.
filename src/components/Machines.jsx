@@ -33,7 +33,7 @@ const Dot = ({ tone, title }) => <span aria-hidden="true" title={title} classNam
 
 function Card({ m }) {
   return (
-    <a href={`#/machines?m=${encodeURIComponent(m.key)}`} title="Open the machine: its open work, orders, tool items, Logbook entries and maps in one place" className="panel flex flex-col gap-3 p-6 transition-transform hover:-translate-y-[2px]">
+    <a href={`#/machines?m=${encodeURIComponent(m.key)}`} title="Open the machine: its open work, orders, tool items and Logbook entries in one place" className="panel flex flex-col gap-3 p-6 transition-transform hover:-translate-y-[2px]">
       <h2 className="display text-[24px] font-semibold leading-none">{m.name}.</h2>
       <p className="flex items-center gap-2 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>
         <span>{countsLine(m)}</span>
@@ -96,7 +96,8 @@ const KIND = {
   issue: { label: 'issue', tone: STATUS.caution }, qms: { label: 'QMS', tone: STATUS.caution },
   logbook: { label: 'logbook', tone: 'var(--ink-2)' }, decision: { label: 'decision', tone: 'var(--ink-2)' }, map: { label: 'napkin', tone: 'var(--ink-3)' }
 }
-const refHref = ({ page, id }) => page === 'board' ? `#/board?task=${id}` : page === 'logbook' ? `#/logbook?entry=${id}` : `#/napkin?map=${id}`
+// A map line has no page to open since the Napkin went (roadmap 173); it stays in the history as plain text.
+const refHref = ({ page, id }) => page === 'board' ? `#/board?task=${id}` : page === 'logbook' ? `#/logbook?entry=${id}` : null
 /** "first seen 1 Sep, 2 open, 2 done, 2 orders, 1 delivery, 1 entry": only what is there. */
 function summaryLine(s) {
   const parts = []
@@ -113,7 +114,8 @@ function summaryLine(s) {
 /** One line of the timeline: the day, the kind as a small tag, the title, the detail. */
 function TimelineRow({ x, link = true }) {
   const k = KIND[x.kind] || KIND.task
-  const title = link ? <a href={refHref(x.ref)} className="-my-[2px] min-w-0 flex-1 py-[2px] text-[14px] underline-offset-2 hover:underline">{x.title}</a> : <span className="min-w-0 flex-1 text-[14px]">{x.title}</span>
+  const href = link ? refHref(x.ref) : null
+  const title = href ? <a href={href} className="-my-[2px] min-w-0 flex-1 py-[2px] text-[14px] underline-offset-2 hover:underline">{x.title}</a> : <span className="min-w-0 flex-1 text-[14px]">{x.title}</span>
   return (
     <li className="passport-row flex flex-wrap items-baseline gap-x-4 gap-y-1 py-2.5" style={{ borderTop: '1px solid var(--line)' }}>
       <span className="tnum w-[92px] shrink-0 text-[13px]" style={{ color: 'var(--ink-3)' }}>{fmtDate(x.at)}</span>
@@ -263,7 +265,7 @@ function Detail({ machineKey, machines, tasks, onPatch, onDelete }) {
   if (missing) return <div className="flex flex-col gap-4">{back}<p className="text-[14px]" style={{ color: 'var(--ink-3)' }}>That machine is not on the list any more.</p></div>
   if (!data) return <div className="flex flex-col gap-4">{back}<PanelSkeleton rows={4} /><PanelSkeleton rows={3} /></div>
 
-  const { machine: m, procurement, bySource, entries, maps, mentions } = data
+  const { machine: m, procurement, bySource, entries, mentions } = data
   const byId = new Map(tasks.map(t => [t.id, t]))
   const groups = LANE_ORDER.map(l => [l, (data.tasks[l] || []).map(t => byId.get(t.id) || t).filter(t => !t.done)]).filter(([, list]) => list.length)
   const sources = Object.entries(bySource).filter(([, n]) => n > 0)
@@ -322,12 +324,6 @@ function Detail({ machineKey, machines, tasks, onPatch, onDelete }) {
       {entries.length > 0 && (
         <Panel title="Logbook." aside={plural(entries.length, 'entry', 'entries')}>
           <Rows>{entries.map(e => <LinkRow key={e.id} href={`#/logbook?entry=${e.id}`} title={e.title} meta={fmtDate(e.date)} />)}</Rows>
-        </Panel>
-      )}
-
-      {maps.length > 0 && (
-        <Panel title="Napkin." aside={plural(maps.length, 'map')}>
-          <Rows>{maps.map(x => <LinkRow key={x.id} href={`#/napkin?map=${x.id}`} title={x.title} />)}</Rows>
         </Panel>
       )}
 

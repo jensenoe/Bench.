@@ -23,16 +23,16 @@ export const LANES = {
 const dayOfYear = (d = new Date()) => Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000)
 const pick = (arr, salt = 0) => arr[(dayOfYear() + salt) % arr.length]
 
+// The Home doors, in their order on the page. Procurement, Napkin and the Cockpit door left in roadmap 173.
 const SHEET_META = [
   { id: 'board', title: 'Board', image: '/terrain/ridge.jpg', fallback: '/terrain/day.jpg' },
-  { id: 'procurement', title: 'Procurement', image: '/terrain/dusk.jpg', fallback: '/terrain/dusk.jpg' },
   { id: 'tools', title: 'Tools', image: '/terrain/night.jpg', fallback: '/terrain/night.jpg' },
-  { id: 'logbook', title: 'Logbook', image: '/terrain/dusk.jpg', fallback: '/terrain/dusk.jpg' },
-  { id: 'napkin', title: 'Napkin', image: '/terrain/day.jpg', fallback: '/terrain/day.jpg' },
-  { id: 'cockpit', title: 'Cockpit', image: '/terrain/cockpit-1.jpg', fallback: '/terrain/night.jpg', external: 'https://cockpit.tom.fit/dashboard' }
+  { id: 'logbook', title: 'Logbook', image: '/terrain/dusk.jpg', fallback: '/terrain/dusk.jpg' }
 ]
 /** Sheets with today's line and body. */
 export const SHEETS = SHEET_META.map((s, i) => ({ ...s, line: pick(pack.sheets[s.id].lines, i), body: pick(pack.sheets[s.id].bodies, i + 2) }))
+/** One sheet by id, for a page header's line. */
+export const sheet = id => SHEETS.find(s => s.id === id)
 
 export const ABOUT = pack.about
 export const FIRST_RUN = pack.firstRun

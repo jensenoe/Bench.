@@ -65,7 +65,6 @@ second hex.
 | Day | `#1B2A3C` | `#8CC4F5` | `#2E6CA8` | `140,180,230` cool | saturate .86, contrast 1.05 |
 | Dusk | `#3A2038` | `#F09468` | `#B9501F` | `236,140,104` warm | saturate .92, contrast 1.05, sepia .12 |
 | Night | `#0E1526` | `#9DB9E6` | `#3A5B96` | `96,116,168` cool | saturate .8, contrast 1.06, brightness .94 |
-| Lunch | `#2E1E33` | `#F5B26B` | `#B0662A` | `245,178,107` warm | saturate .92, contrast 1.04, sepia .1 |
 
 The accent is for the primary action, active nav item, focus ring, the period after "Bench" and
 the figure in a header aside. It never carries a status. `--accent-ink` is the type on an accent
@@ -77,7 +76,7 @@ The moving hero (Themes 2.0) is the one place where the picture moves: aerial cl
 grain and veil as the photographs, crossfading on opacity only, following the time of day, and never
 without the photograph underneath. It is opt-in, and with reduced motion it is a still.
 
-334 pictures from twelve libraries and dozens of photographers must read as one product. Three
+325 pictures from twelve libraries and dozens of photographers must read as one product. Three
 layers do that, on every picture, in this order:
 
 1. `.photo` on the image: the scene's filter (table above).
@@ -86,18 +85,21 @@ layers do that, on every picture, in this order:
 3. `.grain`: a still fractal-noise tile (160 px) at .07 in `overlay` blend. Hides banding in the
    fades and evens out compression. It never moves.
 
-Then the veil. Work-page headers are `58vh` (460 to 760 px) and the first panel sits 120 px into
-the picture (`OVERLAP`), so the photograph is covered by content, not cut off by a fade. The fade
-uses the night veil at the top (the nav reads on it) and the page's own colour at the bottom. Type
-on a photograph sits in `.glass` (veil at .42, blur 22 px, 20 px radius) with `--shadow-text`.
+Then the veil. Work pages wear a slim band of the picture, about 160 px (`TerrainHeader.jsx`, roadmap
+173): the nav and the title sit on it, and the work starts right under it, so the first panel of the Board
+is about 210 px from the top at 1440 and 2000 px. The mood stays, there is just less of it: the same
+picture, grade and grain, the night veil at the top where the nav reads on it, and a mask that fades the
+picture out over its last fifth so the page's own glow takes over without a seam. Home is the one place
+with the full hero (`Vista.jsx`) and the moving film. Type on a photograph sits in `.glass` (veil at .42,
+blur 22 px, 20 px radius) with `--shadow-text`.
 
 New libraries: 3200 by 1800 px, landscape, no people in the foreground, no text. Credit by name.
 Never lower the resolution; the reference monitor is wide.
 
 Which picture where: every picture on screen follows one time of day (the Time of day setting, or
 the real sky) and one library (one library a day with several on, or Random). Pages differ by slot,
-not by scene: the hero is slot 0, the five Home doors are slots 5, 2, 3, 4 and 1, so with six
-pictures per scene all six differ; page headers reuse slots freely, since one page shows at a time.
+not by scene: the hero is slot 0, the three Home doors (Board, Tools, Logbook) are slots 5, 3 and 4,
+so all four differ; page headers reuse slots freely, since one page shows at a time.
 A slot above 5 wraps back onto slot 0 in a six-picture library, so Home never uses one. Each
 library needs at least six pictures per scene.
 
@@ -106,7 +108,7 @@ library needs at least six pictures per scene.
 - Display: Outfit, weight 600, letter-spacing -0.025em, `leading-none`. Every headline ends with a
   period: "Board.", "Ready.", "Something broke."
 - Body: Work Sans 400 and 500. Numbers are `tabular-nums` (`.tnum`) wherever they line up.
-- Scale (px): hero 56, page header 46 (36 below sm), door 40 and 28, section title 20 to 24,
+- Scale (px): hero 56, page header 32 (28 below sm) with its line beside it, door 40 and 28, section title 20 to 24,
   body 14 to 14.5, meta and chips 13, the floor is 12. Noël likes the bigger text; when in doubt go
   up, never below 12.
 - Line length: prose at most 48ch under a headline, 65ch in panels.
@@ -160,7 +162,7 @@ Shadows are never black, and no component writes its own.
   tool. A plain fact (project, people, size, tags, a date that is not late) is the same chip in
   `STATUS.muted` (ink at .7) without the tint (`.tag-plain`), so a card shows one or two tinted chips,
   not seven. The first plain chip starts on the title's edge.
-- Filters (source, people, the Napkin maps): ghost pills, no border; the one that is on takes
+- Filters (source, people): ghost pills, no border; the one that is on takes
   `--wash-2` and `--ink`. Counts inside at `--ink-3` or `--ink-2`, never dimmed further by opacity.
 - Lists inside a document (Logbook actions and links, the project's phases, parts, chain and tasks,
   Recent changes) are ledgers: `.rule`, a hairline above each line, no box. Boxes (`.row`) are for
@@ -193,10 +195,14 @@ Shadows are never black, and no component writes its own.
 - Meeting prep: on Home one panel, only while a meeting is close or just ended and has something to say;
   topics are plain chips with the small icon of their kind, then short ledgers of three lines. A line's meta
   says one fact (late, with whom, due), never the topic the chips already name.
-- Wall mode is the one page allowed larger type: nothing under 16 px, no controls, Escape leaves.
 - Workshop mode (Rüsten, and the phone's /kit) is read at arm's length at the bench: names at 18 to 19 px, ticks
   as 52 px pills on the desktop and 60 px targets on the phone, a ticked one in `--ok`. The phone page follows the
   phone's light or dark setting with the paper set of the tokens.
+- Introductions (`Coach.jsx`): a small paper card, 380 px, floating at the bottom left with
+  `--shadow-panel`, never in the flow. It arrives a moment after the page and never while a dialog is
+  open, so the work is on screen first. Closed with the cross or read to the end, it never comes back:
+  `coachDone` in the per-user settings carries it, not localStorage (the desktop app gets a new port, so a
+  new origin, at every start). Settings > Introductions brings them all back; compact density hides them.
 - Photographs from the phone: thumbnails at 12 px radius, a task picker, Attach and Dismiss.
 - Empty state: one sentence that says what to do next, in `--ink-3`, never "No data".
 - Loading: a skeleton in the shape of what is coming (`Skeleton.jsx`: page, panel, ledger). Never
@@ -213,8 +219,12 @@ full width on purpose.
 
 Navigation has one home, the nav; `src/pages.js` is the list every part reads. The wordmark is Home.
 Three text links carry the pages of a working day: Board, Logbook, Projects. Everything else sits in
-More, a disclosure (not an ARIA menu) of plain links in groups (Parts and machines, Time, Notes and
-connections, TomFit tools), each with the one line that says what the page is for and its number key.
+More, a disclosure (not an ARIA menu) of plain links in groups (Machines and playbooks, Time, TomFit
+tools), each with the one line that says what the page is for and its number key. TomFit tools holds the
+Tools page first, then the tools themselves, which open outside Bench. A group never holds a single
+entry. Keys run 1 to 9 without a gap: Home, Board, Logbook, Projects, Machines, Playbooks, Hours,
+Review, Tools. A page that is cut leaves a line in `GONE` in `pages.js`, so its old links still land
+somewhere (roadmap 173 cut Procurement, Napkin, Wall mode, the Lunch screen and the Cockpit door).
 When the page on screen lives in More, the button carries that page's name, so the nav always says
 where you are. The footer carries no links. A new page gets one line in `pages.js`, never a link
 typed into a component. Lanes: one to three columns by width, never a fourth. Minimum window 1024 px.
@@ -226,8 +236,8 @@ page (Board, Logbook and Projects included). Home breathes at 64 to 112 px betwe
 pages never do, the board is dense on purpose. Space separates; a hairline only runs above the lines
 of a ledger, never between a panel's header and its body.
 
-Layers, by z-index: page content 10 and 20, the nav 50, popovers under the nav 60, toasts 70, the
-confirm 75, sheets and dialogs 80, the skip link 100. Nothing else.
+Layers, by z-index: page content 10 and 20, the nav 50, popovers under the nav and the introduction
+card 60, toasts 70, the confirm 75, sheets and dialogs 80, the skip link 100. Nothing else.
 
 ## 8. Motion
 

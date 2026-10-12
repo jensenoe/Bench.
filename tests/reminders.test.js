@@ -44,7 +44,9 @@ describe('chaseList', () => {
   })
   it('says it the agreed way', () => {
     const m = rem.chaseMessage({ title: 'Linear rail', supplier: null, poNumber: null, dueDate: '2026-10-01' })
-    expect(m).toEqual({ title: 'Chase it.', body: 'Linear rail: the supplier, PO none, needed Thu 1 Oct.', route: '#/procurement' })
+    expect(m).toEqual({ title: 'Chase it.', body: 'Linear rail: the supplier, PO none, needed Thu 1 Oct.', route: '#/board' })
+    // the Procurement page went in roadmap 173: a chase opens the task's card
+    expect(rem.chaseMessage({ id: 't1', title: 'Linear rail', dueDate: '2026-10-01' }).route).toBe('#/board?task=t1')
   })
 })
 
@@ -60,7 +62,7 @@ describe('tick', () => {
     expect(sent[0].body).toMatch(/Chase me: Bosch, PO PO-9/)
     // the same notification is in the history the Bell reads (roadmap 107)
     const history = JSON.parse(fs.readFileSync(path.join(dir, 'notifications.json'), 'utf8')).items
-    expect(history[0]).toMatchObject({ title: 'Chase it.', route: '#/procurement', read: false })
+    expect(history[0]).toMatchObject({ title: 'Chase it.', route: `#/board?task=${a.id}`, read: false })
     expect(history[0].body).toMatch(/Chase me: Bosch, PO PO-9/)
     const r2 = await rem.tick(new Date())
     expect(r2.chase).toBe(0)

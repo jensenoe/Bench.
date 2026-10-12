@@ -7,7 +7,8 @@ import { openTool } from '../api.js'
 /**
  * The More menu in the nav (roadmap 130). A disclosure, not an ARIA menu: a button that opens a panel of
  * plain links, grouped, each with the line that says what the page is for. When the page on screen lives
- * in here, the button carries its name, so the nav always says where you are.
+ * in here, the button carries its name, so the nav always says where you are. The TomFit tools themselves
+ * open outside Bench and sit in the TomFit tools group under the Tools page (roadmap 173).
  *
  * Opens on click. Arrow keys walk the links, Home and End jump, Escape closes and gives focus back to the
  * button, a click outside or a route change closes it. Rendered only while open, so nothing hidden sits
@@ -73,23 +74,18 @@ export default function MoreMenu({ route }) {
                         </a>
                       </li>
                     ))}
+                    {g.title === 'TomFit tools' && TOMFIT.map(t => (
+                      <li key={t.label}>
+                        <a href={t.url} onClick={e => { e.preventDefault(); setOpen(false); openTool(t.url) }}
+                          className="flex min-h-[32px] items-center justify-between gap-3 rounded-[10px] px-3 py-1.5 text-[13.5px] transition-colors hover:bg-[var(--wash)] focus-visible:bg-[var(--wash)]"
+                          style={{ color: 'var(--ink-2)' }}>
+                          {t.label}<ArrowSquareOut size={12} weight="bold" aria-hidden="true" style={{ color: 'var(--ink-3)' }} />
+                        </a>
+                      </li>
+                    ))}
                   </ul>
                 </section>
               ))}
-              <section aria-label="TomFit tools">
-                <h2 className="px-3 text-[12.5px] font-medium" style={{ color: 'var(--ink-3)' }}>TomFit tools</h2>
-                <ul className="mt-1.5 flex flex-col">
-                  {TOMFIT.map(t => (
-                    <li key={t.label}>
-                      <a href={t.url} onClick={e => { e.preventDefault(); setOpen(false); openTool(t.url) }}
-                        className="flex min-h-[32px] items-center justify-between gap-3 rounded-[10px] px-3 py-1.5 text-[13.5px] transition-colors hover:bg-[var(--wash)] focus-visible:bg-[var(--wash)]"
-                        style={{ color: 'var(--ink-2)' }}>
-                        {t.label}<ArrowSquareOut size={12} weight="bold" aria-hidden="true" style={{ color: 'var(--ink-3)' }} />
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </section>
             </div>
           </motion.div>
         )}

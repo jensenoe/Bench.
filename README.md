@@ -65,8 +65,8 @@ without publishing and leaves the exes as a workflow artifact.
 ## Everyday.
 
 - **Keyboard.** `n` adds a task from anywhere (Alt 1 to 5 picks the lane, Enter adds). `/` or
-  Ctrl K searches tasks, notes, maps and pages, and `>` in the box lists actions (clock in, theme, new
-  entry, wall mode). `1` to `9` switch pages: Home, Board, Logbook, Projects, then Procurement, Machines, Hours, Review and Napkin. `?` shows every key. On the Board, `j` and `k` walk the
+  Ctrl K searches tasks, notes and pages, and `>` in the box lists actions (clock in, theme, new
+  entry, weekly review). `1` to `9` switch pages: Home, Board, Logbook, Projects, then Machines, Playbooks, Hours, Review and Tools. `?` shows every key. On the Board, `j` and `k` walk the
   cards, `e` opens one, `x` ticks it, Alt with arrows moves it. Ctrl Alt B opens the quick add from
   anywhere in Windows. Escape closes whatever is open.
 - **The day has a shape.** The first start of the day opens the morning brief: what came in overnight,
@@ -74,7 +74,7 @@ without publishing and leaves the exes as a workflow artifact.
   out opens the evening close: what rolls to tomorrow, what goes back, and a day note in the Logbook.
   Settings > You switches either off. When a meeting ends, a notification offers the entry.
 - **Machines.** One page per machine, built from the project on each task, the BOM and the Logbook:
-  open work, orders, tool items, entries, maps, and mentions to assign. Spellings merge with aliases.
+  open work, orders, tool items, entries, and mentions to assign. Spellings merge with aliases.
 - **Bench. works while you don't.** Learned lead times per supplier propose the order-by date. Bench.
   chases an ordered part with no delivery, reads the sheet back and marks the differences on Hours,
   reloads a black window, downloads the newer installer by itself and installs it on quit, and queues
@@ -126,7 +126,7 @@ without publishing and leaves the exes as a workflow artifact.
 - **Innovation projects.** Every Planner card whose title starts with an I-code (I-1050 Handgrip strength)
   is a project on `#/projects`, with its stage from the card's bucket (Concept, Development, Procurement,
   Testing, Production) and its due date. Its page gathers what names the code: your tasks, Logbook entries
-  and open actions, Napkin maps, and the synced Teams folder. Planner stays the source; Bench. only reads it.
+  and open actions, and the synced Teams folder. Planner stays the source; Bench. only reads it.
   Bench. remembers when a card moves bucket, so the list also shows as a timeline (eight weeks back, twelve
   ahead) with each project's stage, since when, its due date and open work, and the last 30 days above it:
   projects per stage, stage moves, overdue projects, decisions. Export portfolio PDF puts the whole portfolio,
@@ -145,11 +145,11 @@ without publishing and leaves the exes as a workflow artifact.
   Tasks join through their project text and a phase, and a Logbook action on the machine lands in the
   phase running today. The hero says
   when a plan is behind or a deadline is close.
-- **Playbooks, passport, suppliers.** `#/playbooks` applies a standard task set to a machine and makes a
+- **Playbooks, passport, mail.** `#/playbooks` applies a standard task set to a machine and makes a
   template from a finished one. A new project can start from a playbook: its phases and its tasks arrive in
   one go, each task in its phase, and a playbook applied to a planned machine sorts its tasks the same way. Each machine has a printable passport, its whole history on one page.
   With mail reading on, order confirmations and delivery notes in Outlook set the order and delivery
-  dates by themselves, and Procurement shows the suppliers' lead times and hit rate.
+  dates by themselves; the card and the notification say which PO moved.
 - **The phone.** Settings > Tools > Phone view with a PIN serves a small page on the workshop network:
   the brief, Today ticks, the clock, quick add, and a camera button that drops a photo into the inbox.
 - **The drive home.** With a place and a free TomTom key in Settings > Tools, the hero says how long the drive home takes with the traffic as it is, from half past three, and the drive in before half past eight; the evening close repeats it.
@@ -176,8 +176,11 @@ without publishing and leaves the exes as a workflow artifact.
   fine-grained token with read access makes the check real; without one the button opens the
   releases page. Bench. also announces a newer version once at start.
 - **Wide screens.** Photographs are 3200 px wide; the reading column widens to 1560 px from 2200 px and 1760 px from 3000 px, so three lanes get real width on an ultrawide.
-- **Napkin and Logbook.** A node becomes a task with `T` or the button; the map exports as PNG or
-  SVG. A recurring meeting starts from its last entry with *Again today*.
+- **Logbook.** A recurring meeting starts from its last entry with *Again today*.
+- **Room for the work.** The work pages (Board, Logbook, Projects and the rest) carry a slim band of the
+  picture behind the nav and the title, so the first lane sits about 210 px from the top; Home keeps the
+  full hero and the moving film. A page's short introduction floats at the bottom left once, after the page
+  has arrived, and stays away for good once closed or read to the end.
 
 ## The four tools.
 
@@ -194,7 +197,7 @@ last sync saw: how many items are in the tool and how many are assigned to you, 
 empty panel is a fact, not a failure. Sync is always available; Sign in appears when the
 tool asked for one.
 
-**Cockpit** (`cockpit.tom.fit`) has its own door on the landing page and opens in a
+**Cockpit** (`cockpit.tom.fit`) and the other TomFit tools open from More, under TomFit tools, in a
 separate window on the same kept session. Connected tools sync every 2 minutes
 while the app is open, or on demand from the Tools page.
 
@@ -263,8 +266,7 @@ right day. Rules: a desktop notification fires at **12:00** on weekdays; a break
 starts before 12:30 **ends at 12:30 by itself**; a break that starts later ends with
 *Back*. One break per day goes through the sheet; a second one is yours to type into
 *Pause*. Punches made offline or before signing in wait for the next tick
-(the amber dot next to the pill). `#/lunch` is the break screen: a village at dusk and
-one big number.
+(the amber dot next to the pill). The 12:00 notification opens Home, where the hero says it is lunch.
 
 Before seven the greeting changes register (quiet hours, first in, coffee first). Still
 clocked in after 19:00, or past ten hours, and the landing page opens with a line that says
@@ -306,15 +308,14 @@ The gear at the top right. Everything adjustable is there, saved as you change i
 dots, a logbook entry as a small mark. Today fills in live; closed days come from the punch
 history kept in your profile (90 days).
 
-**Search**: Ctrl K (or the magnifier) opens one box over tasks, logbook entries, napkin nodes
-and pages. Arrows and Enter; a task result jumps to it on the board and outlines it briefly.
+**Search**: Ctrl K (or the magnifier) opens one box over tasks, logbook entries and pages. Arrows and Enter; a task result jumps to it on the board and outlines it briefly.
 
 **Morning digest**: once per weekday morning, if there is anything to say, one desktop
 notification: order dates inside three days, items with other people for over a week, an
 Innovation lane that has not moved in three weeks.
 
-**Backups**: the first save of each day copies `tasks.json`, `logbook.json` and `napkin.json`
-into `backups/` next to them, kept 30 days. If two people on the same folder ever write over
+**Backups**: the first save of each day copies `tasks.json`, `logbook.json` and `napkin.json` (kept,
+see below) into `backups/` next to them, kept 30 days. If two people on the same folder ever write over
 each other, yesterday is one file away.
 
 **Completing a tool's task** here marks it done on the board only (Planner is the exception;
@@ -325,21 +326,25 @@ so you can close it where it counts.
 meetings (`Calendars.ReadBasic`); one click starts an entry with the title, attendees, time and
 room filled in.
 
-## Logbook and Napkin.
+## Logbook.
 
 **Logbook** is meeting notes: one entry per meeting with date, attendees, project, free notes,
 decisions (one per line) and actions with an owner and a tick box. An action goes to the
 board with one click and arrives in Active with *assigned by* set to the meeting; the entry
 keeps a link back. Search covers titles, notes, names and projects.
 
-**Napkin** is mind maps that lay themselves out. One idea in the middle, branches alternating
-right and left. Tab makes a child, Enter a sibling, double-click edits, Delete removes a
-branch, Space folds one, C cycles a colour through it, drag pans, wheel zooms. Several maps
-per napkin.
+It lives in the shared data folder (`logbook.json`) beside the tasks, so a colleague on the same
+folder sees the same notes. The Board, Logbook, Machines and Projects each show a short walk-through
+the first time they open; closing it or reading to the end keeps it away for good (per user, in
+`settings.json`), and Settings can bring them back.
 
-Both live in the shared data folder (`logbook.json`, `napkin.json`) beside the tasks, so a
-colleague on the same folder sees the same notes and maps. The Board, Procurement, Logbook, Napkin,
-Machines and Projects each show a short walk-through the first time they open; Settings can bring them back.
+## Cut in 0.12 (roadmap 173).
+
+Procurement, the Napkin, Wall mode, the Lunch screen and the Cockpit door are gone, to make room for
+the bench work. Nothing was deleted on disk: `napkin.json` stays in the data folder untouched (the MCP
+search and the machine pages still read it), the order-by dates stay on the tasks and in the morning
+brief, and the lunch punch in the time clock works as before. Old links land on the Board with one line
+that says where things went; `#/lunch` lands on Home.
 
 ## Lanes.
 
@@ -366,14 +371,13 @@ people who said it better) and a nudge towards water or coffee. The nudge switch
 off in Settings.
 
 **Order by** is the last day an order can go out and still land before the build needs
-the part. Anything inside 7 days surfaces on Home and Procurement.
+the part. Anything inside 7 days surfaces on Home, on the card and in the morning brief.
 
 ## Photographs.
 
-334 photographs from Pexels and Unsplash, free licences, fetched by `fetch-photos.bat`
+325 photographs from Pexels and Unsplash, free licences, fetched by `fetch-photos.bat`
 and shipped inside the installer. Twelve libraries share the clock (Alps, Tropics, Urban,
 Monochrome, Pacific Northwest, Desert, Brutalist, Italian coast, Canada, Autumn, Gothic, Redwoods;
-24 to 39 each across dawn, day, dusk and night),
-four alpine villages at dusk for the lunch screen, and five offices and benches for the
-Cockpit door. Photo URLs and photographers are in `src/library.json`; swap any you dislike
+24 to 39 each across dawn, day, dusk and night).
+Photo URLs and photographers are in `src/library.json`; swap any you dislike
 and rerun the fetch. Plus one of yours on the Board.

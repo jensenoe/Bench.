@@ -13,7 +13,7 @@ Read `HANDOFF.md` before changing anything; it lists what is verified, what is n
 
 ## Where data lives
 
-- Shared board (`tasks.json`, `logbook.json`, `napkin.json`, `backups/`): `BENCH_DATA_DIR`. Installed: `%APPDATA%/bench/data` unless Settings picked a shared folder (`machine.json` / `settings.json dataDir`). Portable: `data/` beside the exe. Dev: `./data`.
+- Shared board (`tasks.json`, `logbook.json`, `napkin.json`, `backups/`): `BENCH_DATA_DIR`. The Napkin page went in roadmap 173; `napkin.json` stays on disk, read only (`GET /api/napkin` for the MCP search). Installed: `%APPDATA%/bench/data` unless Settings picked a shared folder (`machine.json` / `settings.json dataDir`). Portable: `data/` beside the exe. Dev: `./data`.
 - Per-user (`BENCH_USER_DIR`): `settings.json`, `timeclock.json` (90-day history), `window.json`, MSAL token cache (`BENCH_SECRETS_DIR`). Installed: `%APPDATA%/bench/user`. Never put these in the shared folder.
 - `bench.log` in `%APPDATA%/bench/`: main-process errors, renderer crashes, page errors (via `window.bench.log`). Settings > About opens it.
 
@@ -22,6 +22,7 @@ Read `HANDOFF.md` before changing anything; it lists what is verified, what is n
 - Design: `DESIGN.md` is the one page that says how Bench. looks and why; read it before touching a component. Colours only through tokens (`--late`, `--caution`, `--ok`, `--held`, `--accent`, the ink and surface tokens in `src/index.css`); `npm run lint` fails on raw hex outside `index.css`, `scenes.js` and `library.json`.
 - Copy: no em dashes anywhere in UI text, docs or comments. Headlines end with a period ("Board.", "Something broke."). Voice is plain, first person where the author speaks (About, footer). Photos are credited by name in Settings > About.
 - Dates: `shortDate`/`fmtDate` in `src/lanes.js` ("Tue 22 Sep"), never `toLocaleDateString` with `month: 'short'` (en-GB gives "Sept"). Times: `de-CH` 24h.
+- Pages: `src/pages.js` is the one list (nav, More, keys 1 to 9, search). A cut page leaves a line in `GONE` there so old links land somewhere; roadmap 173 cut Procurement, Napkin, Wall mode, the Lunch screen and the Cockpit door. Work pages use the slim `TerrainHeader`; only Home has the full hero.
 - One reading column: the `.col` class (`--col`, 1120px, 1320px at 2xl). The nav is full width on purpose.
 - Components must be defined at module scope, never inside a render (it remounts children and replays animations; this bit us three times).
 - Scenes follow real sunrise/sunset for Oetwil am See (`sunTimes`, `keyFor` in `src/scenes.js`). Pictures change every `pictureMinutes` (Settings; default 20). `libraryFor`/`imageFor` take a Date and an optional slot shift; headers use different shifts so no two share a picture.
@@ -31,7 +32,7 @@ Read `HANDOFF.md` before changing anything; it lists what is verified, what is n
 - Server features live in their own module with `registerRoutes(app)` and, for background work, `start()`; `server/index.js` only imports and calls them (`day.js`, `core.js`, `machines.js`, `inbox.js`, `weather.js`, `updates.js`). Client fetch helpers for a feature go in `src/api/<feature>.js`.
 - Server notifications go through `server/notify.js` (history behind the bell), never `bridge.notify` directly; the desktop drops them in quiet hours. Storage is `server/db.js` (json default, sqlite opt-in via `BENCH_STORAGE`); store.js and notes.js do not touch files themselves.
 - `scripts/mcp.mjs` is the MCP server (docs/mcp.md); `server/phone.js` is the LAN server on port 5199 behind a PIN. Both find the running Bench through the port file in `BENCH_USER_DIR`.
-- Any component can raise a toast with `window.dispatchEvent(new CustomEvent('bench:toast', { detail: { text, by, plain: true } }))` and ask for fresh state with `new Event('bench:refresh')`; App listens to both. Per-user state (brief seen, reminders sent, inbox handled) goes in `BENCH_USER_DIR`, never in the shared folder.
+- Any component can raise a toast with `window.dispatchEvent(new CustomEvent('bench:toast', { detail: { text, by, plain: true } }))` and ask for fresh state with `new Event('bench:refresh')`; App listens to both. Per-user state (brief seen, reminders sent, inbox handled, introductions read as `coachDone` in settings) goes in `BENCH_USER_DIR`, never in the shared folder, and never only in localStorage: the desktop app gets a new port, so a new origin, at every start.
 
 ## Working here
 

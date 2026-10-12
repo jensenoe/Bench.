@@ -53,7 +53,8 @@ export const DEFAULTS = {
   aerialCollection: 'all',  // all, or one collection key from src/aerials.json
   notifyModes: {},          // category -> desktop | bell | off; a category not named takes its default (server/notify-policy.js, roadmap 150)
   notifyNotInMeetings: true,   // no toast while a meeting runs; the Bell still records it
-  notifyNotInFocus: true       // no toast while a focus session runs; the Bell still records it
+  notifyNotInFocus: true,      // no toast while a focus session runs; the Bell still records it
+  coachDone: []                // the page introductions read or closed, by id (Coach.jsx, roadmap 173); Settings > Introductions empties it
 }
 
 const ALLOWED = Object.keys(DEFAULTS)
@@ -96,6 +97,7 @@ export function update(patch = {}) {
     if (k === 'aerialCollection') v = /^[a-z]{2,20}$/.test(String(v)) ? String(v) : 'all'
     if (k === 'notifyModes') v = { ...cleanModes(cur.notifyModes), ...cleanModes(v) }   // a patch names only what changes
     if (k === 'notifyNotInMeetings' || k === 'notifyNotInFocus') v = v !== false
+    if (k === 'coachDone') v = Array.isArray(v) ? [...new Set(v.filter(x => typeof x === 'string' && /^[a-z]{2,20}$/.test(x)))].slice(0, 40) : cur.coachDone
     if (k === 'sceneOverride') v = ['dawn', 'day', 'dusk', 'night'].includes(v) ? v : null
     if ((k === 'lunchAt' || k === 'lunchEnds') && !/^\d{1,2}:\d{2}$/.test(String(v))) continue
     if (typeof v === 'string') v = v.trim()

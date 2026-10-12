@@ -383,7 +383,7 @@ export default function Settings({ open, onClose, settings, onSave, auth, timecl
               <DriveHome draft={draft} set={set} save={save} settings={settings} />
             </Sec>
             <Sec title="Introductions">
-              <p className="text-[13.5px]" style={{ color: 'var(--ink-3)' }}>The short walk-throughs on the Board, Procurement, Logbook, Napkin, Machines and Projects show once. <button onClick={() => { try { for (const k of Object.keys(localStorage)) if (k.startsWith('bench.coach.')) localStorage.removeItem(k); toast('The introductions are back.', 'Each page shows its own the next time you open it.') } catch { toast('The introductions stay hidden.', 'This window keeps no local storage. Try again after a restart.') } }} className={link} style={{ color: 'var(--ink-2)' }}>Show them again</button>.</p>
+              <p className="text-[13.5px]" style={{ color: 'var(--ink-3)' }}>The short walk-throughs on the Board, Logbook, Machines and Projects show once, until you close them or read to the end. <button onClick={() => { try { for (const k of Object.keys(localStorage)) if (k.startsWith('bench.coach.')) localStorage.removeItem(k) } catch { /* no storage in this window; the settings hold the rest */ } saveNow({ coachDone: [] }); toast('The introductions are back.', 'Each page shows its own the next time you open it.') }} className={link} style={{ color: 'var(--ink-2)' }}>Show them again</button>.</p>
             </Sec>
           </div>
 

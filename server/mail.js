@@ -68,11 +68,11 @@ export function classify(message, tasks) {
   return out
 }
 
-/** "Bosch confirmed PO 4711." or "Bosch delivered PO 4711." with the route to the Procurement page. */
+/** "Bosch confirmed PO 4711." or "Bosch delivered PO 4711." with the route to the task's card on the Board. */
 export const changeMessage = (c) => ({
   title: c.field === 'orderedOn' ? 'Order confirmed.' : 'Delivered.',
   body: `${c.supplier} ${c.field === 'orderedOn' ? 'confirmed' : 'delivered'} PO ${c.poNumber}.`,
-  route: '#/procurement'
+  route: c.taskId ? `#/board?task=${c.taskId}` : '#/board'
 })
 
 const key = s => String(s || '').trim().toLowerCase()

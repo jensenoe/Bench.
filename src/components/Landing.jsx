@@ -67,7 +67,7 @@ export default function Landing({ scene, stats, pressing, sheetState, doorImages
   const [a, b] = lead
   const { state } = greeting(stats, scene, name, { late, hoursIn })
   const hero = useHero()
-  const [board, proc, bench, logbook, napkin, cockpit] = SHEETS
+  const [board, bench, logbook] = SHEETS
 
   return (
     <div>
@@ -113,12 +113,9 @@ export default function Landing({ scene, stats, pressing, sheetState, doorImages
           <div className="mt-8 grid gap-4 md:grid-cols-5">
             <div className="md:col-span-3"><Door s={board} tall sheetState={sheetState} doorImages={doorImages} /></div>
             <div className="flex flex-col gap-4 md:col-span-2">
-              <Door s={proc} sheetState={sheetState} doorImages={doorImages} />
               <Door s={bench} sheetState={sheetState} doorImages={doorImages} />
+              <Door s={logbook} sheetState={sheetState} doorImages={doorImages} />
             </div>
-            <div className="md:col-span-2"><Door s={logbook} sheetState={sheetState} doorImages={doorImages} /></div>
-            <div className="md:col-span-3"><Door s={napkin} sheetState={sheetState} doorImages={doorImages} /></div>
-            <div className="md:col-span-5"><Door s={cockpit} wide sheetState={sheetState} doorImages={doorImages} /></div>
           </div>
         </section>
       </main>

@@ -1,6 +1,6 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import * as api from './api.js'
-import { sceneFor, sceneAt, lunchScene, setCollections, setCadence, setPictureMode, setLibraryShift, nextChange, STATUS } from './scenes.js'
+import { sceneFor, sceneAt, setCollections, setCadence, setPictureMode, setLibraryShift, nextChange, STATUS } from './scenes.js'
 import { cheer } from './copy.js'
 import { daysUntil, daysSince } from './lanes.js'
 import Nav from './components/Nav.jsx'
@@ -17,16 +17,25 @@ import OpenDay from './components/OpenDay.jsx'
 import Shortcuts from './components/Shortcuts.jsx'
 import ErrorToast from './components/ErrorToast.jsx'
 import ConfirmHost from './components/Confirm.jsx'
-import { PAGE_KEYS } from './pages.js'
+import { PAGE_KEYS, GONE } from './pages.js'
 import PageSkeleton from './components/Skeleton.jsx'
 import MorningBrief from './components/MorningBrief.jsx'
 import EveningClose from './components/EveningClose.jsx'
 import * as dayApi from './api/day.js'
 import useBoardKeys from './hooks/useBoardKeys.js'
 import { Routes, paletteActions } from './routes.jsx'
-const Wall = lazy(() => import('./components/Wall.jsx'))
 
-const route = () => location.hash.replace(/^#\/?/, '').split('?')[0]
+// An old link to a page cut in roadmap 173 (a bookmark, a notification in the Bell, a link in a note) is sent on
+// without a history entry, and says so once in a toast when it has something to say.
+let goneNote = null
+const route = () => {
+  const r = location.hash.replace(/^#\/?/, '').split('?')[0]
+  const g = Object.hasOwn(GONE, r) ? GONE[r] : null
+  if (!g) return r
+  history.replaceState(null, '', `#/${g.to}`)
+  goneNote = g.note
+  return g.to
+}
 const SOURCE_LABEL = { planner: 'Phase Gate', issues: 'Issues', qms: 'QMS', bom: 'the BOM' }
 const inField = () => ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName) || document.activeElement?.isContentEditable
 
@@ -50,7 +59,6 @@ export default function App() {
   const timeclock = useTimeclock()
   // The hook hands back a fresh object every render; effects and callbacks lean on its stable functions, never the object.
   const refreshClock = timeclock.refresh, punchClock = timeclock.punch
-  const onLunch = r === 'lunch'
   const settings = state?.settings || {}
   // settings drive the pictures and the theme; apply before computing the scene
   setCollections(settings.collections)
@@ -58,7 +66,7 @@ export default function App() {
   setPictureMode(settings.pictureMode)
   setLibraryShift(settings.libraryShift)
   const sceneKey = settings.sceneOverride || null
-  const scene = onLunch ? lunchScene(now) : sceneKey ? sceneAt(sceneKey, now) : sceneFor(now)
+  const scene = sceneKey ? sceneAt(sceneKey, now) : sceneFor(now)
   // Every page picture follows this time of day, override or clock; the pages differ by slot, not by scene (Noël, 23 Sep).
   const timeKey = sceneKey || sceneFor(now).key
   useEffect(() => { document.documentElement.dataset.theme = settings.theme === 'light' ? 'light' : 'dark' }, [settings.theme])
@@ -76,7 +84,10 @@ export default function App() {
     el.setProperty('--photo-filter', scene.filter); el.setProperty('--grade', scene.grade); el.setProperty('--glow-dark', scene.glow)
   }, [scene, light])
   useEffect(() => {
-    const on = () => { setR(route()); window.scrollTo({ top: 0 }) }
+    const on = () => {
+      setR(route()); window.scrollTo({ top: 0 })
+      if (goneNote) { const text = goneNote; goneNote = null; dispatchEvent(new CustomEvent('bench:toast', { detail: { text, plain: true, ms: 7000 } })) }
+    }
     addEventListener('hashchange', on); return () => removeEventListener('hashchange', on)
   }, [])
   // Focus follows the route: after a page change the page heading takes focus, so keyboard and screen
@@ -115,7 +126,7 @@ export default function App() {
     const urls = new Set([sceneAt(key, nx).terrain, ...[1, 2, 3, 4, 5, 6, 7].map(s => sceneAt(key, nx, s).terrain)])
     for (const u of urls) { const img = new Image(); img.decoding = 'async'; img.src = u }
   }, [now, settings.sceneOverride])
-  // A clicked notification asks the window to jump somewhere (the lunch screen at noon).
+  // A clicked notification asks the window to jump somewhere (a task, a meeting, Home).
   useEffect(() => window.bench?.onRoute?.(route => { location.hash = route }), [])
   const refresh = useCallback(async () => { try { setState(await api.getState()); setError(null) } catch (e) { setError(e.message) } }, [])
   // Every minute while the window shows; a hidden window (closed to the tray) does not poll, and catches up when it comes back (roadmap 102).
@@ -132,6 +143,9 @@ export default function App() {
     setToast({ id: Date.now(), ...item })
     clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(null), ms)
   }, [])
+  // The sentence for an old link the window opened on (see route above), once the page is there to show it.
+  const loaded = state !== null
+  useEffect(() => { if (loaded && goneNote) { showToast({ text: goneNote, plain: true }, 7000); goneNote = null } }, [loaded, showToast])
   // A refused write (Today is full) is a message, not a fault.
   const fail = useCallback((e) => { if (/Today is full/.test(e.message)) showToast({ text: 'Today is full.', by: 'Five is the rule. Move something out before this comes in.', plain: true }, 5000); else setError(e.message) }, [showToast])
   const mutate = fn => async (...a) => { try { const r = await fn(...a); await refresh(); return r } catch (e) { fail(e); throw e } }
@@ -209,7 +223,7 @@ export default function App() {
   // j and k walk the cards on the Board (roadmap 88); Ctrl Alt B anywhere in Windows opens the quick add (roadmap 80).
   useBoardKeys(r === 'board')
   useEffect(() => window.bench?.onQuickAdd?.(() => setQuickOpen(true)), [])
-  // A successful out punch opens the close. Nav, Lunch and the tray go through this wrapper.
+  // A successful out punch opens the close. The nav, the palette and the tray go through this wrapper.
   const punch = useCallback(async (kind) => {
     const r = await punchClock(kind)
     if (r && kind === 'out' && settings.eveningClose !== false) setCloseOpen(true)
@@ -227,8 +241,6 @@ export default function App() {
   if (!state) return <PageSkeleton message={error ? `Server not reachable. ${error}` : null} />
 
   if (!settings.setupDone) return <FirstRun scene={scene} auth={state.auth} onSave={saveSettings} onRefresh={refresh} />
-  // Wall mode: the board for a workshop screen, alone, no nav and no footer (roadmap 84). Escape leaves.
-  if (r === 'wall') return <Suspense fallback={<PageSkeleton />}><Wall scene={scene} settings={settings} /></Suspense>
 
   // What the pages read: the open tasks by lane and by filter, the order dates, the counts for the headers and the doors.
   const open = state.tasks.filter(t => !t.done)
@@ -238,11 +250,9 @@ export default function App() {
   const held = open.filter(t => t.lane === 'waiting')
   const dated = open.filter(t => t.orderBy).map(t => ({ id: t.id, title: t.title, days: daysUntil(t.orderBy), orderBy: t.orderBy, orderedOn: t.orderedOn, supplier: t.supplier, poNumber: t.poNumber })).sort((a, b) => a.days - b.days)
   const pressing = dated.filter(t => t.days <= 14 && !t.orderedOn)
-  const later = dated.filter(t => t.days > 14 || t.orderedOn)
   const innovationCold = Math.max(0, ...open.filter(t => t.lane === 'innovation').map(t => daysSince(t.lastTouched) ?? 0))
   const stats = { open: open.length, today: open.filter(t => t.lane === 'today').length, waiting: held.length,
     innovation: open.filter(t => t.lane === 'innovation').length, pressing: pressing.filter(p => p.days <= 7).length, innovationCold }
-  const late = pressing.filter(p => p.days < 0).length
   const machineCount = new Set(open.map(t => (t.project || t.meta?.machine || '').trim().toLowerCase()).filter(k => k.length >= 2)).size
   // Late: still on the clock after 19:00, or more than ten hours in. The greeting says so first.
   const clockNow = timeclock.clock
@@ -252,9 +262,7 @@ export default function App() {
   const logCount = state.logbookCount ?? 0
   const sheetState = {
     logbook: { text: logCount ? `${logCount} ${logCount === 1 ? 'entry' : 'entries'}` : 'Nothing written yet' },
-    napkin: { text: state.napkinCount ? `${state.napkinCount} ${state.napkinCount === 1 ? 'map' : 'maps'}` : 'A clean napkin' },
     board: { text: `${stats.today} on today, ${stats.open} open`, tone: stats.today > 5 ? STATUS.overdue : undefined },
-    procurement: { text: pressing.length ? `${late} late, ${pressing.length - late} due` : 'Clear', tone: late ? STATUS.overdue : pressing.length ? STATUS.caution : STATUS.done },
     tools: (() => {
       const ext = open.filter(t => ['issues', 'qms', 'bom'].includes(t.source)).length
       const srcs = Object.values(state.sources || {})
@@ -264,12 +272,12 @@ export default function App() {
   }
   // The Board wears a dawn picture a few slots along, so it never repeats the hero; in Alps slots it is your own ridge photo.
   const boardImage = scene.library === 'alps' ? { src: '/terrain/ridge.jpg', fallback: '/terrain/day.jpg' } : { src: sceneAt(timeKey, now, 5).terrain, fallback: '/terrain/dawn.jpg' }
-  const inner = r !== '' && !onLunch
+  const inner = r !== ''
   const errMsg = error || timeclock.error || null
   const openSettings = () => setSettingsOpen(true)
 
   return (
-    <div className="min-h-screen" style={{ background: (r === '' || onLunch) ? 'var(--bg)' : `radial-gradient(120% 60% at 50% 0%, ${scene.glow} 0%, var(--bg) 60%)` }}>
+    <div className="min-h-screen" style={{ background: r === '' ? 'var(--bg)' : `radial-gradient(120% 60% at 50% 0%, ${light && scene.light ? scene.light.glow : scene.glow} 0%, var(--bg) 60%)` }}>
       <Nav route={r} auth={state.auth} meta={state.meta} onRefresh={refresh} now={now} scene={scene} timeclock={tc}
         onSettings={() => setSettingsOpen(v => !v)} settingsOpen={settingsOpen} onSearch={() => setSearchOpen(true)} />
       <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} settings={settings} onSave={saveSettings} auth={state.auth} timeclock={timeclock} onRefresh={refresh} />
@@ -282,13 +290,13 @@ export default function App() {
       <EveningClose open={closeOpen} onClose={() => setCloseOpen(false)} onChanged={refresh} />
       <QuickAdd open={quickOpen} onClose={() => setQuickOpen(false)} onCreate={onCreate} defaultLane={r === 'board' && stats.today < 5 ? 'today' : 'active'} />
       <ErrorToast message={errMsg && errMsg !== dismissedError ? errMsg : null} busy={retrying} onRetry={retry} onDismiss={() => setDismissedError(errMsg)} />
-      {!onLunch && <OpenDay clock={timeclock.clock} onClose={closeDay} onDismiss={dismissDay} />}
+      <OpenDay clock={timeclock.clock} onClose={closeDay} onDismiss={dismissDay} />
 
       <Suspense fallback={<PageSkeleton />}>
-        <Routes r={r} onLunch={onLunch} now={now} scene={scene} timeKey={timeKey} boardImage={boardImage}
-          state={state} settings={settings} open={open} stats={stats} pressing={pressing} later={later} late={late} sheetState={sheetState} machineCount={machineCount} logCount={logCount} workingLate={workingLate} hoursIn={hoursIn}
+        <Routes r={r} now={now} scene={scene} timeKey={timeKey} boardImage={boardImage}
+          state={state} settings={settings} open={open} stats={stats} pressing={pressing} sheetState={sheetState} machineCount={machineCount} logCount={logCount} workingLate={workingLate} hoursIn={hoursIn}
           sourceFilter={sourceFilter} setSourceFilter={setSourceFilter} peopleFilter={peopleFilter} setPeopleFilter={setPeopleFilter} byLane={byLane}
-          refresh={refresh} onPatch={onPatch} onDelete={onDelete} onCreate={onCreate} punch={punch} openSettings={openSettings}
+          refresh={refresh} onPatch={onPatch} onDelete={onDelete} onCreate={onCreate} openSettings={openSettings}
           timeclock={timeclock} />
       </Suspense>
 

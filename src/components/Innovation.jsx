@@ -13,7 +13,7 @@ import { STATUS } from '../scenes.js'
  * Innovation projects (roadmap 143). Every Planner card whose title carries an I-code is a project here; its
  * bucket is the stage in the Phase Gate plan (Concept, Development, Procurement, Testing, Production), its
  * due date the project's. The page gathers what carries the code: your tasks, Logbook entries and their open
- * actions, Napkin maps, and the synced Teams folder. Planner stays the source: nothing here moves the card.
+ * actions, and the synced Teams folder. Planner stays the source: nothing here moves the card.
  * #/projects?i=I-1050 opens one. The list also shows as a timeline with the last 30 days above it
  * (PortfolioTimeline.jsx, roadmap 162), and Export portfolio PDF prints the whole portfolio for management.
  */
@@ -135,7 +135,7 @@ export function InnovationDetail({ code, onBack }) {
     ? <p className="text-[14px]" style={{ color: 'var(--ink-3)' }}>No Planner card carries {code} any more. <button onClick={onBack} className="-my-[3px] inline-block py-[3px] underline underline-offset-2">Back to the list</button></p>
     : <LoadFailed title="The project did not load." message={`${err}. Try again asks once more.`} onRetry={load} />}</main>
   if (!d) return <main className="mx-auto col px-6"><PanelSkeleton /></main>
-  const { project: p, stages, tasks, entries, actions, maps, plan } = d
+  const { project: p, stages, tasks, entries, actions, plan } = d
   const open = tasks.filter(t => !t.done)
   const exportIt = async () => {
     try { const at = await exportReport(`/api/report/innovation/${encodeURIComponent(p.code)}`, `${p.code} ${p.name} - ${new Date().toISOString().slice(0, 10)}.pdf`); if (at) toast('Report saved.', at) }
@@ -171,7 +171,7 @@ export function InnovationDetail({ code, onBack }) {
             ? <a href={`#/projects?p=${encodeURIComponent(plan.id)}`} className={quiet}>Open the plan{plan.deadline ? `, ${plan.deadlineLabel} ${fmt(plan.deadline)}` : ''}</a>
             : <button onClick={planIt} disabled={busy} aria-busy={busy} className={primary} title="A plan back from a deadline, with the five stages as its phases">Plan it back from a date</button>}
         </div>
-        <p className="mt-3 max-w-[70ch] text-[13px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>The stage and the due date come from the card in Planner; move the card there and Bench. follows at the next sync. Anything that names {p.code} joins this page: a task's title or project, a Logbook entry, a Napkin map.</p>
+        <p className="mt-3 max-w-[70ch] text-[13px] leading-relaxed" style={{ color: 'var(--ink-3)' }}>The stage and the due date come from the card in Planner; move the card there and Bench. follows at the next sync. Anything that names {p.code} joins this page: a task's title or project, a Logbook entry.</p>
       </section>
 
       <ProjectTabs projectKey={p.code}>
@@ -219,12 +219,6 @@ export function InnovationDetail({ code, onBack }) {
         ) : <p className="mt-3 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>No entry names {p.code} yet. Put it in an entry's Project field and the meeting shows here.</p>}
       </section>
 
-      {maps.length > 0 && (
-        <section className="panel p-6 sm:p-7" aria-label="Napkin maps">
-          <h2 className="display text-[22px] font-semibold leading-none">Napkin.</h2>
-          <ul className="mt-4 flex flex-col">{maps.map(m => <li key={m.id} className="rule py-2 text-[14px]"><a href="#/napkin" className="underline-offset-2 hover:underline">{m.title}</a></li>)}</ul>
-        </section>
-      )}
       </ProjectTabs>
     </main>
   )
