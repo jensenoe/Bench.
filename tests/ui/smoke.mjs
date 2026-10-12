@@ -415,6 +415,22 @@ try {
   const doneReport = await fetch(`${BASE}/api/report/done/${pk.body.id}`).then(async r => ({ status: r.status, text: await r.text() }))
   check('GET /api/report/done answers with the done report', doneReport.status === 200 && /UI Paket/.test(doneReport.text) && /Agreed result/.test(doneReport.text), String(doneReport.status))
 
+  // Jobs first (roadmap 175): Home shows the seeded Paket under the hero with its next step, links to the plan,
+  // passes axe; Projects shows the same list; New Paket opens the plan form with Paket chosen
+  await page.goto(`${BASE}/#/`); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(1000)
+  const jobRow = page.locator('section[aria-labelledby="jobs-title"] a', { hasText: 'UI Paket' })
+  check('Home shows the Jobs section with the seeded Paket', await page.getByRole('heading', { name: 'Jobs.' }).count() === 1 && await jobRow.count() === 1)
+  check('a job says what to do next and opens its plan', /Escalate: due today, 2 items open\./.test(await jobRow.textContent().catch(() => '')) && (await jobRow.getAttribute('href')) === `#/projects?p=${pk.body.id}`)
+  await page.waitForFunction(() => document.getAnimations().every(a => a.playState !== 'running' || a.effect?.getTiming?.().iterations === Infinity), null, { timeout: 5000 }).catch(() => {})
+  const jobsAxe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze()
+  check('axe on Home with a job: no accessibility violations', jobsAxe.violations.length === 0, violations(jobsAxe))
+  check('Home with a job has no button or link under 24 px', (await page.evaluate(smallTargets)).length === 0, (await page.evaluate(smallTargets)).slice(0, 4).join(' | '))
+  await page.goto(`${BASE}/#/projects`); await page.waitForTimeout(900)
+  check('Projects shows the jobs above Innovation', await page.locator('main section[aria-labelledby="jobs-title"] a', { hasText: 'UI Paket' }).count() === 1)
+  await page.goto(`${BASE}/#/projects?new=paket`); await page.waitForTimeout(900)
+  check('New Paket opens the plan form with Paket chosen', await page.locator('form[aria-label="New project"] [role="radio"][aria-checked="true"]', { hasText: 'Paket' }).count() === 1)
+  await page.keyboard.press('Escape')
+
   check('no console errors across the run', errors.length === 0, [...errors.slice(0, 3), ...failedUrls.slice(0, 4)].join(' | '))
 } catch (err) {
   failures.push('exception'); console.error(err)

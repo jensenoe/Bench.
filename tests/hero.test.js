@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { composeHero, nextMeeting } from '../server/hero.js'
+import { composeHero, nextMeeting, jobLine } from '../server/hero.js'
 
 const at = (h, m = 0, day = 23) => new Date(2026, 8, day, h, m, 0)   // Wed 23 Sep 2026 unless day says otherwise
 const base = { status: 'in', hoursIn: 2, outAt: null, tickedToday: 0, tickedYesterday: 3, workedYesterday: 7 * 3600000 + 40 * 60000, todayOpen: 2, todayDone: 1, arrivals: [], deliveries: [], meetings: [], weekWorked: 21 * 3600000 + 10 * 60000, lastDecision: null, lunchAt: '12:00' }
@@ -45,6 +45,7 @@ describe('the hero briefing', () => {
     const r = composeHero(base, at(14, 30))
     expect(text(r)).toBe('One of three ticked. 21:10 on the clock this week.')
     expect(composeHero({ ...base, todayOpen: 0, todayDone: 3 }, at(15, 0)).lines[0].text).toBe('Three of three ticked. Today is clear.')
+    expect(composeHero({ ...base, todayOpen: 2, todayDone: 0 }, at(15, 0)).lines[0].text).toBe('None of two ticked.')   // not "No of two"
   })
   it('the evening closes the day, and Friday points at the review', () => {
     expect(composeHero({ ...base, tickedToday: 4 }, at(17, 30)).lines[0].text).toBe('Four ticked today. Time to close the day.')
@@ -59,6 +60,31 @@ describe('the hero briefing', () => {
   })
   it('never mentions an order date', () => {
     for (const h of [8, 11, 14, 18]) expect(text(composeHero(base, at(h)))).not.toMatch(/order|due|slip/i)
+  })
+  it('a job due today comes before the generic lines, in one sentence (roadmap 175)', () => {
+    const rc = { id: 'rc', kind: 'e2e', name: 'Remote Coach', owner: 'Roman Dosch', step: 'ruesten', dueToday: true, escalating: true, questions: { open: 1 }, left: 4 }
+    const r = composeHero({ ...base, jobs: [rc], projects: [{ id: 'rc', name: 'Remote Coach', deadlineLabel: 'FAT', deadline: '2026-09-23', daysLeft: 0, slack: 0 }] }, at(14, 30))
+    expect(r.lines[0]).toEqual({ kind: 'job', text: 'Remote Coach rüsten is due tonight; 1 question open with Roman.' })
+    expect(r.variant).toBe('job')
+    expect(text(r)).not.toMatch(/FAT today/)   // the plan line does not say it twice
+    expect(r.lines).toHaveLength(2)
+  })
+  it('the job line counts open items without questions, and names the reason when it only escalates', () => {
+    expect(jobLine([{ id: 'p', kind: 'paket', name: 'Wiring diagram', owner: 'Roman Dosch', step: 'liefern', dueToday: true, escalating: true, questions: { open: 0 }, left: 2 }]).text)
+      .toBe('Wiring diagram is due tonight; 2 items open.')   // a Paket is just its name
+    expect(jobLine([{ id: 'p', kind: 'paket', name: 'Cable tray', owner: 'Roman Dosch', step: 'liefern', dueToday: false, escalating: true, escalation: [{ key: 'room', text: '2 working days behind the date' }], questions: { open: 0 }, left: 1 }]).text)
+      .toBe('Cable tray needs Roman today: 2 working days behind.')
+  })
+  it('a job that is neither due today nor escalating, or a plain plan, leaves the line alone', () => {
+    expect(jobLine([{ id: 'p', kind: 'paket', name: 'Later', dueToday: false, escalating: false }])).toBeNull()
+    expect(jobLine([{ id: 'p', kind: 'plan', name: 'Leg press', dueToday: true, escalating: false }])).toBeNull()
+    expect(composeHero({ ...base, jobs: [] }, at(14, 30)).lines[0].kind).toBe('progress')
+  })
+  it('a meeting about to start still comes first', () => {
+    const rc = { id: 'rc', kind: 'e2e', name: 'Remote Coach', owner: 'Roman Dosch', step: 'ruesten', dueToday: true, escalating: true, questions: { open: 0 }, left: 0 }
+    const r = composeHero({ ...base, jobs: [rc], meetings: [{ subject: 'Weekly', start: '14:40' }] }, at(14, 30))
+    expect(r.lines.map(l => l.kind)).toEqual(['meeting', 'job'])
+    expect(r.lines[1].text).toBe('Remote Coach rüsten is due tonight.')
   })
   it('nextMeeting ignores all-day and past meetings', () => {
     const m = [{ subject: 'All day', allDay: true, start: '00:00' }, { subject: 'Past', start: '09:00' }, { subject: 'Soon', start: '10:30' }]

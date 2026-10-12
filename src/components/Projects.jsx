@@ -11,6 +11,7 @@ import { ask } from './Confirm.jsx'
 import { STATUS } from '../scenes.js'
 import { patchTask, saveSettings, exportReport } from '../api.js'
 import { InnovationList, InnovationDetail, codeFromHash } from './Innovation.jsx'
+import JobsStrip from './JobsStrip.jsx'   // the open Pakete and E2E jobs above everything (roadmap 175)
 import { FlowPanels, KindFields, KindChip, AddToPaket } from './Workflow.jsx'   // Paket and E2E (roadmap 170)
 import { resultLines } from '../../server/workflow-rules.js'
 
@@ -569,6 +570,7 @@ export default function Projects() {
   if (code) return <InnovationDetail code={code} onBack={() => { location.hash = '#/projects' }} />
   return (
     <main className="mx-auto col flex flex-col gap-4 px-6">
+      <JobsStrip full />
       <InnovationList />
       <div className="mt-4 flex flex-wrap items-baseline justify-between gap-3">
         <h2 className="display text-[22px] font-semibold leading-none">Plans.</h2>

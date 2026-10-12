@@ -1,8 +1,9 @@
 /**
  * The line under the greeting on Home (roadmap 119): a short briefing that changes with the moment,
- * never a deadline. Deadlines live in the morning brief and the amber lines on the Board. Here it is
+ * never an order date. Those live in the morning brief and the amber lines on the Board. Here it is
  * what happened, what is next in the calendar, what arrived, how the day is going, and when nothing
- * of that applies, the last decision written down.
+ * of that applies, the last decision written down. One deadline gets in: a Paket or an E2E due today or
+ * to escalate (roadmap 175), ahead of everything but a meeting about to start.
  *
  *   composeHero(facts, now)   pure: facts in, { variant, lines } out
  *   hero()                    gathers the facts from the clock, the board, the calendar, the Logbook
@@ -17,6 +18,7 @@ import { meetingsCached, dayKey, hm, shortDate } from './day.js'
 import * as commute from './commute.js'
 import * as projects from './projects.js'
 import { notAMeeting } from './calendar.js'
+import { gather as gatherJobs, reasonWords } from './jobs.js'
 
 const wrap = fn => (req, res) => Promise.resolve().then(() => fn(req, res)).catch(err => res.status(err.status || 500).json({ error: err.message }))
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -34,6 +36,25 @@ export function nextMeeting(meetings = [], now = new Date(), windowMin = 45) {
   const cur = now.getHours() * 60 + now.getMinutes()
   const soon = meetings.filter(m => !m.allDay).map(m => ({ ...m, inMin: (minutesOf(m.start) ?? -1) - cur })).filter(m => m.inMin >= 0 && m.inMin <= windowMin)
   return soon.sort((a, b) => a.inMin - b.inMin)[0] || null
+}
+
+// an E2E says its step as the verb Noël uses ("Remote Coach rüsten"); a Paket is just its name
+const STEP_WORD = { klaeren: 'klären', ruesten: 'rüsten', bauen: 'bauen', pruefen: 'prüfen', dokumentieren: 'dokumentieren', praesentieren: 'präsentieren', uebergeben: 'übergeben' }
+/**
+ * The job line (roadmap 175): the first Paket or E2E due today or to escalate (the list comes ordered, from
+ * jobs.js), as one plain sentence. "Remote Coach rüsten is due tonight; 1 question open with Roman." Null when none.
+ */
+export function jobLine(jobs = []) {
+  const j = (jobs || []).find(x => x && x.kind !== 'plan' && (x.dueToday || x.escalating))
+  if (!j) return null
+  const who = String(j.owner || '').trim().split(/\s+/)[0] || 'the owner'
+  const q = j.questions?.open || 0
+  if (j.dueToday) {
+    const step = j.kind === 'e2e' && STEP_WORD[j.step] ? ` ${STEP_WORD[j.step]}` : ''
+    const tail = q ? `; ${q} question${q === 1 ? '' : 's'} open with ${who}` : j.left ? `; ${j.left} item${j.left === 1 ? '' : 's'} open` : ''
+    return { id: j.id, text: `${j.name}${step} is due tonight${tail}.` }
+  }
+  return { id: j.id, text: `${j.name} needs ${who} today: ${reasonWords(j.escalation?.[0])}.` }
 }
 
 /**
@@ -58,6 +79,9 @@ export function composeHero(f, now = new Date()) {
   // lunch in the calendar is not a meeting (roadmap 165): Bench.'s own lunch line says it instead
   const next = nextMeeting((f.meetings || []).filter(m => !notAMeeting(m.subject)), now)
   if (next) push('meeting', `${next.subject} ${next.inMin === 0 ? 'now' : next.inMin === 1 ? 'in a minute' : `in ${next.inMin} minutes`}${next.location ? `, ${next.location}` : ''}.`)
+  // a Paket or an E2E due today or to escalate comes before the generic lines (roadmap 175)
+  const job = jobLine(f.jobs)
+  if (job) push('job', job.text)
   // the drive, with live traffic, when it is that time of day (roadmap 120)
   if (f.commute?.ok && f.commute.text) push('commute', f.commute.text)
   const d = (f.deliveries || [])[0]
@@ -78,7 +102,7 @@ export function composeHero(f, now = new Date()) {
     push('lunch', `Lunch at ${clockWords(f.lunchAt)}.`)
   } else if (hour < 17) {
     const total = (f.todayOpen || 0) + (f.todayDone || 0)
-    if (total) push('progress', f.todayOpen === 0 ? `${cap(words(f.todayDone))} of ${words(total)} ticked. Today is clear.` : `${cap(words(f.todayDone || 0))} of ${words(total)} ticked.`)
+    if (total) push('progress', f.todayOpen === 0 ? `${cap(words(f.todayDone))} of ${words(total)} ticked. Today is clear.` : `${f.todayDone ? cap(words(f.todayDone)) : 'None'} of ${words(total)} ticked.`)
     if (f.weekWorked) push('week', `${hm(f.weekWorked)} on the clock this week.`)
   } else {
     if (f.status === 'out' && f.outAt) push('evening', `Clocked out at ${f.outAt}. ${cap(ticked(f.tickedToday || 0))} today.`)
@@ -86,8 +110,9 @@ export function composeHero(f, now = new Date()) {
     if (dow === 5) push('friday', "The week's review is ready.")
   }
   // the plan (roadmap 121): behind, or a deadline inside three weeks
-  const behind = (f.projects || []).filter(p => p.slack !== null && p.slack < 0).sort((a, b) => a.slack - b.slack)[0]
-  const near = (f.projects || []).filter(p => p.daysLeft !== null && p.daysLeft >= 0 && p.daysLeft <= 15)[0]
+  const plans = (f.projects || []).filter(p => !job || p.id !== job.id)   // the job line said it already
+  const behind = plans.filter(p => p.slack !== null && p.slack < 0).sort((a, b) => a.slack - b.slack)[0]
+  const near = plans.filter(p => p.daysLeft !== null && p.daysLeft >= 0 && p.daysLeft <= 15)[0]
   if (behind) push('project', `${behind.name}: ${behind.deadlineLabel} on ${shortDate(behind.deadline)}, ${-behind.slack} working day${behind.slack === -1 ? '' : 's'} behind the plan.`)
   else if (near) push('project', `${near.name}: ${near.deadlineLabel} ${near.daysLeft === 0 ? 'today' : `in ${near.daysLeft} working day${near.daysLeft === 1 ? '' : 's'}`}${near.slack !== null && near.slack >= 0 ? `, ${near.slack} of room` : ''}.`)
   if (!lines.length && f.lastDecision?.text) push('decision', `Last decision: ${trim(f.lastDecision.text)} (${f.lastDecision.entry}, ${shortDate(f.lastDecision.date)}).`)
@@ -129,8 +154,13 @@ export async function facts(now = new Date()) {
     lastDecision: withDecision ? { text: withDecision.decisions.at(-1), entry: withDecision.title, date: withDecision.date } : null,
     lunchAt: settings.get().lunchAt || '12:00',
     commute: await commuteSoft(now, snap.status),
-    projects: projectsSoft(today)
+    projects: projectsSoft(today),
+    jobs: jobsSoft(today)
   }
+}
+/** The open jobs, ordered; a broken plan or kit file never takes the hero down. */
+function jobsSoft(today) {
+  try { return gatherJobs(today) } catch { return [] }
 }
 /** The projects with a deadline, nearest first; a broken projects file never takes the hero down. */
 function projectsSoft(today) {

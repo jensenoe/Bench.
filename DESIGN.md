@@ -183,6 +183,9 @@ Shadows are never black, and no component writes its own.
   "Not now" link with a 24 px hit area. Choices are radio pills at 24 px.
 - Ledgers and feeds: Recent changes, Backups, the Machines detail and the Review page are panels of
   rows, 13 to 13.5 px, a headline with a period, empty sections left out or one sentence.
+- Jobs: on Home the first panel under the hero, on Projects the first above Innovation. One ledger line per job: a
+  kind badge on `--wash-2`, the name, the working days left (`--caution` today, `--late` behind), a slim step track,
+  the one sentence of what to do now, quiet plain chips, and an Escalate chip in `--late` only when it escalates.
 - Meeting prep: on Home one panel, only while a meeting is close or just ended and has something to say;
   topics are plain chips with the small icon of their kind, then short ledgers of three lines. A line's meta
   says one fact (late, with whom, due), never the topic the chips already name.
@@ -249,7 +252,7 @@ unticked, never "completed".
 
 The hero speaks softly. Its title lines (copy-pack.json) are short, warm and specific to the hour, never
 a slogan: "Kettle on, lights low", "Low sun through the hall". Under it, the briefing says one or two
-things that are true right now, never a deadline; when it has nothing, a quiet line for the hour or the
+things that are true right now, never a deadline except a Paket or E2E due today or to escalate (roadmap 175); when it has nothing, a quiet line for the hour or the
 weather (HeroLine.jsx) takes the place. Photo credits live in Settings, not on the hero.
 
 ## 10. Never
