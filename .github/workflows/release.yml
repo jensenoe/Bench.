@@ -146,10 +146,15 @@ jobs:
           $files = Get-ChildItem release\*.exe | ForEach-Object { $_.FullName }
           $args = @("release", "create", $env:TAG) + $files + @("--repo", $env:REPO, "--title", "Bench. $env:TAG", "--notes-file", "notes.md", "--generate-notes")
           if ($env:TAG -match "-") { $args += "--prerelease" }
-          $exists = $true
-          try { gh release view $env:TAG --repo $env:REPO *> $null; if ($LASTEXITCODE -ne 0) { $exists = $false } } catch { $exists = $false }
-          if ($exists) {
-            gh release upload $env:TAG @files --repo $env:REPO --clobber
-          } else {
-            gh @args
+          # A 400 MB upload can break off; gh then leaves the release as a hidden draft. So: up to three tries, an
+          # existing (draft) release gets its files uploaded again, and the release is always published at the end.
+          for ($try = 1; $try -le 3; $try++) {
+            $exists = $true
+            try { gh release view $env:TAG --repo $env:REPO *> $null; if ($LASTEXITCODE -ne 0) { $exists = $false } } catch { $exists = $false }
+            if ($exists) { gh release upload $env:TAG @files --repo $env:REPO --clobber } else { gh @args }
+            if ($LASTEXITCODE -eq 0) { break }
+            Write-Host "publish attempt $try failed; trying again in 20 s"; Start-Sleep -Seconds 20
           }
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          gh release edit $env:TAG --repo $env:REPO --draft=false
+          if ($LASTEXITCODE -ne 0) { exit 1 }
