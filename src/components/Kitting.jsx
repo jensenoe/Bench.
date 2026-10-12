@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
-import { CaretRight, Check, CheckCircle, Circle, CopySimple, FilePdf, ArrowSquareOut, Plus, TreeStructure, X } from '@phosphor-icons/react'
-import { getKit, saveKit, applyKitTemplate, getBom, fillKitFromBom, handoverRoute } from '../api/kitting.js'
+import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { CaretRight, Check, CheckCircle, Circle, CopySimple, FilePdf, ArrowSquareOut, Plus, TreeStructure, Wrench, X } from '@phosphor-icons/react'
+import { getKit, saveKit, tickKit, applyKitTemplate, getBom, fillKitFromBom, handoverRoute } from '../api/kitting.js'
 import { KINDS, KIND_LABEL, KIND_ONE, MAX, needsStock, normNumber, cleanItem, cleanMachine, mergeItems, planProgress, kitCompleteDoc, bundleCheck, parsePaste } from '../../server/kitting-rules.js'
 import { exportReport, openLink } from '../api.js'
 import DateField from './DateField.jsx'
@@ -14,9 +14,20 @@ import { fmtDate } from '../lanes.js'
  * onto every machine number; each item is ticked kitted, checked and (for Teile, Kabel and Schrauben) booked
  * out of stock. A machine is marked presented and handed over; the handover report goes to Service as a PDF.
  * The rules (progress, merging, the paste format) come from server/kitting-rules.js, so the counts here and on
- * the report agree. Every change saves 600 ms after the last one.
+ * the report agree. Every change saves 600 ms after the last one; a tick saves at once and alone (PATCH
+ * /api/kitting/tick), so the phone and the desktop never overwrite each other's ticks. While nothing is pending
+ * the tab reads the kit again every 15 seconds and on focus, so what the phone ticked shows up here.
+ *
+ * Workshop (roadmap 176, KitWorkshop.jsx): one machine at a time, large type, big ticks, Find for a barcode
+ * scanner, photos, and how to open the same on the phone. The switch is remembered per viewer in localStorage.
  */
+const KitWorkshop = lazy(() => import('./KitWorkshop.jsx'))
 const SAVE_MS = 600
+const POLL_MS = 15_000
+const WORKSHOP_KEY = 'bench:kit-workshop'
+const readWorkshop = () => { try { return localStorage.getItem(WORKSHOP_KEY) === '1' } catch { return false } }
+/** The document with one item's fields changed, or the same document when the item is gone. */
+const withItem = (doc, machineId, itemId, patch) => doc ? { ...doc, machines: doc.machines.map(m => m.id !== machineId ? m : { ...m, items: m.items.map(i => i.id === itemId ? { ...i, ...patch } : i) }) } : doc
 const btn = 'pill inline-flex min-h-[32px] items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium disabled:opacity-50'
 const quiet = btn + ' btn-quiet', ghost = btn + ' btn-ghost', primary = btn + ' btn-primary'
 const iconBtn = 'pill btn-ghost inline-flex h-7 w-7 shrink-0 items-center justify-center'
@@ -245,7 +256,7 @@ function DateMark({ label, value, onChange }) {
 }
 
 /** What opens under a machine's line: its facts and dates, its tools, and every item. */
-function MachineDetail({ m, others, editing, setEditing, onMachine, onItems, onRemoveItem, onRenumber, onCopyFrom, onAddToTemplate, onRemove, onFill }) {
+function MachineDetail({ m, others, editing, setEditing, onMachine, onItems, onFlip, onRemoveItem, onRenumber, onCopyFrom, onAddToTemplate, onRemove, onFill }) {
   const [number, setNumber] = useState(m.number)
   const [numberNote, setNumberNote] = useState(null)
   const [from, setFrom] = useState('')
@@ -293,7 +304,7 @@ function MachineDetail({ m, others, editing, setEditing, onMachine, onItems, onR
         {m.items.length === 0 && <p className="mb-2 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>No items yet. Add them below, copy them from another machine, or apply the template.</p>}
         <ItemList items={m.items} ticks editing={editing} onEdit={setEditing} onCancel={() => setEditing(null)}
           onSave={it => { onItems(list => list.map(x => x.id === it.id ? it : x)); setEditing(null) }}
-          onFlip={(item, f) => onItems(list => list.map(x => x.id === item.id ? { ...x, [f]: !x[f] } : x))}
+          onFlip={(item, f) => onFlip(item.id, f)}
           onRemove={onRemoveItem}
           onAdd={it => { onItems(list => list.length >= MAX.items ? list : [...list, it]); return true }} />
       </div>
@@ -393,6 +404,11 @@ export default function KittingTab({ projectKey }) {
   const timer = useRef(null)
   const inflight = useRef(null)
   const keyRef = useRef(projectKey)
+  const ticking = useRef(0)       // ticks on their way to the server
+  const editingRef = useRef(null)
+  useEffect(() => { editingRef.current = editing }, [editing])
+  const [workshop, setWorkshop] = useState(readWorkshop)
+  const toggleWorkshop = () => setWorkshop(v => { try { localStorage.setItem(WORKSHOP_KEY, v ? '0' : '1') } catch { /* the switch still works for now */ } return !v })
 
   const flush = useCallback(async () => {
     clearTimeout(timer.current); timer.current = null
@@ -430,6 +446,51 @@ export default function KittingTab({ projectKey }) {
       }
     }
   }, [projectKey, tick])
+
+  /** One tick, sent at once and alone; the server's answer for that item is the word on it. */
+  const flip = useCallback(async (machineId, itemId, field) => {
+    const it = latest.current?.machines.find(m => m.id === machineId)?.items.find(i => i.id === itemId)
+    if (!it) return
+    const key = keyRef.current, value = !it[field]
+    const put = patch => { latest.current = withItem(latest.current, machineId, itemId, patch); setDoc(latest.current) }
+    ver.current++; put({ [field]: value }); ticking.current++
+    try {
+      const r = await tickKit(key, machineId, itemId, field, value)
+      if (keyRef.current !== key) return
+      put({ kitted: r.item.kitted, checked: r.item.checked, stockUpdated: r.item.stockUpdated })
+      latest.current = { ...latest.current, updatedAt: r.updatedAt }
+      setStatus(s => s === 'pending' || s === 'saving' ? s : 'saved')
+      refreshAll()
+    } catch (e) {
+      if (keyRef.current !== key) return
+      put({ [field]: !value })
+      toast('The tick did not save.', e.message)
+    } finally { ticking.current-- }
+  }, [])
+
+  // What the phone (or a colleague) changed shows up here: read again while nothing is pending, every 15 s and on focus.
+  useEffect(() => {
+    let alive = true
+    const look = async () => {
+      if (document.visibilityState !== 'visible' || timer.current || inflight.current || ticking.current || editingRef.current || !latest.current) return
+      const key = keyRef.current, v = ver.current
+      try {
+        const r = await getKit(key)
+        if (!alive || keyRef.current !== key || ver.current !== v || timer.current || inflight.current || ticking.current) return
+        if (r.doc.updatedAt && r.doc.updatedAt !== latest.current?.updatedAt) { latest.current = r.doc; setDoc(r.doc) }
+      } catch { /* the next look */ }
+    }
+    const id = setInterval(look, POLL_MS)
+    addEventListener('focus', look)
+    return () => { alive = false; clearInterval(id); removeEventListener('focus', look) }
+  }, [])
+  /** After a photo changed on the server: send what is pending, then take the stored kit. */
+  const reloadQuiet = useCallback(async () => {
+    if (timer.current) await flush()
+    if (inflight.current) await inflight.current.catch(() => {})
+    const key = keyRef.current
+    try { const r = await getKit(key); if (keyRef.current === key) { ver.current++; latest.current = r.doc; setDoc(r.doc) } } catch (e) { toast('The kit did not load again.', e.message) }
+  }, [flush])
 
   const change = useCallback(fn => {
     const next = fn(latest.current)
@@ -530,12 +591,18 @@ export default function KittingTab({ projectKey }) {
           <div className="ml-auto flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="text-[13px]" role="status" style={{ color: status === 'failed' ? 'var(--caution)' : 'var(--ink-3)' }}>{statusText}</span>
             {status === 'failed' && <button type="button" onClick={flush} className={ghost}>Try again</button>}
+            <button type="button" onClick={toggleWorkshop} aria-pressed={workshop} className={workshop ? btn : quiet} style={workshop ? { background: 'var(--wash-2)', color: 'var(--ink)' } : undefined} title="Large type, big ticks and Find for a barcode scanner, one machine at a time"><Wrench size={15} weight="bold" />Workshop</button>
             <button type="button" onClick={exportPdf} className={quiet} disabled={!o.machines}><FilePdf size={15} weight="bold" />Export handover PDF</button>
           </div>
         </div>
-        <p className="mt-2 max-w-[65ch] text-[13.5px] leading-relaxed" style={{ color: 'var(--ink-2)' }}>
+        {!workshop && <p className="mt-2 max-w-[65ch] text-[13.5px] leading-relaxed" style={{ color: 'var(--ink-2)' }}>
           Every cable, connection, screw, part, parts list and schematic, per machine number: kitted, checked, and booked out of stock. Then one machine from Bundle 1 to 5 and one from Bundle 6 are presented, and the kit goes to Service.
-        </p>
+        </p>}
+        {workshop ? (
+          <Suspense fallback={<PanelSkeleton rows={4} />}>
+            <KitWorkshop key={projectKey} projectKey={projectKey} doc={doc} onFlip={flip} onReload={reloadQuiet} />
+          </Suspense>
+        ) : <>
         <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2">
           <Presentation b={b} />
           {complete !== null && (
@@ -549,7 +616,7 @@ export default function KittingTab({ projectKey }) {
           {doc.machines.map(m => (
             <MachineRow key={m.id} m={m} p={prog.machines.find(x => x.id === m.id)} open={open.has(m.id)} onToggle={() => toggle(m.id)}>
               <MachineDetail m={m} others={doc.machines.filter(x => x.id !== m.id)} editing={editing} setEditing={setEditing}
-                onMachine={fn => onMachine(m.id, fn)} onItems={fn => onItems(m.id, fn)} onRemoveItem={item => removeItem(m.id, item)}
+                onMachine={fn => onMachine(m.id, fn)} onItems={fn => onItems(m.id, fn)} onFlip={(itemId, f) => flip(m.id, itemId, f)} onRemoveItem={item => removeItem(m.id, item)}
                 onRenumber={v => renumber(m, v)} onCopyFrom={id => copyFrom(m, id)} onAddToTemplate={() => addToTemplate(m)} onRemove={() => removeMachine(m)}
                 onFill={body => onServer(() => fillKitFromBom(projectKey, m.id, body), r => r.added ? `Added ${plural(r.added, 'part')} from the BOM to ${m.number}.` : 'Every part of that node is on the machine already.')} />
             </MachineRow>
@@ -557,9 +624,10 @@ export default function KittingTab({ projectKey }) {
         </ul>
         {!doc.machines.length && <p className="text-[13.5px]" style={{ color: 'var(--ink-3)' }}>Add the first machine number below, or paste a list. Each new machine gets the template.</p>}
         <AddMachines onAdd={addMachines} full={doc.machines.length >= MAX.machines} />
+        </>}
       </section>
 
-      <section className="panel p-6 sm:p-7" aria-label="Template">
+      {!workshop && <section className="panel p-6 sm:p-7" aria-label="Template">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
           <h2 className="display text-[22px] font-semibold leading-none">Template.</h2>
           <span className="tnum text-[13.5px]" style={{ color: 'var(--ink-3)' }}>{plural(doc.template.length, 'item')}</span>
@@ -576,7 +644,7 @@ export default function KittingTab({ projectKey }) {
             onFlip={() => {}} onRemove={item => removeItem('template', item)}
             onAdd={it => { onTemplate(list => list.length >= MAX.items ? list : [...list, it]); return true }} />
         </div>
-      </section>
+      </section>}
     </>
   )
 }

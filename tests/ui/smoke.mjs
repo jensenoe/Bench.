@@ -396,6 +396,24 @@ try {
   const handover = await fetch(`${BASE}/api/report/handover/${encodeURIComponent(`plan:${kitPlan.id}`)}`).then(async r => ({ status: r.status, text: await r.text() }))
   check('GET /api/report/handover answers with the handover for Service', handover.status === 200 && /Übergabe an den Service: Remote Coach rüsten/.test(handover.text) && /Machine 000 052/.test(handover.text), String(handover.status))
 
+  // workshop mode (roadmap 176): one machine, big ticks, a scanner typing anywhere finds the item, Enter ticks it
+  await page.getByRole('button', { name: 'Workshop' }).click(); await page.waitForTimeout(700)
+  check('Workshop shows one machine at a time', await page.getByRole('heading', { name: 'Machine 000 030.' }).count() === 1 && await page.getByRole('heading', { name: 'Template.' }).count() === 0)
+  await page.locator('h3.display').click()
+  await page.keyboard.type('USB-C cable'); await page.keyboard.press('Enter'); await page.waitForTimeout(700)
+  check('a scan typed anywhere finds the item and offers Tick kitted', await page.getByRole('button', { name: 'Tick kitted' }).count() === 1 && await page.evaluate(() => document.activeElement?.textContent) === 'Tick kitted')
+  await page.keyboard.press('Enter'); await page.waitForTimeout(700)
+  const wsKit = (await api('GET', `/api/kitting?project=plan:${kitPlan.id}`)).body
+  check('Enter on Tick kitted ticks that item and only that one', wsKit.doc?.machines?.[0]?.items?.find(i => i.name === 'USB-C cable 2 m')?.kitted === true && wsKit.doc.machines[0].items.find(i => i.name === 'Remote Coach unit')?.checked === true)
+  await page.waitForFunction(() => document.getAnimations().every(a => a.playState !== 'running'), null, { timeout: 4000 }).catch(() => {})
+  const wsAxe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze()
+  check('axe on workshop mode: no accessibility violations', wsAxe.violations.length === 0, violations(wsAxe))
+  const wsSmall = await page.locator('[role=tabpanel]').evaluate(panel => [...panel.querySelectorAll('button, a, [role=button]')]
+    .map(el => ({ el, r: el.getBoundingClientRect() })).filter(({ r }) => r.width > 0 && r.height > 0 && (r.width < 24 || r.height < 24))
+    .map(({ el, r }) => `${el.tagName.toLowerCase()} "${(el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 28)}" ${Math.round(r.width)}x${Math.round(r.height)}`))
+  check('workshop mode has no button under 24 px', wsSmall.length === 0, wsSmall.slice(0, 4).join(' | '))
+  await page.getByRole('button', { name: 'Workshop' }).click(); await page.waitForTimeout(300)
+
   // Paket and E2E (roadmap 170): a Paket due today shows its flow, the escalation and the intake gate, passes axe,
   // moves on once result and date are ticked, and has a done report
   const zurichToday = new Date().toLocaleDateString('sv-SE', { timeZone: TZ })

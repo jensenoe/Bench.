@@ -3,8 +3,10 @@
  * the server (kitting.js) count, clean and merge the same way. kitting.js re-exports all of it.
  *
  * A kit document is { project, template: [item], machines: [machine], updatedAt, by }.
- *   machine  { id, number ("000 030"), bundle (1 to 8 or null), label, items: [item], presentedOn, handedOverOn, notes }
+ *   machine  { id, number ("000 030"), bundle (1 to 8 or null), label, items: [item], presentedOn, handedOverOn, notes, photos: [photo] }
  *   item     { id, kind, name, partNumber, qty, unit, kitted, checked, stockUpdated, note, link, tpl?, bom? }
+ *   photo    { id, file, at, caption?, itemId?, small? }   (roadmap 176) the picture is a file in the shared folder
+ *            (kitting.js says where), never inside the document; `small` is the reduced copy the handover uses.
  * `tpl` is the id of the template item a machine's item came from, `bom` the BOM node it was filled from;
  * both let a second apply or a second fill add only what is missing.
  */
@@ -17,7 +19,9 @@ export const KIND_ONE = { kabel: 'Kabel', verbindung: 'Verbindung', schraube: 'S
 /** The kinds that come out of the store: these need their stock booked before a machine counts as kitted. */
 export const STOCK_KINDS = ['teil', 'kabel', 'schraube']
 export const needsStock = item => STOCK_KINDS.includes(item?.kind)
-export const MAX = { machines: 60, items: 300, name: 160, partNumber: 80, unit: 16, note: 500, link: 1000, label: 80, number: 40, notes: 2000, qty: 100000 }
+export const MAX = { machines: 60, items: 300, name: 160, partNumber: 80, unit: 16, note: 500, link: 1000, label: 80, number: 40, notes: 2000, qty: 100000, photos: 40, caption: 200 }
+/** A photo's file name as the server makes it: letters, digits, dash and underscore, then the type. Nothing else is ever opened. */
+export const PHOTO_FILE = /^[\w-]{1,120}\.(?:jpg|png|webp|heic)$/
 
 const uid = () => globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : `k-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`
 const str = (v, max) => typeof v === 'string' || typeof v === 'number' ? String(v).replace(/\s+/g, ' ').trim().slice(0, max) : ''
@@ -95,8 +99,31 @@ export function cleanMachine(input) {
   return {
     id: soundId(input.id) ? input.id : uid(), number, bundle: normBundle(input.bundle), label: str(input.label, MAX.label),
     items: cleanItems(input.items), presentedOn: isoDate(input.presentedOn), handedOverOn: isoDate(input.handedOverOn),
-    notes: text(input.notes, MAX.notes)
+    notes: text(input.notes, MAX.notes), photos: cleanPhotos(input.photos)
   }
+}
+/** One photo reference, or null when its file name is not one the server would make. */
+export function cleanPhoto(input) {
+  if (!input || typeof input !== 'object' || typeof input.file !== 'string' || !PHOTO_FILE.test(input.file)) return null
+  const t = typeof input.at === 'string' ? Date.parse(input.at) : NaN
+  const out = { id: soundId(input.id) ? input.id : uid(), file: input.file, at: Number.isNaN(t) ? null : new Date(t).toISOString() }
+  const caption = str(input.caption, MAX.caption)
+  if (caption) out.caption = caption
+  if (soundId(input.itemId)) out.itemId = input.itemId
+  if (typeof input.small === 'string' && PHOTO_FILE.test(input.small) && input.small !== input.file) out.small = input.small
+  return out
+}
+/** A machine's photos: cleaned, ids and files unique, at most 40. A document from before roadmap 176 has none. */
+export function cleanPhotos(list) {
+  const out = [], ids = new Set(), files = new Set()
+  for (const raw of Array.isArray(list) ? list : []) {
+    const p = cleanPhoto(raw)
+    if (!p || files.has(p.file)) continue
+    if (ids.has(p.id)) p.id = uid()
+    ids.add(p.id); files.add(p.file); out.push(p)
+    if (out.length >= MAX.photos) break
+  }
+  return out
 }
 /**
  * The whole document as it may be stored: at most 60 machines (one per number; a second "000 030" is
@@ -173,6 +200,50 @@ export function bundleCheck(doc) {
   const bundle6 = presented.filter(m => m.bundle === 6).map(m => m.number)
   return { ok: bundle1to5.length > 0 && bundle6.length > 0, bundle1to5, bundle6 }
 }
+
+// ── finding ───────────────────────────────────────────────────────────
+/**
+ * The items that match what was scanned or typed, best first: the part number exactly (spaces, dashes and case do
+ * not count, so "TF 100-23" finds "tf10023"), then a part number that starts with it, then one that contains it,
+ * then every word of it in the name. An empty query finds nothing.
+ * Self-contained on purpose: the phone page (server/phone.js) inlines this function's source, so the phone and
+ * the desktop find the same item. Do not reach for anything outside it.
+ */
+export function findItems(items, query) {
+  const fold = s => String(s == null ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toLowerCase()
+  const compact = s => fold(s).replace(/[^a-z0-9]/g, '')
+  const q = fold(query), qc = compact(query)
+  if (!q) return []
+  const words = q.split(' ')
+  const hits = []
+  ;(Array.isArray(items) ? items : []).forEach((it, i) => {
+    if (!it || typeof it !== 'object') return
+    const pn = compact(it.partNumber), name = fold(it.name)
+    let rank = -1
+    if (qc && pn && pn === qc) rank = 0
+    else if (qc.length >= 2 && pn && pn.startsWith(qc)) rank = 1
+    else if (qc.length >= 3 && pn && pn.includes(qc)) rank = 2
+    else if (words.every(w => name.includes(w))) rank = 3
+    if (rank >= 0) hits.push({ it, rank, i })
+  })
+  return hits.sort((a, b) => a.rank - b.rank || a.i - b.i).map(h => h.it)
+}
+/**
+ * The next item after `afterId` that is not done, in the order given, wrapping round; null when every one is.
+ * `isDone` says what done means (itemDone on the desktop). Self-contained for the phone page, like findItems.
+ */
+export function nextOpen(list, afterId, isDone) {
+  const items = Array.isArray(list) ? list : []
+  if (!items.length) return null
+  const at = items.findIndex(i => i && i.id === afterId)
+  for (let n = 1; n <= items.length; n++) {
+    const it = items[(at + n + items.length) % items.length]
+    if (it && !isDone(it)) return it
+  }
+  return null
+}
+/** A machine's items in the order the tab and the phone show them: by kind (Kabel first), then as entered. */
+export const inKindOrder = (items = []) => KINDS.flatMap(k => (Array.isArray(items) ? items : []).filter(i => i.kind === k))
 
 // ── merging ───────────────────────────────────────────────────────────
 // the same kind and name, and the same part number unless one of the two has none yet
