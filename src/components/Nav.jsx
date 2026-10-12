@@ -6,6 +6,7 @@ import MoreMenu from './MoreMenu.jsx'
 import Clock from './Clock.jsx'
 import FocusTimer from './FocusTimer.jsx'
 import Bell from './Bell.jsx'
+import SourceHealth from './SourceHealth.jsx'
 import TimeClock from './TimeClock.jsx'
 import Reminder from './Reminder.jsx'
 
@@ -53,6 +54,7 @@ export default function Nav({ route, auth, meta, onRefresh, now, scene, timecloc
         <div className="relative flex shrink-0 items-center gap-4 whitespace-nowrap xl:gap-5 2xl:gap-6">
           <Clock now={now} scene={scene} />
           <FocusTimer />
+          <SourceHealth onConnect={onSettings} />
           <Bell />
           <TimeClock clock={timeclock?.clock} punch={timeclock?.punch} now={now} />
           <Reminder clock={timeclock?.clock} now={now} />

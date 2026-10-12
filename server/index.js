@@ -54,6 +54,7 @@ const portfolio = await import('./portfolio.js')     // the innovation projects,
 const aerials = await import('./aerials.js')         // aerial film for the moving hero, cached on demand (Themes 2.0)
 const meetprep = await import('./meetprep-live.js')   // meeting prep and Log this meeting (roadmap 163)
 const alerts = await import('./alerts.js')           // meeting in five minutes, due and overdue, your own reminders, the clock (roadmap 150)
+const sourceHealth = await import('./source-health.js')   // which tools read, and a note when one drops (roadmap 174)
 const issuesSource = await import('./sources/issues.js')   // its site and list, for the admin's Sites.Selected grant (roadmap 140)
 
 const PORT = Number(process.env.PORT || 5178)
@@ -242,6 +243,7 @@ kitting.registerRoutes(app)
 jobs.registerRoutes(app)
 report.registerRoutes(app)
 meetprep.registerRoutes(app)
+sourceHealth.registerRoutes(app)
 aerials.registerRoutes(app)                          // /api/aerials and /media/aerials/<id>.mp4|jpg
 updates.registerRoutes(app)                         // /api/updates and the background download (roadmap 76)
 
