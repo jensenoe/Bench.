@@ -18,7 +18,26 @@
  *   GET  /api/kitting/bom[?machine=BOM_ID]             the BOM's machines, or one machine's assemblies (desktop only)
  *   POST /api/kitting/from-bom?project=KEY&machine=ID  { bomMachine, rootId }: the parts under a BOM node as items
  *   GET  /api/report/handover?project=KEY   GET /api/report/handover/:project   the handover report (?print=1)
+ *
+ * Workshop mode (roadmap 176): the phone (server/phone.js proxies to these) and the desktop's Workshop view tick
+ * one item at a time, so a tick never travels inside a whole document and never overwrites another item.
+ *
+ *   GET    /api/kitting/jobs                              the open jobs: kits with machines not all handed over
+ *   PATCH  /api/kitting/tick?project=KEY                  { machine, item, kitted?, checked?, stockUpdated? }
+ *   POST   /api/kitting/photo?project=KEY&machine=ID      raw image bytes (&item=ID&caption=...); 12 MB, 40 per machine
+ *   POST   /api/kitting/photo?...&photo=ID&rendition=small    the reduced copy of that photo, 1 MB
+ *   GET    /api/kitting/photo?project=KEY&machine=ID&file=NAME   the picture, only when the kit names it
+ *   PATCH  /api/kitting/photo?project=KEY&machine=ID&photo=ID    { caption }
+ *   DELETE /api/kitting/photo?project=KEY&machine=ID&photo=ID    the reference and its files
+ *   PUT    /api/kitting?project=KEY&keep=ticks           as PUT, but the stored ticks of known items stay
+ *
+ * Photos live in the shared folder beside the kit, never inside it: kitting-photos/<plan-id>/<machine id>/, under
+ * names the server makes. A whole-document save (PUT) never adds or drops a photo; only the photo routes do.
  */
+import fs from 'node:fs'
+import path from 'node:path'
+import crypto from 'node:crypto'
+import express from 'express'
 import * as db from './db.js'
 import * as settings from './settings.js'
 import * as projects from './projects.js'
@@ -28,12 +47,14 @@ import { bridge } from './bridge.js'
 import { ORIGIN as BOM_ORIGIN } from './sources/bom.js'
 import {
   KINDS, KIND_LABEL, KIND_ONE, STOCK_KINDS, MAX, needsStock, normNumber, normBundle, isoDate, cleanItem, cleanItems, cleanMachine, cleanDoc,
-  progress, itemDone, missing, planProgress, kitCompleteDoc, bundleCheck, mergeItems, applyTemplate, parsePaste, kindFor, itemsFromBom
+  progress, itemDone, missing, planProgress, kitCompleteDoc, bundleCheck, mergeItems, applyTemplate, parsePaste, kindFor, itemsFromBom,
+  PHOTO_FILE, cleanPhoto, cleanPhotos, findItems, nextOpen, inKindOrder
 } from './kitting-rules.js'
 
 export {
   KINDS, KIND_LABEL, KIND_ONE, STOCK_KINDS, MAX, needsStock, normNumber, normBundle, isoDate, cleanItem, cleanItems, cleanMachine, cleanDoc,
-  progress, itemDone, missing, planProgress, kitCompleteDoc, bundleCheck, mergeItems, applyTemplate, parsePaste, kindFor, itemsFromBom
+  progress, itemDone, missing, planProgress, kitCompleteDoc, bundleCheck, mergeItems, applyTemplate, parsePaste, kindFor, itemsFromBom,
+  PHOTO_FILE, cleanPhoto, cleanPhotos, findItems, nextOpen, inKindOrder
 }
 
 const wrap = fn => (req, res) => Promise.resolve().then(() => fn(req, res)).catch(err => res.status(err.status || 500).json({ error: err.message }))
@@ -100,19 +121,176 @@ export function viewFor(key) {
   if (k.startsWith('plan:') && !plan && !doc.updatedAt) throw fail(404, 'That plan is gone, and no kit was kept for it.')
   return { doc, progress: planProgress(doc), complete: kitCompleteDoc(doc), bundles: bundleCheck(doc), plan: { key: k, name: plan?.name || k.replace(/^plan:/, '') } }
 }
-/** Saves the whole document for the key, cleaned and clamped. */
-export function save(key, input = {}) {
-  const k = keyOrFail(key)
-  const body = input && typeof input === 'object' && input.doc && typeof input.doc === 'object' ? input.doc : input
-  if (!body || typeof body !== 'object' || Array.isArray(body)) throw fail(400, 'Send the kit as an object with template and machines.')
-  if (k.startsWith('plan:') && !planOf(k) && !stored(k)) throw fail(404, 'That plan is gone.')
-  const doc = { ...cleanDoc(body, k), updatedAt: now(), by: me() }
+/** Writes a cleaned document for the key as it is. Every save path ends here. */
+function writeDoc(k, input) {
+  const doc = { ...cleanDoc(input, k), updatedAt: now(), by: me() }
   const all = readAll()
   const i = all.items.findIndex(x => x.id === k)
   if (i < 0) all.items.push({ id: k, ...doc }); else all.items[i] = { id: k, ...doc }
   writeAll(all)
+  return doc
+}
+const TICKS = ['kitted', 'checked', 'stockUpdated']
+/**
+ * Saves the whole document for the key, cleaned and clamped. Photos are the photo routes' business: each machine
+ * keeps the photos stored for it, whatever the body says. With `keepTicks` (the desktop tab, which ticks through
+ * tick()), every item that is stored already keeps its stored ticks, so a document loaded a minute ago cannot
+ * untick what the phone ticked since.
+ */
+export function save(key, input = {}, { keepTicks = false } = {}) {
+  const k = keyOrFail(key)
+  const body = input && typeof input === 'object' && input.doc && typeof input.doc === 'object' ? input.doc : input
+  if (!body || typeof body !== 'object' || Array.isArray(body)) throw fail(400, 'Send the kit as an object with template and machines.')
+  if (k.startsWith('plan:') && !planOf(k) && !stored(k)) throw fail(404, 'That plan is gone.')
+  const before = stored(k) ? cleanDoc(stored(k), k) : null
+  const clean = cleanDoc(body, k)
+  const machines = clean.machines.map(m => {
+    const old = before?.machines.find(x => x.id === m.id)
+    const items = keepTicks && old ? m.items.map(i => { const o = old.items.find(x => x.id === i.id); return o ? { ...i, ...Object.fromEntries(TICKS.map(f => [f, o[f]])) } : i }) : m.items
+    return { ...m, items, photos: old ? old.photos : [] }
+  })
+  writeDoc(k, { ...clean, machines })
   return viewFor(k)
 }
+
+// ── workshop mode: one item, one photo at a time ──────────────────────
+const soundId = v => typeof v === 'string' && /^[\w-]{1,64}$/.test(v)
+/** The stored kit and one machine of it, read fresh; 404 when either is gone. */
+function machineOf(k, machineId) {
+  if (!soundId(machineId)) throw fail(400, 'Which machine?')
+  if (k.startsWith('plan:') && !planOf(k) && !stored(k)) throw fail(404, 'That plan is gone.')
+  const doc = docFor(k)
+  const m = doc.machines.find(x => x.id === machineId)
+  if (!m) throw fail(404, 'That machine is not on this kit any more.')
+  return { doc, m }
+}
+/**
+ * Ticks or unticks one item: reads the stored kit, changes only the named flags of that one item, and writes it
+ * through the same cleaning as every save. The last tick on an item wins; the other items stay as stored.
+ * Answers { item, machine: progress, complete, updatedAt }.
+ */
+export function tick(key, { machine, item, ...flags } = {}) {
+  const k = keyOrFail(key)
+  if (!soundId(item)) throw fail(400, 'Which item?')
+  const change = Object.fromEntries(TICKS.filter(f => f in flags).map(f => [f, flags[f]]))
+  if (!Object.keys(change).length || Object.values(change).some(v => typeof v !== 'boolean')) throw fail(400, 'Say kitted, checked or stockUpdated, as true or false.')
+  const { doc, m } = machineOf(k, machine)
+  const it = m.items.find(x => x.id === item)
+  if (!it) throw fail(404, 'That item is not on the machine any more.')
+  if ('stockUpdated' in change && !needsStock(it)) throw fail(400, 'That item does not come out of the store.')
+  const next = { ...it, ...change }
+  const saved = writeDoc(k, { ...doc, machines: doc.machines.map(x => x.id === m.id ? { ...x, items: x.items.map(i => i.id === it.id ? next : i) } : x) })
+  const sm = saved.machines.find(x => x.id === m.id)
+  return { item: sm.items.find(i => i.id === it.id), machine: { id: sm.id, number: sm.number, ...progress(sm) }, complete: kitCompleteDoc(saved), updatedAt: saved.updatedAt }
+}
+
+/** The open jobs for the bench: every kit with machines on a plan that is still there, not all handed over. */
+export function jobs() {
+  let plans = []
+  try { plans = projects.list() } catch { /* no plans file yet */ }
+  return readAll().items.map(x => {
+    const k = projectKey(x?.id)
+    if (!k) return null
+    const plan = k.startsWith('plan:') ? plans.find(p => p.id === k.slice(5)) : null
+    if (k.startsWith('plan:') && (!plan || plan.archived)) return null
+    const doc = cleanDoc(x, k)
+    if (!doc.machines.length || doc.machines.every(m => m.handedOverOn)) return null
+    const { overall } = planProgress(doc)
+    return { key: k, name: plan?.name || k, machines: overall.machines, complete: overall.complete, open: overall.open, total: overall.total,
+      kitted: overall.kitted, checked: overall.checked, stock: overall.stock, stockNeeded: overall.stockNeeded, updatedAt: doc.updatedAt }
+  }).filter(Boolean).sort((a, b) => (a.complete === a.machines) - (b.complete === b.machines) || String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')))
+}
+
+// Photos: kitting-photos/<key as a folder>/<machine id>/<file> in the shared data folder.
+export const PHOTO_MAX_BYTES = 12 * 1024 * 1024
+export const SMALL_MAX_BYTES = 1024 * 1024
+export const photoRoot = () => path.join(db.dataDir(), 'kitting-photos')
+const folderOf = k => k.replace(/[^\w-]/g, '-')
+/** The folder of one machine's photos. Both parts are checked, so nothing can climb out of photoRoot. */
+export function photoDir(key, machineId) {
+  const k = keyOrFail(key)
+  if (!soundId(machineId)) throw fail(400, 'Which machine?')
+  const root = photoRoot(), dir = path.join(root, folderOf(k), machineId)
+  if (!dir.startsWith(root + path.sep)) throw fail(400, 'Which machine?')
+  return dir
+}
+const TYPES = { '.jpg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.heic': 'image/heic' }
+/** The type of an image from its first bytes, never from what the sender says: '.jpg', '.png', '.webp', '.heic' or null. */
+export function sniffImage(buf) {
+  if (!Buffer.isBuffer(buf) || buf.length < 12) return null
+  if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return '.jpg'
+  if (buf.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]))) return '.png'
+  if (buf.toString('latin1', 0, 4) === 'RIFF' && buf.toString('latin1', 8, 12) === 'WEBP') return '.webp'
+  if (buf.toString('latin1', 4, 8) === 'ftyp' && /^(heic|heix|hevc|heim|heis|mif1|msf1)$/.test(buf.toString('latin1', 8, 12))) return '.heic'
+  return null
+}
+const stamp = () => { const d = new Date(); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}` }
+const writePhotos = (k, doc, m, photos) => writeDoc(k, { ...doc, machines: doc.machines.map(x => x.id === m.id ? { ...x, photos } : x) })
+const checkImage = (buf, max) => {
+  if (!Buffer.isBuffer(buf) || !buf.length) throw fail(400, 'No picture arrived.')
+  if (buf.length > max) throw fail(413, `That picture is over ${Math.round(max / 1024 / 1024)} MB.`)
+  const ext = sniffImage(buf)
+  if (!ext) throw fail(415, 'That is not a JPEG, PNG, WebP or HEIC picture.')
+  return ext
+}
+/**
+ * A photo of one machine (and optionally one of its items): the bytes go to a file named by the server, the kit
+ * gets { id, file, at, caption?, itemId? } on that machine. Answers { photo, photos }.
+ */
+export function addPhoto(key, machineId, buf, { caption = '', itemId = '' } = {}) {
+  const k = keyOrFail(key)
+  const { doc, m } = machineOf(k, machineId)
+  if (m.photos.length >= MAX.photos) throw fail(409, `${MAX.photos} photos is the most one machine holds. Remove one on the desktop first.`)
+  const ext = checkImage(buf, PHOTO_MAX_BYTES)
+  if (itemId && !m.items.some(i => i.id === itemId)) throw fail(404, 'That item is not on the machine any more.')
+  const dir = photoDir(k, m.id)
+  fs.mkdirSync(dir, { recursive: true })
+  const file = `${m.number.replace(/[^\w-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'machine'}-${stamp()}-${crypto.randomBytes(4).toString('hex')}${ext}`
+  fs.writeFileSync(path.join(dir, file), buf, { flag: 'wx' })
+  const photo = cleanPhoto({ id: crypto.randomUUID(), file, at: now(), caption, itemId: itemId || undefined })
+  const saved = writePhotos(k, doc, m, [...m.photos, photo])
+  return { photo, photos: saved.machines.find(x => x.id === m.id).photos }
+}
+/** The reduced copy of a photo (the phone and the desktop make it before sending), for the handover. */
+export function addSmall(key, machineId, photoId, buf) {
+  const k = keyOrFail(key)
+  const { doc, m } = machineOf(k, machineId)
+  const p = m.photos.find(x => x.id === photoId)
+  if (!p) throw fail(404, 'That photo is not on the machine any more.')
+  const ext = checkImage(buf, SMALL_MAX_BYTES)
+  const dir = photoDir(k, m.id)
+  const small = `${p.file.replace(/\.\w+$/, '')}-small${ext}`
+  fs.mkdirSync(dir, { recursive: true })
+  fs.writeFileSync(path.join(dir, small), buf)
+  const saved = writePhotos(k, doc, m, m.photos.map(x => x.id === p.id ? { ...x, small } : x))
+  return { photo: saved.machines.find(x => x.id === m.id).photos.find(x => x.id === p.id) }
+}
+/** A caption changed, or the photo gone (its files too). */
+export function editPhoto(key, machineId, photoId, { caption, remove = false } = {}) {
+  const k = keyOrFail(key)
+  const { doc, m } = machineOf(k, machineId)
+  const p = m.photos.find(x => x.id === photoId)
+  if (!p) throw fail(404, 'That photo is not on the machine any more.')
+  if (remove) {
+    for (const f of [p.file, p.small].filter(Boolean)) { try { fs.unlinkSync(path.join(photoDir(k, m.id), f)) } catch { /* already gone */ } }
+    writePhotos(k, doc, m, m.photos.filter(x => x.id !== p.id))
+    return { removed: p.id }
+  }
+  const saved = writePhotos(k, doc, m, m.photos.map(x => x.id === p.id ? { ...x, caption: typeof caption === 'string' ? caption : '' } : x))
+  return { photo: saved.machines.find(x => x.id === m.id).photos.find(x => x.id === p.id) }
+}
+/** Where a named photo file lives, only when the kit names it on that machine; 404 for anything else. */
+export function photoFile(key, machineId, file) {
+  const k = keyOrFail(key)
+  if (typeof file !== 'string' || !PHOTO_FILE.test(file)) throw fail(400, 'Which picture?')
+  const { m } = machineOf(k, machineId)
+  if (!m.photos.some(p => p.file === file || p.small === file)) throw fail(404, 'No such picture on this machine.')
+  const abs = path.join(photoDir(k, m.id), file)
+  if (!fs.existsSync(abs)) throw fail(404, 'The picture is not in the shared folder any more.')
+  return { abs, type: TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream' }
+}
+/** The URL of a photo on the local server, for the report and the desktop. */
+export const photoUrl = (key, machineId, file) => `/api/kitting/photo?project=${encodeURIComponent(key)}&machine=${encodeURIComponent(machineId)}&file=${encodeURIComponent(file)}`
 /** The template onto every machine of the key; answers as GET with `added`. */
 export function applyTemplateTo(key) {
   const k = keyOrFail(key)
@@ -236,6 +414,11 @@ ul.open li { margin: .6mm 0; break-inside: avoid; }
 .sign { display: grid; grid-template-columns: 1fr 1fr; gap: 10mm; margin-top: 10mm; break-inside: avoid; }
 .sign div { border-top: .8pt solid #111; padding-top: 1.5mm; font-size: 8.5pt; color: #555; }
 footer { margin-top: 9mm; padding-top: 2mm; border-top: .5pt solid #ccc; color: #777; font-size: 8pt; }
+.photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; margin-top: 2mm; }
+.photos figure { margin: 0; break-inside: avoid; }
+.photos img { display: block; width: 100%; height: 40mm; object-fit: cover; border: .5pt solid #ccc; border-radius: 1mm; background: #f2f2f2; }
+.photos figcaption { font-size: 8.5pt; color: #333; margin-top: 1mm; overflow-wrap: anywhere; }
+.photos figcaption span { display: block; color: #777; font-size: 8pt; }
 `
 const box = (on, label) => `<span class="box${on ? ' on' : ''}" role="img" aria-label="${on ? `${label}: yes` : `${label}: no`}"></span>`
 
@@ -243,11 +426,17 @@ const box = (on, label) => `<span class="box${on ? ' on' : ''}" role="img" aria-
  * The handover document for Service: "Übergabe an den Service: <plan>", the date, the overview of every machine
  * number with its bundle and where it stands, the presentation check and the sign-off; then one page per
  * machine (`break-before: page` from the second on) with every item by kind, its marks for kitted, checked and
- * stock, part number, quantity, link written out, and the open points. Everything from a person goes through
- * `esc`. Pure: the whole HTML page as a string.
+ * stock, part number, quantity, link written out, the machine's photos as a small grid with their captions, and the
+ * open points. Everything from a person goes through `esc`. Pure: the whole HTML page as a string.
+ *
+ * Photos are <img> tags on the local server's photo route (`photoSrc`), the reduced copy when there is one, so
+ * the hidden print window of the desktop app (javascript off, loaded from the same server) fetches them like any
+ * picture and the HTML stays small. The grid shows each at 40 mm high; a photo without a reduced copy goes into
+ * the PDF at the size it was stored (the phone and the desktop send at most 1600 px).
  */
-export function kittingReportHtml(doc, { esc = escDefault, fmt = fmtDefault, today = isoToday(), title = '', author = '', print = false } = {}) {
+export function kittingReportHtml(doc, { esc = escDefault, fmt = fmtDefault, today = isoToday(), title = '', author = '', print = false, photoSrc = null } = {}) {
   const d = cleanDoc(doc || {}, doc?.project ?? null)
+  const srcOf = photoSrc || ((m, p) => d.project ? photoUrl(d.project, m.id, p.small || p.file) : null)
   const name = String(title || d.project || '').replace(/^plan:/, '') || 'Kit'
   const heading = `Übergabe an den Service: ${name}`
   const { overall, machines: prog } = planProgress(d)
@@ -292,11 +481,20 @@ ${fig(`${overall.stock} of ${overall.stockNeeded}`, 'stock updated')}
       : `<p class="none">${m.items.length ? 'None. Every item is kitted, checked and booked.' : 'No items on this machine yet.'}</p>`
     const facts = [bundleText(m), m.label, `${p.kitted} of ${p.total} kitted`, `${p.checked} of ${p.total} checked`, `stock updated for ${p.stock} of ${p.stockNeeded}`,
       m.presentedOn ? `presented ${fmt(m.presentedOn)}` : null, m.handedOverOn ? `handed over ${fmt(m.handedOverOn)}` : null].filter(Boolean)
+    const figure = p => {
+      const src = srcOf(m, p)
+      const item = p.itemId ? m.items.find(i => i.id === p.itemId) : null
+      const caption = p.caption || (item ? item.name : `Machine ${m.number}`)
+      const sub = [item && p.caption ? item.name : null, p.at ? fmt(p.at.slice(0, 10)) : null].filter(Boolean).join(', ')
+      return `<figure>${src ? `<img src="${esc(src)}" alt="${esc(caption)}">` : ''}<figcaption>${esc(caption)}${sub ? `<span>${esc(sub)}</span>` : ''}</figcaption></figure>`
+    }
+    const photos = m.photos?.length ? `<h3>Photos (${m.photos.length})</h3><div class="photos">${m.photos.map(figure).join('')}</div>` : ''
     return `<section class="machine">
 <h2>Machine ${esc(m.number)}</h2>
 <p class="meta">${esc(facts.join(', '))}.</p>
 ${m.notes ? `<p class="note" style="white-space:pre-line">${esc(m.notes)}</p>` : ''}
 ${tables || '<p class="none">No items on this machine yet.</p>'}
+${photos}
 <h3>Open points</h3>${openHtml}
 </section>`
   }
@@ -326,7 +524,23 @@ function handover(req, res, key) {
 
 export function registerRoutes(app) {
   app.get('/api/kitting', wrap((req, res) => res.json(viewFor(req.query.project))))
-  app.put('/api/kitting', wrap((req, res) => res.json(save(req.query.project, req.body))))
+  app.put('/api/kitting', wrap((req, res) => res.json(save(req.query.project, req.body, { keepTicks: req.query.keep === 'ticks' }))))
+  app.get('/api/kitting/jobs', wrap((_req, res) => res.json({ jobs: jobs() })))
+  app.patch('/api/kitting/tick', wrap((req, res) => res.json(tick(req.query.project, req.body || {}))))
+  const raw = express.raw({ type: () => true, limit: PHOTO_MAX_BYTES + 1 })
+  const one = v => typeof v === 'string' ? v : ''
+  app.post('/api/kitting/photo', (req, res, next) => raw(req, res, err => err ? res.status(err.status === 413 ? 413 : 400).json({ error: err.status === 413 ? 'That picture is over 12 MB.' : 'The picture did not arrive whole.' }) : next()),
+    wrap((req, res) => {
+      const { project, machine } = req.query
+      if (req.query.rendition === 'small') return res.json(addSmall(project, one(machine), one(req.query.photo), req.body))
+      res.json(addPhoto(project, one(machine), req.body, { caption: one(req.query.caption), itemId: one(req.query.item) }))
+    }))
+  app.get('/api/kitting/photo', wrap((req, res) => {
+    const { abs, type } = photoFile(req.query.project, one(req.query.machine), one(req.query.file))
+    res.set('Cache-Control', 'private, max-age=3600').type(type).sendFile(abs)
+  }))
+  app.patch('/api/kitting/photo', wrap((req, res) => res.json(editPhoto(req.query.project, one(req.query.machine), one(req.query.photo), { caption: req.body?.caption }))))
+  app.delete('/api/kitting/photo', wrap((req, res) => res.json(editPhoto(req.query.project, one(req.query.machine), one(req.query.photo), { remove: true }))))
   app.post('/api/kitting/apply-template', wrap((req, res) => res.json(applyTemplateTo(req.query.project))))
   app.get('/api/kitting/bom', wrap(async (req, res) => {
     if (req.query.machine) { const t = await bomTree(req.query.machine); return res.json({ id: String(req.query.machine), name: String(t?.name || ''), branches: bomBranches(t) }) }

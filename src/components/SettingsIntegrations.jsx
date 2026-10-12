@@ -60,7 +60,7 @@ export function PhoneView({ draft, set, save, saveNow }) {
   return (
     <>
       <Switch on={on} onChange={() => saveNow({ phoneAccess: !on })} label="Phone view on the workshop network"
-        hint="A small page on port 5199 for the phone on the same Wi-Fi: the brief, Today ticks, the clock, quick add and a camera button that drops a photo into the inbox folder above. Needs the PIN; ten wrong tries lock the address for five minutes." />
+        hint="A small page on port 5199 for the phone on the same Wi-Fi: the brief, Today ticks, the clock, quick add, a camera button that drops a photo into the inbox folder above, and Rüsten under /kit. Needs the PIN; ten wrong tries lock the address for five minutes." />
       {on && (
         <label className="block text-[13px]" style={{ color: 'var(--ink-3)' }}>PIN, four to eight digits
           <input inputMode="numeric" pattern="[0-9]*" autoComplete="off" value={draft.phonePin ?? ''} onChange={e => set('phonePin', e.target.value.replace(/\D/g, '').slice(0, 8))} onBlur={() => save('phonePin')}

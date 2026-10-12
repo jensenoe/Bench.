@@ -36,6 +36,11 @@ const GROUPS = [
     ['Del', 'Remove it'],
     ['c', 'Next colour'],
     ['t', 'Send it to the board']
+  ] },
+  { title: 'Rüsten, in workshop mode', keys: [
+    ['Any letter or digit', 'Goes to Find, so a barcode scanner works from anywhere on the page'],
+    ['Enter in Find', 'Jumps to the item; Enter again ticks it'],
+    ['Esc in Find', 'Clears the find']
   ] }
 ]
 

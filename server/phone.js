@@ -2,7 +2,9 @@
  * The phone view on the workshop network (roadmap 116). A second, small Express app on port 5199 bound to
  * every interface, behind a PIN, serving one mobile page: the brief in short, Today with tick buttons, the
  * punches that are valid now, a quick add, and a camera input that drops a photo into the inbox folder.
- * It holds no data of its own: every read and write goes to the main Bench on 127.0.0.1.
+ * It holds no data of its own: every read and write goes to the main Bench on 127.0.0.1. Rüsten in the workshop
+ * (roadmap 176: /kit, the jobs, ticks, scan, photos per machine) lives in phone-kit.js and is mounted here,
+ * behind the same gate.
  *
  * Every request needs the PIN, as a `bench-pin` header or as the `pin` cookie that POST /pin sets (the cookie
  * carries a hash of the PIN, never the PIN). The only ungated answers are the PIN form itself and POST /pin.
@@ -21,6 +23,7 @@ import { fileURLToPath } from 'node:url'
 import express from 'express'
 import * as settings from './settings.js'
 import { readPort } from './mcp.js'
+import { registerKit } from './phone-kit.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const USER_DIR = process.env.BENCH_USER_DIR || process.env.BENCH_SECRETS_DIR || process.env.BENCH_DATA_DIR || path.join(__dirname, '..', 'data')
@@ -120,7 +123,7 @@ export function createApp({ pin, mainBase = mainBaseDefault, inboxDir = inboxDef
   app.get('/api/ping', (_req, res) => res.json({ ok: true, at: new Date().toISOString() }))
   /** Everything the page shows, in one call. */
   app.get('/api/brief', wrap(async (_req, res) => {
-    const [state, brief, clockSnap] = await Promise.all([main('GET', '/api/state'), main('GET', '/api/day/brief').catch(() => null), main('GET', '/api/timeclock').catch(() => null)])
+    const [state, brief, clockSnap, kits] = await Promise.all([main('GET', '/api/state'), main('GET', '/api/day/brief').catch(() => null), main('GET', '/api/timeclock').catch(() => null), main('GET', '/api/kitting/jobs').catch(() => null)])
     const today = state.tasks.filter(t => t.lane === 'today' && !t.done).sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
       .map(t => ({ id: t.id, title: t.title, project: t.project || null, effortHours: t.effortHours ?? null, dueDate: t.dueDate || null }))
     const worked = clockSnap ? summarizeWorked(clockSnap.events || []) : 0
@@ -128,7 +131,8 @@ export function createApp({ pin, mainBase = mainBaseDefault, inboxDir = inboxDef
       date: brief?.date || null, name: state.settings?.firstName || '',
       today, count: today.length, due: (brief?.due || []).length, orders: (brief?.orders || []).length,
       meetings: (brief?.meetings || []).filter(m => !m.allDay).map(m => ({ subject: m.subject, start: m.start, end: m.end })),
-      clock: { status: clockSnap?.status || 'off', valid: validPunches(clockSnap?.status), worked, pending: clockSnap?.pending || 0 }
+      clock: { status: clockSnap?.status || 'off', valid: validPunches(clockSnap?.status), worked, pending: clockSnap?.pending || 0 },
+      kits: Array.isArray(kits?.jobs) ? kits.jobs.length : null
     })
   }))
   app.post('/api/tick', express.json({ limit: '4kb' }), wrap(async (req, res) => {
@@ -160,6 +164,17 @@ export function createApp({ pin, mainBase = mainBaseDefault, inboxDir = inboxDef
     fs.writeFileSync(path.join(dir, name), req.body)
     res.json({ ok: true, name, dir, size: req.body.length })
   }))
+  /** Bytes both ways, for the kit photos: { status, json, buf, type }. */
+  const mainRaw = async (method, url, { body, type } = {}) => {
+    const r = await fetchImpl(base() + url, { method, headers: body ? { 'Content-Type': type || 'application/octet-stream' } : {}, body })
+    const buf = Buffer.from(await r.arrayBuffer())
+    const t = r.headers.get('content-type') || ''
+    let json = null
+    if (/json/.test(t)) { try { json = JSON.parse(buf.toString('utf8')) } catch { /* not json */ } }
+    return { status: r.status, json, buf, type: t }
+  }
+  // Rüsten in the workshop (roadmap 176): /kit and /api/kit/*, behind the gate above.
+  registerKit(app, { main, mainRaw, authed, locked: req => Boolean(limit.locked(ip(req))), shell: { head: headHtml, css: BASE_CSS, pin: pinPage, locked: lockedPage } })
   app.use((err, _req, res, _next) => res.status(err.status || 500).json({ error: err.message }))
   return app
 }
@@ -181,11 +196,15 @@ function summarizeWorked(events) {
 /**
  * One HTML string, inline CSS and JS, no build step. The house colours appear here as literal values
  * because this page is not part of the Vite app; each such line is marked tokens-ok for the lint.
+ * The phone follows its own light or dark setting (roadmap 176): the workshop is bright, the evening is not.
  */
-function page({ authed = false, locked = false } = {}) {
-  const css = `
-    :root { --bg: #15161C; --panel: #1E1F27; --row: #25262F; --ink: #F3F3F1; --ink-2: rgba(243,243,241,.72); --ink-3: rgba(243,243,241,.62); --line: rgba(243,243,241,.08); --line-2: rgba(243,243,241,.14); } /* tokens-ok */
-    :root { --accent: #9DB9E6; --accent-ink: #0A1C2E; --ok: #8CD3A2; --late: #F0776B; --caution: #E8B85A; --held: #7CC8DA; } /* tokens-ok */
+export const BASE_CSS = `
+    :root { color-scheme: dark; --bg: #15161C; --panel: #1E1F27; --row: #25262F; --ink: #F3F3F1; --ink-2: rgba(243,243,241,.76); --ink-3: rgba(243,243,241,.66); --line: rgba(243,243,241,.10); --line-2: rgba(243,243,241,.22); } /* tokens-ok */
+    :root { --accent: #9DB9E6; --accent-ink: #0A1C2E; --ok: #8CD3A2; --ok-ink: #0B2414; --late: #F0776B; --caution: #E8B85A; --held: #7CC8DA; --shade: rgba(14,21,38,.72); } /* tokens-ok */
+    @media (prefers-color-scheme: light) {
+      :root { color-scheme: light; --bg: #F3F1EC; --panel: #FFFFFF; --row: #F7F6F2; --ink: #16161A; --ink-2: rgba(22,22,26,.80); --ink-3: rgba(22,22,26,.68); --line: rgba(22,22,26,.14); --line-2: rgba(22,22,26,.30); } /* tokens-ok */
+      :root { --accent: #3A5B96; --accent-ink: #FFFFFF; --ok: #2E7D4F; --ok-ink: #FFFFFF; --late: #B9432F; --caution: #946212; --held: #1F6F86; --shade: rgba(58,91,150,.22); } /* tokens-ok */
+    }
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif; padding: 16px 16px 48px; }
     h1 { font-size: 30px; margin: 8px 0 4px; letter-spacing: -0.02em; }
@@ -205,18 +224,21 @@ function page({ authed = false, locked = false } = {}) {
     .field:focus { outline: 2px solid var(--accent); outline-offset: 2px; border-color: var(--accent); }
     .stack { display: flex; gap: 8px; margin-top: 8px; }
     .empty { color: var(--ink-3); font-size: 14px; margin: 8px 0 0; }
-    .toast { position: fixed; left: 16px; right: 16px; bottom: 16px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 12px; padding: 12px 16px; font-size: 15px; box-shadow: 0 12px 40px rgba(14,21,38,.72); display: none; } /* tokens-ok */
+    .toast { position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 30; background: var(--panel); border: 1px solid var(--line-2); border-radius: 12px; padding: 12px 16px; font-size: 15px; box-shadow: 0 12px 40px var(--shade); display: none; }
     .toast.on { display: block; }
     .late { color: var(--late); } .ok { color: var(--ok); } .caution { color: var(--caution); }
-    .camera { position: relative; overflow: hidden; display: inline-block; }
+    .camera { position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; }
     .camera input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; }
+    a.pill { display: inline-flex; align-items: center; text-decoration: none; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     .pinform { max-width: 360px; margin: 48px auto; }
     .pinform .field { font-size: 24px; letter-spacing: .3em; text-align: center; }
     .err { color: var(--late); font-size: 14px; min-height: 20px; margin: 8px 0 0; }
   `
-  const head = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#15161C"><title>Bench.</title><style>${css}</style></head>` // tokens-ok
-  if (locked) return `${head}<body><div class="pinform panel"><h1>Bench.</h1><p class="meta">Too many wrong PINs from this phone. Wait five minutes and reload.</p></div></body></html>`
-  if (!authed) return `${head}<body><form class="pinform panel" id="f"><h1>Bench.</h1><p class="meta">The PIN from Settings, on the workshop network.</p>
+export const headHtml = (css = BASE_CSS, title = 'Bench.') => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="color-scheme" content="dark light"><meta name="theme-color" media="(prefers-color-scheme: dark)" content="#15161C"><meta name="theme-color" media="(prefers-color-scheme: light)" content="#F3F1EC"><title>${title}</title><style>${css}</style></head>` // tokens-ok
+const LOCKED_BODY = '<body><div class="pinform panel"><h1>Bench.</h1><p class="meta">Too many wrong PINs from this phone. Wait five minutes and reload.</p></div></body></html>'
+/** The PIN form. After the PIN it reloads, so the page asked for (the day or Rüsten) comes up. */
+export const pinPage = (title = 'Bench.') => `${headHtml(BASE_CSS, title)}<body><form class="pinform panel" id="f"><h1>Bench.</h1><p class="meta">The PIN from Settings, on the workshop network.</p>
 <input class="field" id="pin" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autofocus aria-label="PIN" placeholder="PIN"><p class="err" id="err"></p>
 <button class="pill primary" type="submit" style="width:100%">Open</button></form>
 <script>
@@ -227,11 +249,19 @@ document.getElementById('f').addEventListener('submit', async (e) => {
   if (r.ok) location.reload(); else err.textContent = (await r.json().catch(() => ({}))).error || 'Wrong PIN.'
 })
 </script></body></html>`
+export const lockedPage = (title = 'Bench.') => `${headHtml(BASE_CSS, title)}${LOCKED_BODY}`
+
+function page({ authed = false, locked = false } = {}) {
+  const head = headHtml()
+  if (locked) return lockedPage()
+  if (!authed) return pinPage()
   return `${head}<body>
 <h1>Bench.</h1><p class="meta" id="line">Loading the day.</p>
 <section class="panel" id="clock"><h2>Clock.</h2><div class="pills" id="punches"></div><p class="empty" id="clockline"></p></section>
 <section class="panel"><h2>Today.</h2><div id="today"></div>
 <form class="stack" id="add"><input class="field" id="title" placeholder="Quick add to Today" aria-label="New task" autocomplete="off"><button class="pill primary" type="submit">Add</button></form></section>
+<section class="panel"><h2>Rüsten.</h2><p class="empty" style="margin:0 0 10px" id="kitline">Kit a machine at the bench: tick, scan, and add photos.</p>
+<a class="pill primary" href="/kit">Open Rüsten</a></section>
 <section class="panel"><h2>Photo.</h2><p class="empty" style="margin:0 0 10px">A picture goes to the inbox folder; attach it to a task on the Board.</p>
 <label class="pill camera">Take a photo<input type="file" accept="image/*" capture="environment" id="camera" aria-label="Take a photo"></label></section>
 <div class="toast" id="toast" role="status"></div>
@@ -258,6 +288,7 @@ async function load() {
     if (b.orders) parts.push(b.orders + (b.orders === 1 ? ' order date' : ' order dates'))
     if (b.meetings.length) parts.push(b.meetings.length + (b.meetings.length === 1 ? ' meeting' : ' meetings') + ': ' + b.meetings.map(m => m.subject + (m.start ? ' ' + m.start : '')).join(', '))
     $('#line').textContent = (b.name ? b.name + ', ' : '') + parts.join(', ') + '.'
+    if (typeof b.kits === 'number') $('#kitline').textContent = b.kits ? b.kits + (b.kits === 1 ? ' job' : ' jobs') + ' to kit. Tick, scan, and add photos at the bench.' : 'No kit open. Kits start in the Rüsten tab of a plan on the desktop.'
     $('#punches').innerHTML = b.clock.valid.map(k => '<button class="pill' + (k === 'in' || k === 'out' ? ' primary' : '') + '" data-punch="' + k + '">' + LABEL[k] + '</button>').join('')
     $('#clockline').textContent = (b.clock.status === 'off' ? 'Not clocked in.' : b.clock.status === 'out' ? 'Clocked out, ' + hm(b.clock.worked) + ' today.' : b.clock.status === 'lunch' ? 'At lunch, ' + hm(b.clock.worked) + ' so far.' : hm(b.clock.worked) + ' on the clock.') + (b.clock.pending ? ' ' + b.clock.pending + ' not yet on the sheet.' : '')
     $('#today').innerHTML = b.today.length ? b.today.map(t => '<div class="row"><button class="tick" data-tick="' + t.id + '" aria-label="Done: ' + esc(t.title) + '">&#10003;</button><span class="t">' + esc(t.title) + (t.project || t.effortHours ? '<span class="m">' + esc([t.project, t.effortHours ? t.effortHours + ' h' : null].filter(Boolean).join(', ')) + '</span>' : '') + '</span></div>').join('') : '<p class="empty">Today is empty. Pull from Active on the Board, or add one below.</p>'

@@ -194,6 +194,9 @@ Shadows are never black, and no component writes its own.
   topics are plain chips with the small icon of their kind, then short ledgers of three lines. A line's meta
   says one fact (late, with whom, due), never the topic the chips already name.
 - Wall mode is the one page allowed larger type: nothing under 16 px, no controls, Escape leaves.
+- Workshop mode (Rüsten, and the phone's /kit) is read at arm's length at the bench: names at 18 to 19 px, ticks
+  as 52 px pills on the desktop and 60 px targets on the phone, a ticked one in `--ok`. The phone page follows the
+  phone's light or dark setting with the paper set of the tokens.
 - Photographs from the phone: thumbnails at 12 px radius, a task picker, Attach and Dismiss.
 - Empty state: one sentence that says what to do next, in `--ink-3`, never "No data".
 - Loading: a skeleton in the shape of what is coming (`Skeleton.jsx`: page, panel, ledger). Never
