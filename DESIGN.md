@@ -143,6 +143,10 @@ Shadows are never black, and no component writes its own.
   Text is one plain line, no exclamation marks. Never on the desktop during a meeting, a focus session or the
   quiet hours; the Bell keeps it.
 
+- The Sources light (top bar, beside the Bell): a dot and the word, the dot without colour while every tool
+  reads or is off on purpose, `--caution` when one is out of date or reads the wrong thing, `--late` when one
+  needs a sign-in or fails. Its list is a paper popover like the Bell's: one ledger line per tool, the state in
+  a word, the reason in one plain sentence, "last read 13:09" or "since Wed 7 Oct", and at most one action.
 - Button: pill, three kinds and no more, as classes in `index.css`. `.btn-primary`: accent fill with
   `--accent-ink`, the one primary action on a screen. `.btn-quiet`: the `--wash`, `--ink-2` type, no
   border. `.btn-ghost`: type only, the wash on hover (Cancel, back links, filters that are off). A

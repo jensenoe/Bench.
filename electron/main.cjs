@@ -119,6 +119,31 @@ async function runInSite(url, js, { timeoutMs = 30000 } = {}) {
 }
 
 /**
+ * A tool's own session ran out; the Microsoft sign-in behind it usually has not (roadmap 174). Load the tool in a
+ * hidden window on the same session and let the redirects run: with a live Microsoft cookie the login page posts
+ * straight back to the tool, which sets a fresh session, and the probe passes. Nothing is typed and no popup may
+ * open; when Microsoft wants a person (an account picker, a password, MFA) the probe never passes and this gives
+ * up after `timeoutMs`. Resolves true or false, never throws.
+ */
+async function refreshSession(origin, probeJs, { timeoutMs = 45000 } = {}) {
+  if (!allowed(origin) || !probeJs) return false
+  const win = hiddenWindow()
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  try {
+    await win.loadURL(origin).catch(() => { /* a redirect chain can abort the first load; the page carries on */ })
+    const until = Date.now() + timeoutMs
+    while (Date.now() < until && !win.isDestroyed()) {
+      await new Promise(r => setTimeout(r, 1500))
+      if (win.isDestroyed() || !win.webContents.getURL().startsWith(origin)) continue   // still at Microsoft
+      try {
+        if (await win.webContents.executeJavaScript(`(async () => { try { return await (${probeJs}) } catch { return false } })()`, true)) return true
+      } catch { /* mid-navigation */ }
+    }
+    return false
+  } catch { return false } finally { if (!win.isDestroyed()) win.destroy() }
+}
+
+/**
  * Show a window so the user can sign in. Resolves when the tool reports itself signed in
  * (a probe evaluated in the page every 1.5 s), when the user closes the window, or after 5 min.
  * The old "closed when back on the origin" rule fired on the very first load, before the
@@ -410,7 +435,7 @@ async function start() {
   toolSession.setPermissionRequestHandler((_wc, _perm, cb) => cb(false))
 
   const { bridge } = await esm('server', 'bridge.js')
-  Object.assign(bridge, { desktop: true, fetchWithSession, runInSite, openSignIn, hasSession, notify })
+  Object.assign(bridge, { desktop: true, fetchWithSession, runInSite, openSignIn, hasSession, refreshSession, notify })
   applyStartupDefault()
 
   const port = await freePort()

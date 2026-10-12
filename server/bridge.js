@@ -15,6 +15,8 @@ export const bridge = {
   openSignIn: null,
   /** is there a live session for this origin? */
   hasSession: null,
+  /** (origin, probeJs) -> true when a hidden window on the session got the tool signed in again without a person (roadmap 174) */
+  refreshSession: null,
   /** desktop notification; { title, body, route } - route is a hash the window jumps to on click */
   notify: null
 }

@@ -3,6 +3,7 @@ import { ArrowSquareOut, ArrowsClockwise, SignIn, Check, Warning } from '@phosph
 import * as api from '../api.js'
 import TaskCard from './TaskCard.jsx'
 import { STATUS } from '../scenes.js'
+import { useSourceHealth, whenOf } from './SourceHealth.jsx'
 
 const ORDER = ['issues', 'qms', 'bom', 'planner', 'innovation']
 
@@ -16,6 +17,9 @@ export default function Tools({ state, onPatch, onDelete, onRefresh, onConnect }
   const sources = state.sources || {}
   const tasks = state.tasks
   const who = (state.settings?.name || '').split(/\s+/)[0] || 'you'
+  // the same states as the Sources light in the top bar (roadmap 174): stale and suspect, and since when
+  const { data: healthData } = useSourceHealth()
+  const health = Object.fromEntries((healthData?.sources || []).map(h => [h.key, h]))
 
   const describe = (r) => {
     if (!r) return null
@@ -49,7 +53,15 @@ export default function Tools({ state, onPatch, onDelete, onRefresh, onConnect }
     else if (needsSignIn) { status = s.kind === 'graph' ? 'Not connected' : 'Not signed in'; tone = STATUS.caution }
     else if (last) { status = `${open.length} assigned to ${who}${s.total != null ? ` of ${s.total}` : ''} · synced ${last}${s.stale ? ', cached copy' : ''}`; tone = 'var(--ink-2)' }
     else status = 'Connected, not synced yet'
-    return { key, s, mine, open, needsSignIn, expired, adminWait, problem, status, tone }
+    const h = health[key]
+    // out of date with no other complaint: say so instead of the cheerful count
+    if (h?.state === 'stale' && !problem && !adminWait && !expired && !needsSignIn && s.available) { status = h.reason; tone = STATUS.caution }
+    // a sign-in that dropped is the light's red; a tool never connected is off, not a warning
+    if (needsSignIn && h?.state === 'signin') tone = STATUS.overdue
+    if (needsSignIn && h?.state === 'off') tone = 'var(--ink-3)'
+    const since = h && ['signin', 'error', 'stale'].includes(h.state) && h.since ? `since ${whenOf(h.since)}` : null
+    const suspect = h?.state === 'suspect' ? h.reason : null
+    return { key, s, mine, open, needsSignIn, expired, adminWait, problem, status, tone, since, suspect, stale: h?.state === 'stale' }
   }).filter(Boolean)
 
   const btn = 'pill flex items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium disabled:opacity-50'
@@ -64,7 +76,7 @@ export default function Tools({ state, onPatch, onDelete, onRefresh, onConnect }
       )}
 
       <section className="panel px-6 py-2 sm:px-7">
-        {rows.map(({ key, s, needsSignIn, expired, adminWait, problem, status, tone }, i) => (
+        {rows.map(({ key, s, needsSignIn, expired, adminWait, problem, status, tone, since, suspect, stale }, i) => (
           <div key={key} className="flex flex-wrap items-center gap-x-5 gap-y-2 py-3.5" style={{ borderTop: i ? '1px solid var(--line)' : 'none' }}>
             <div className="min-w-[200px]">
               <div className="display text-[18px] font-semibold leading-none">{s.label}.</div>
@@ -73,7 +85,8 @@ export default function Tools({ state, onPatch, onDelete, onRefresh, onConnect }
               </a>
             </div>
             <div className="min-w-0 flex-1 text-[13.5px]" style={{ color: tone }}>
-              <span className="inline-flex items-center gap-1.5">{problem || adminWait || expired ? <Warning size={13} weight="bold" /> : (!needsSignIn && s.available && s.lastSync) ? <Check size={13} weight="bold" color={STATUS.done} /> : null}{status}</span>
+              <span className="inline-flex items-center gap-1.5">{problem || adminWait || expired || stale ? <Warning size={13} weight="bold" /> : (!needsSignIn && s.available && s.lastSync) ? <Check size={13} weight="bold" color={STATUS.done} /> : null}{status}{since ? `, ${since}` : ''}</span>
+              {suspect && <div className="mt-0.5 flex items-center gap-1.5 text-[13.5px]" style={{ color: STATUS.caution }}><Warning size={13} weight="bold" />{suspect}</div>}
               {result[key] && <div className="mt-0.5 text-[13.5px]" style={{ color: result[key].startsWith('Failed') || result[key].startsWith('The tool') ? STATUS.caution : 'var(--ink-3)' }}>{result[key]}</div>}
             </div>
             <div className="flex items-center gap-2">

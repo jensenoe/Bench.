@@ -11,6 +11,7 @@
  *   logbook    desktop  a meeting just ended, write it down; actions due today; both come rarely
  *   project    desktop  an innovation project due in three working days or overdue, three toasts a day at most
  *   escalate   desktop  a Paket or E2E plan to escalate to its owner now (roadmap 170), once a day per plan
+ *   sources    desktop  a tool Bench. reads dropped: needs a sign-in, fails or stopped updating (roadmap 174); once a day per tool
  *   clock      desktop  the time clock's lunch, back and morning digest, plus not clocked in, still clocked in
  *   parts      desktop  an ordered part to chase; three toasts a day, the rest in the Bell
  *   nudge      desktop  water and coffee, four a day (nudges.js keeps its own rules on top)
@@ -40,6 +41,7 @@ export const CATEGORIES = [
   { key: 'logbook', label: 'Logbook', hint: 'A meeting just ended; actions due today or overdue.', mode: 'desktop', cap: 8 },
   { key: 'project', label: 'Innovation projects', hint: 'Due within three working days, or overdue.', mode: 'desktop', cap: 3 },
   { key: 'escalate', label: 'Escalations', hint: 'A Paket or E2E to take to its owner now: little room, due today, an open issue. Once a day per plan.', mode: 'desktop', cap: null },
+  { key: 'sources', label: 'Sources', hint: 'A tool Bench. reads needs a sign-in, fails or stopped updating. Once a day per tool.', mode: 'desktop', cap: null },
   { key: 'clock', label: 'Time clock', hint: 'Lunch, the morning digest, not clocked in by 09:30, still in at 18:30.', mode: 'desktop', cap: null },
   { key: 'parts', label: 'Parts to chase', hint: 'An ordered part inside its lead time.', mode: 'desktop', cap: 3 },
   { key: 'nudge', label: 'Water and coffee', hint: 'Before a long meeting, after a long stretch.', mode: 'desktop', cap: 4 },

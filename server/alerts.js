@@ -16,6 +16,7 @@
  *              days, or overdue; once per project per day
  *   escalate   working days, 08:00 to 18:00: a Paket or E2E plan with reasons to escalate now (workflow.js,
  *              roadmap 170); once per plan per day
+ *   sources    a tool Bench. reads dropped to needs-signin, error or stale (source-health.js, roadmap 174); once per drop
  *   arrivals   new open work from Planner or Issues since the last look (Bell only by default)
  *   clock      working days, 09:30 to 12:00: not clocked in yet; any day from 18:30: still clocked in.
  *              timeclock.js sends lunch (12:00), back from lunch and the morning digest; nothing here repeats those.
@@ -36,6 +37,7 @@ import { meetingsCached } from './day.js'
 import { notify, holdFor, fireSnoozed } from './notify.js'
 import { prepRoute } from './meetprep-live.js'
 import { escalations } from './workflow.js'
+import { watch as watchSources } from './source-health.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const FILE = () => path.join(process.env.BENCH_USER_DIR || process.env.BENCH_SECRETS_DIR || process.env.BENCH_DATA_DIR || path.join(__dirname, '..', 'data'), 'alerts.json')
@@ -291,6 +293,7 @@ const jobs = [
     for (const e of escalations(ymd(now))) if (notify(escalateMessage(e), { now })) sent++
     return sent
   }],
+  ['sources', (now) => watchSources(now)],
   ['arrivals', (now) => {
     const s = load(), tasks = store.allTasks()
     const newest = list => list.filter(t => ARRIVAL_SOURCES.includes(t.source) && t.createdAt).map(t => t.createdAt).sort().at(-1) || null

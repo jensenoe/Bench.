@@ -26,10 +26,34 @@ export const SOURCES = {
 
 const FETCH = { issues: fetchIssues, qms: fetchQms, bom: fetchBom, innovation: fetchInnovation }
 
+/**
+ * Sign-ins that last (roadmap 174). A tool's own session cookie runs out long before the Microsoft sign-in
+ * behind it does, and a plain fetch cannot walk the Microsoft redirect back (it ends on a page that posts a form
+ * with script). So before a tool that read fine is marked needs-signin, the desktop opens it once in a hidden
+ * window on the same session: when the Microsoft cookie is still good the redirect completes by itself and the
+ * probe passes. Nothing is typed and nothing is shown; when Microsoft wants a person, it times out. Only for a tool
+ * that was signed in, and at most every 30 minutes per tool, so a tool that really needs you is not retried in a loop.
+ */
+export const RENEW_EVERY_MS = 30 * 60_000
+const renewedAt = new Map()
+export async function renewSession(key, now = Date.now()) {
+  const def = SOURCES[key]
+  if (!def || def.kind !== 'site' || !def.probe || !bridge.desktop || typeof bridge.refreshSession !== 'function') return false
+  if (getMeta().sources?.[key]?.signedIn !== true) return false
+  if (now - (renewedAt.get(key) || 0) < RENEW_EVERY_MS) return false
+  renewedAt.set(key, now)
+  try {
+    const ok = Boolean(await bridge.refreshSession(def.origin, def.probe))
+    console.log(`[sync:${key}] session ${ok ? 'renewed silently' : 'not renewed, needs a sign-in'}`)
+    return ok
+  } catch (err) { console.warn(`[sync:${key}] renew failed:`, err.message); return false }
+}
+
 export async function syncSource(key) {
   if (key === 'planner') return syncFromPlanner()
   try {
-    const r = await FETCH[key]()
+    let r = await FETCH[key]()
+    if (!r.ok && r.reason === 'needs-signin' && await renewSession(key)) r = await FETCH[key]()
     if (!r.ok) {
       noteSourceError(key, r.reason)
       if (r.reason === 'needs-signin') patchSource(key, { signedIn: false })

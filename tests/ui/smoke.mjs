@@ -26,7 +26,7 @@ const LEFTOVER = { id: crypto.randomUUID(), source: 'local', plannerId: null, ti
 // One innovation project from Planner, so #/projects has a list and a timeline to check (roadmap 162).
 const INNO = { ...LEFTOVER, id: crypto.randomUUID(), source: 'planner', sourceId: 'pl-ui', plannerId: 'pl-ui', title: 'I-1050 Handgrip strength', lane: 'innovation', dueDate: new Date(Date.now() + 40 * 86400000).toISOString().slice(0, 10) + 'T00:00:00Z', planTitle: 'Innovation', bucketName: 'Prüfung (testing)', sourceStatus: 'open', order: 1 }
 fs.mkdirSync(path.join(dir, 'data'), { recursive: true })
-fs.writeFileSync(path.join(dir, 'data', 'tasks.json'), JSON.stringify({ tasks: [LEFTOVER, INNO], meta: { lastSync: null, lastSyncError: null, sources: {}, version: 2 } }, null, 2))
+fs.writeFileSync(path.join(dir, 'data', 'tasks.json'), JSON.stringify({ tasks: [LEFTOVER, INNO], meta: { lastSync: null, lastSyncError: null, sources: { planner: { lastSync: yesterday, count: 1, error: null } }, version: 2 } }, null, 2))   // Planner read once and lost its account: the Sources light has something to say (roadmap 174)
 // The runner's clock is UTC and several checks depend on the hour; the server and the browser run on Zurich time.
 const TZ = 'Europe/Zurich'
 const server = spawn(process.execPath, [path.join(root, 'server', 'index.js')], { env: { ...process.env, TZ, BENCH_DATA_DIR: path.join(dir, 'data'), BENCH_USER_DIR: path.join(dir, 'user'), BENCH_SECRETS_DIR: path.join(dir, 'user'), PORT: String(port), SYNC_INTERVAL_MINUTES: '0' }, stdio: ['ignore', 'pipe', 'pipe'] })
@@ -414,6 +414,26 @@ try {
   check('ticking result and date opens the gate to Liefern', await page.getByRole('heading', { name: 'Now: Liefern.' }).count() === 1)
   const doneReport = await fetch(`${BASE}/api/report/done/${pk.body.id}`).then(async r => ({ status: r.status, text: await r.text() }))
   check('GET /api/report/done answers with the done report', doneReport.status === 200 && /UI Paket/.test(doneReport.text) && /Agreed result/.test(doneReport.text), String(doneReport.status))
+
+  // the Sources light (roadmap 174): Planner read yesterday and has no account now, so the light is late; it opens,
+  // lists every source with its state and the one action, passes axe, and Escape gives focus back
+  await page.goto(`${BASE}/#/board`); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(800)
+  const srcHealth = await api('GET', '/api/sources/health')
+  check('GET /api/sources/health says Planner needs a sign-in', srcHealth.status === 200 && srcHealth.body.state === 'signin' && srcHealth.body.sources?.find(s => s.key === 'planner')?.action === 'connect', JSON.stringify(srcHealth.body.sources?.map(s => `${s.key}:${s.state}`)))
+  const light = page.getByRole('button', { name: /^Sources/ })
+  check('the Sources light says one is not reading', /1 not reading/.test(await light.getAttribute('aria-label') || ''), await light.getAttribute('aria-label'))
+  await light.click(); await page.waitForTimeout(400)
+  const srcPanel = page.getByRole('dialog', { name: 'Sources' })
+  const srcRows = await srcPanel.locator('li').count()
+  check('the Sources light opens and lists every source', srcRows === (srcHealth.body.sources || []).length && srcRows === 5, String(srcRows))
+  check('the Sources list offers Connect Microsoft 365 for Planner', await srcPanel.getByRole('button', { name: /^Connect Microsoft 365/ }).count() === 1)
+  await page.waitForFunction(() => document.getAnimations().every(a => a.playState !== 'running'), null, { timeout: 4000 }).catch(() => {})
+  const srcAxe = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze()
+  check('axe with the Sources light open: no accessibility violations', srcAxe.violations.length === 0, violations(srcAxe))
+  const srcSmall = await page.evaluate(() => [...document.querySelectorAll('[role=dialog][aria-label="Sources"] button, [role=dialog][aria-label="Sources"] a')].filter(el => { const r = el.getBoundingClientRect(); return r.height < 24 || r.width < 24 }).length)
+  check('every control in the Sources list is at least 24 px', srcSmall === 0, String(srcSmall))
+  await page.keyboard.press('Escape'); await page.waitForTimeout(300)
+  check('Escape closes the Sources list and gives focus back to the light', await srcPanel.count() === 0 && /^Sources/.test(await page.evaluate(() => document.activeElement?.getAttribute('aria-label') || '')))
 
   check('no console errors across the run', errors.length === 0, [...errors.slice(0, 3), ...failedUrls.slice(0, 4)].join(' | '))
 } catch (err) {
