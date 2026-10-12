@@ -50,6 +50,22 @@ describe('Today as a report (roadmap 164)', () => {
     expect(html).toContain('Frame welded')
     expect(html).toContain('Noël Jensen')
   })
+  it('puts the jobs above Today: name, step, next and deadline (roadmap 175)', () => {
+    const jobs = [
+      { id: 'rc', name: 'Remote Coach <rig>', kind: 'e2e', kindLabel: 'E2E', stepName: 'Rüsten', next: 'Rüsten: 18 items open on 3 machines.', deadline: today, daysLeft: 0 },
+      { id: 'wd', name: 'Wiring diagram', kind: 'paket', kindLabel: 'Paket', stepName: 'Liefern', next: 'Escalate: 1 working day behind, 2 items open.', deadline: '2026-09-29', daysLeft: -1 },
+      { id: 'lp', name: 'Leg press 7', kind: 'plan', kindLabel: 'Plan', stepName: 'Test', next: 'FAT in 8 working days, nothing open.', deadline: '2026-10-12', daysLeft: 8 }
+    ]
+    const withJobs = todayReport({ tasks, meetings, yesterday: '2026-09-29', jobs }, { today })
+    expect(withJobs).toContain('<h2>Jobs</h2>')
+    expect(withJobs.indexOf('<h2>Jobs</h2>')).toBeLessThan(withJobs.indexOf('<h2>On today</h2>'))
+    expect(withJobs).toContain('Remote Coach &lt;rig&gt; (E2E)')
+    expect(withJobs).toContain('Rüsten: 18 items open on 3 machines.')
+    expect(withJobs).toContain('<td class="n">today</td>')
+    expect(withJobs).toContain('class="late">29 Sep 2026')
+    expect(withJobs).toContain('12 Oct 2026')
+    expect(html).not.toContain('<h2>Jobs</h2>')   // none, no section
+  })
   it('says so when the day is empty', () => {
     const empty = todayReport({ tasks: [], meetings: [], yesterday: null }, { today })
     expect(empty).toContain('Nothing on Today yet.')

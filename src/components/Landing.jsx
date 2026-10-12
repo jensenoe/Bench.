@@ -6,6 +6,7 @@ import LeadTime from './LeadTime.jsx'
 import Photo from './Photo.jsx'
 import Week from './Week.jsx'
 import MeetPrepCard from './MeetPrepCard.jsx'
+import JobsStrip from './JobsStrip.jsx'   // every open Paket and E2E, first under the hero (roadmap 175)
 import { STATUS } from '../scenes.js'
 import { openTool } from '../api.js'
 import { SHEETS, greeting } from '../copy.js'
@@ -94,6 +95,7 @@ export default function Landing({ scene, stats, pressing, sheetState, doorImages
       </Vista>
 
       <main className="mx-auto col px-6">
+        <JobsStrip />
         <MeetPrepCard />
         <section className="grid grid-cols-2 gap-x-8 gap-y-10 py-16 sm:grid-cols-4" style={{ borderBottom: '1px solid var(--line)' }}>
           <Figure value={stats.today} label="on today" tone={stats.today > 5 ? STATUS.overdue : 'var(--accent)'} />

@@ -24,6 +24,7 @@ import * as history from './history.js'
 import * as raidd from './raidd.js'
 import * as raci from './raci.js'
 import * as W from './workflow-rules.js'
+import { gather as gatherJobs } from './jobs.js'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const LANE = { today: 'Today', active: 'Active', waiting: 'Waiting', innovation: 'Innovation', parked: 'Parked' }
@@ -216,7 +217,7 @@ export function previousWorkday(today, off = isOff) {
  * The day's plan on one page, for the person Noël reports to: what is on Today and why it matters (project,
  * where it came from, priority, due date, size, steps done), the hours against the workday, the meetings
  * (subject and time only), what waits on other people, and what was finished on the last working day.
- * Notes, links and folders stay out. `d` is { tasks, meetings, yesterday, doneIds }: yesterday is a date, doneIds the
+ * Notes, links and folders stay out. `d` is { tasks, meetings, yesterday, doneIds, jobs }: jobs from jobs.js, above Today; yesterday is a date, doneIds the
  * tasks finished that day (ticked here, or marked done in their tool). A card that arrived already done in a sync
  * was not finished that day, so it is not in doneIds; without doneIds, completedAt decides.
  */
@@ -246,7 +247,10 @@ ${fig(`${finished.length}`, d.yesterday ? `done on ${DAYS[new Date(`${d.yesterda
   const waitRows = waiting.map(t => `<tr><td>${esc(t.title)}</td><td>${esc(t.waitingOn || '')}</td><td class="n">${esc(fmt(t.waitingSince))}</td></tr>`)
   const doneRows = finished.map(t => `<tr><td>${esc(t.title)}</td><td>${esc(partOf(t))}</td></tr>`)
   const dayName = DAYS[new Date(`${today}T12:00:00`).getDay()]
+  // the open Pakete and E2E jobs first, one line each (roadmap 175); left out when there are none
+  const jobRows = (d.jobs || []).map(j => `<tr><td>${esc(j.name)} (${esc(j.kindLabel || j.kind)})</td><td>${esc(j.stepName || '')}</td><td>${esc(j.next)}</td><td class="n">${!j.deadline ? '' : j.daysLeft < 0 ? `<span class="late">${esc(fmt(j.deadline))}</span>` : j.daysLeft === 0 ? 'today' : esc(fmt(j.deadline))}</td></tr>`)
   const body = `${figs}
+${jobRows.length ? `<h2>Jobs</h2>${table(['Job', 'Step', 'Next', { t: 'Deadline', n: true }], jobRows, '')}` : ''}
 <h2>On today</h2>${table(['Task', 'Project', 'From', { t: 'Priority', n: true }, { t: 'Due', n: true }, ...(anySize ? [{ t: 'Effort', n: true }] : []), { t: 'Progress', n: true }], rows, 'Nothing on Today yet.')}
 <p class="note">${esc(`${hrs(free)} free in a ${hrs(workdayHours)} workday${meetings.length ? ` after ${hrs(inMeetings)} of meetings (overlaps counted once)` : ''}.${anySize ? ' Effort is the whole task, not today\'s share.' : ''}`)}</p>
 <h2>Meetings</h2>${table(['Time', 'Meeting'], meetingRows, 'No meetings on the calendar today.')}
@@ -322,7 +326,9 @@ export function registerRoutes(app) {
     const meetings = await meetingsCached().catch(() => [])
     const s = settings.get()
     const yesterday = previousWorkday(today)
-    send(res, todayReport({ tasks: store.allTasks(), meetings, yesterday, doneIds: finishedOn(yesterday) }, { today, author: author(), workdayHours: Number(s.workdayHours) || 8.4, print: req.query.print === '1' }))
+    let jobs = []
+    try { jobs = gatherJobs(today) } catch { /* the day's plan goes out without them */ }
+    send(res, todayReport({ tasks: store.allTasks(), meetings, yesterday, doneIds: finishedOn(yesterday), jobs }, { today, author: author(), workdayHours: Number(s.workdayHours) || 8.4, print: req.query.print === '1' }))
   }))
   app.get('/api/report/portfolio', wrap((req, res) => {
     const today = todayIso(), { projects: list, summary } = portfolio.overview(today)
